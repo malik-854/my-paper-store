@@ -612,17 +612,15 @@ h3 { font-size: 1.3rem; }
     }
     
     .product-grid {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 15px;
-        padding: 20px 15px;
-        scrollbar-height: 6px;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+        padding: 15px 10px;
     }
     
     .product-card {
-        flex: 0 0 160px; /* Fixed width for mobile */
+        padding: 10px;
     }
+    
     .product-card img {
         height: 100px;
     }
