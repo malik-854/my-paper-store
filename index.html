@@ -410,40 +410,46 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     .search-container {
         padding: 0 10px 10px;
     }
-    /* Hide the button on large screens if needed, though default position should handle it */
-    #view-cart-btn {
-        display: block; /* Ensure button is visible on mobile */
+    /* Ensure the cart button is visible on mobile */
+    .hidden-on-desktop { /* Assuming you used the class I provided for the button */
+        display: block !important;
     }
 
     /* 2. PRODUCT GRID & CARDS (Horizontal Scroll) */
+    /* *** CRITICAL FIX: REMOVE GENERAL SCROLLING FOR CATEGORY SCROLLING *** */
     .product-grid {
-        /* CRITICAL CHANGE: Force content to be wide and allow scrolling */
-        flex-wrap: nowrap;
-        overflow-x: scroll; /* Enable horizontal scrolling */
-        overflow-y: hidden;
-        justify-content: flex-start; /* Align items to the left */
+        /* These lines are REMOVED to allow category-specific scrolling to work */
+        /* flex-wrap: nowrap; */
+        /* overflow-x: scroll; */
+        /* overflow-y: hidden; */
+        /* justify-content: flex-start; */ 
         gap: 15px;
         padding: 20px 10px;
+        /* Ensure the main grid now stacks vertically again */
+        flex-wrap: wrap; 
+        overflow-x: visible;
+        justify-content: center;
     }
-    .product-grid::-webkit-scrollbar {
-        height: 6px; /* Styling for the scrollbar */
+    
+    /* ADDED RULE FOR CATEGORY-SPECIFIC HORIZONTAL SCROLLING */
+    .category-scroller {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: scroll;
+        overflow-y: hidden;
+        gap: 15px;
+        padding: 0 10px 20px 10px;
     }
-    .product-grid::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 10px;
-    }
-
-    .product-card {
+    
+    /* Apply fixed card size to both containers */
+    .product-card, .category-scroller .product-card {
         /* Set a fixed size for the cards to enable scrolling */
-        flex: 0 0 200px; /* Do not grow, do not shrink, fix width at 200px */
-        width: 200px; /* Explicit width */
+        flex: 0 0 200px;
+        width: 200px; 
         padding: 15px;
         box-sizing: border-box;
     }
-    .product-card img {
-        max-height: 150px;
-    }
-
+    
     /* 3. CART CONTAINER (Hidden/Modal Look) */
     #cart-container {
         /* HIDE THE CART IN THE MOBILE FLOW until the button is pressed */
@@ -462,6 +468,11 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         overflow-y: auto;
     }
     
+    /* *** CRITICAL FIX: SHOW CART WHEN mobile-active CLASS IS ADDED *** */
+    #cart-container.mobile-active {
+        display: block !important; /* This overrides the 'display: none' above */
+    }
+    
     /* 4. CHECKOUT MODAL */
     #checkout-modal > div {
         max-width: 95%;
@@ -473,6 +484,15 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     }
     .checkout-summary-column {
         order: -1;
+    }
+    
+    /* Clear up old scrollbar rules which are now applied to .category-scroller */
+    .product-grid::-webkit-scrollbar, .category-scroller::-webkit-scrollbar {
+        height: 8px; /* Styling for the scrollbar */
+    }
+    .product-grid::-webkit-scrollbar-thumb, .category-scroller::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
     }
 }
 </style>
