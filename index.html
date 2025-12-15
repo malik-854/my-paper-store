@@ -3,52 +3,98 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Paper Webstore</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght=400;700&display=swap" rel="stylesheet">
+<title>Premium Paper Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lunr/lunr.js"></script>
 <style>
 /* --- BASE & TYPOGRAPHY --- */
+:root {
+    --primary: #004c99;
+    --primary-dark: #003366;
+    --secondary: #28a745;
+    --secondary-dark: #1f8b3b;
+    --danger: #dc3545;
+    --danger-dark: #b52a37;
+    --light-gray: #f8f8f8;
+    --medium-gray: #e0e0e0;
+    --dark-gray: #6a6a6a;
+    --text: #333;
+    --text-light: #f8f8f8;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --radius: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body { 
     font-family: 'Roboto', sans-serif; 
     margin: 0; 
-    background-color: #f8f8f8; 
-    color: #333;
+    background-color: var(--light-gray); 
+    color: var(--text);
+    line-height: 1.6;
 }
 h1, h2, h3 { 
     font-family: 'Playfair Display', serif; 
     font-weight: 700;
     color: #212529;
+    margin-top: 0;
 }
 h1 { font-size: 2.5rem; }
 h2 { font-size: 1.8rem; margin-top: 25px; }
+h3 { font-size: 1.3rem; }
 
 /* --- HEADER --- */
 .header { 
-    background-color: #004c99; 
+    background-color: var(--primary); 
     color: white; 
-    padding: 30px 15px; 
-    text-align: center; 
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    position: relative; /* Needed for search bar positioning */
+    padding: 25px 15px 15px; 
+    position: relative;
+    box-shadow: var(--shadow);
+}
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
 }
 .header p { 
     font-weight: 300; 
     font-size: 1.1rem; 
     opacity: 0.9;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
-/* NEW SEARCH STYLES */
+
+/* --- MOBILE HEADER CONTROLS --- */
+.mobile-header-controls {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    margin-bottom: 10px;
+}
+
+.mobile-menu-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* --- SEARCH --- */
 .search-container {
-    padding: 0 20px 20px;
+    padding: 0 15px 15px;
     max-width: 600px;
     margin: 0 auto;
 }
 .search-container input {
     width: 100%;
-    padding: 12px 15px;
+    padding: 14px 18px;
     border: none;
     border-radius: 8px;
-    font-size: 1.1rem;
+    font-size: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.3s;
 }
@@ -57,25 +103,25 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
 }
 
-
 /* --- PRODUCT GRID --- */
 .product-grid { 
-    display: flex; 
-    flex-wrap: wrap; 
-    /* Optional: Reduce gap if needed */
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 20px; 
     padding: 30px 20px; 
-    justify-content: center; 
+    max-width: 1200px;
+    margin: 0 auto;
 }
 .product-card { 
     background: white; 
-    border: 1px solid #e0e0e0; 
-    border-radius: 12px; 
-    padding: 10px; 
-    /* CHANGED: Smaller width for the card */
-    width: 180px; 
+    border: 1px solid var(--medium-gray); 
+    border-radius: var(--radius); 
+    padding: 15px; 
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 .product-card:hover {
     transform: translateY(-5px);
@@ -83,25 +129,38 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 }
 .product-card img { 
     width: 100%; 
-    max-height: 120px; 
+    height: 140px; 
     object-fit: contain; 
-    margin-bottom: 2px; 
+    margin-bottom: 12px; 
     border-radius: 8px;
+    background: #f5f5f5;
 }
 
-/* --- DETAILS & PRICE --- */
+/* --- PRODUCT DETAILS --- */
+.product-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+.product-card h3 {
+    font-size: 1.1rem;
+    margin: 5px 0 10px;
+    line-height: 1.3;
+    flex-grow: 1;
+}
 .price { 
     font-size: 1.3em; 
-    color: #004c99; 
+    color: var(--primary); 
     font-family: 'Playfair Display', serif;
     font-weight: 700;
     margin: 5px 0;
 }
 .details { 
-    font-size: 0.95em; 
-    color: #6a6a6a; 
+    font-size: 0.9em; 
+    color: var(--dark-gray); 
     line-height: 1.4;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
+    flex-grow: 1;
 }
 
 /* --- VARIATIONS --- */
@@ -109,128 +168,207 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     display: flex; 
     flex-wrap: wrap; 
     gap: 6px; 
-    margin-bottom: 15px; 
+    margin-bottom: 12px; 
 }
 .variation-btn { 
-    padding: 8px 15px; 
+    padding: 8px 12px; 
     border: 1px solid #ccc; 
     border-radius: 20px; 
     cursor: pointer; 
     background-color: #ffffff;
     font-size: 0.85em;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 .variation-btn:hover {
     background-color: #f0f0f0;
 }
 .variation-btn.active { 
-    background-color: #004c99; 
+    background-color: var(--primary); 
     color: white; 
-    border-color: #004c99; 
+    border-color: var(--primary); 
     font-weight: 700;
 }
 
 /* --- QUANTITY & CART BUTTON --- */
 .qty-row { 
     display: flex; 
-    gap: 15px; 
-    margin-top: 20px; 
+    gap: 10px; 
+    margin-top: 15px;
+}
+.qty-input {
+    width: 70px;
+    flex-shrink: 0;
 }
 .qty-row input { 
-    width: 80px; 
-    padding: 8px; 
+    width: 100%; 
+    padding: 10px; 
     border: 1px solid #ccc; 
     border-radius: 5px; 
     text-align: center; 
     font-size: 1em;
 }
 .btn-cart { 
-    background-color: #28a745; 
+    background-color: var(--secondary); 
     color: white; 
     border: none; 
-    padding: 10px; 
+    padding: 10px 15px; 
     border-radius: 5px; 
     cursor: pointer; 
     font-weight: 700;
     transition: background-color 0.2s;
+    flex-grow: 1;
+    white-space: nowrap;
 }
 .btn-cart:hover {
-    background-color: #1f8b3b;
+    background-color: var(--secondary-dark);
 }
 
-/* --- CART CONTAINER --- */
-/* --- CART CONTAINER (NEW DESKTOP/DEFAULT STYLES) --- */
-/* The cart will be hidden by default on desktop, and only shown after clicking the button */
-#cart-container {
-    position: absolute; /* Change from fixed to absolute for desktop */
+/* --- CART BUTTON (FLOATING) --- */
+#view-cart-btn {
+    position: fixed;
+    bottom: 20px;
     right: 20px;
-    top: 100px;
-    width: 300px;
+    padding: 15px 20px;
+    background: var(--secondary);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1em;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+#view-cart-btn .cart-count {
     background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 15px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-    z-index: 1500; /* Ensure it floats above content */
-    display: none; /* HIDE BY DEFAULT */
+    color: var(--secondary);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+/* --- CART CONTAINER (MOBILE-FIRST) --- */
+#cart-container {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-left: 1px solid var(--medium-gray);
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+    z-index: 2000;
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 #cart-container.active {
-    display: block; /* Show when activated by button */
+    right: 0;
 }
-#cart-container h3 {
-    margin-top: 0;
-    border-bottom: 2px solid #004c99;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-    font-size: 1.4rem;
+.cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--medium-gray);
+    background: var(--primary);
+    color: white;
+}
+.cart-header h3 {
+    margin: 0;
+    color: white;
+}
+#cart-close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cart-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+#cart-items {
+    margin-bottom: 20px;
 }
 .cart-item {
-    border-bottom: 1px dashed #e0e0e0;
-    padding: 10px 0;
+    border-bottom: 1px dashed var(--medium-gray);
+    padding: 15px 0;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    font-size: 0.9em;
+    font-size: 0.95em;
 }
-.cart-item:last-child { border-bottom: none; }
-.cart-total { 
-    font-weight: 700; 
-    margin-top: 15px; 
-    text-align: right; 
-    font-size: 1.1em;
-    color: #004c99;
+.cart-item:last-child { 
+    border-bottom: none; 
+}
+.cart-item-details {
+    flex: 1;
+    padding-right: 10px;
+}
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 .remove-btn { 
-    background: #dc3545; 
+    background: var(--danger); 
     color: white; 
     border: none; 
-    padding: 3px 6px; 
+    padding: 5px 10px; 
     border-radius: 4px; 
     cursor: pointer; 
-    font-size: 0.7em;
-    margin-left: 10px;
-    align-self: center;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+.cart-footer {
+    padding: 20px;
+    border-top: 1px solid var(--medium-gray);
+    background: #f9f9f9;
+}
+.cart-total { 
+    font-weight: 700; 
+    margin-bottom: 20px; 
+    font-size: 1.3em;
+    color: var(--primary);
+    text-align: center;
 }
 .checkout-btn {
     width: 100%;
-    padding: 12px;
-    background: #004c99; 
+    padding: 16px;
+    background: var(--primary); 
     color: #fff;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    margin-top: 15px;
     font-size: 1.1em;
     font-weight: 700;
     transition: background-color 0.2s;
 }
 .checkout-btn:hover {
-    background-color: #003366;
+    background-color: var(--primary-dark);
 }
 
-/* --- CHECKOUT MODAL STYLES (UPDATED) --- */
+/* --- CHECKOUT MODAL --- */
 #checkout-modal {
     position: fixed;
     top: 0;
@@ -238,40 +376,37 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 2000;
+    z-index: 3000;
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 20px;
 }
 #checkout-modal > div {
     background: #fff;
-    width: 950px; 
-    max-width: 90%;
-    padding: 30px;
-    border-radius: 12px;
+    width: 100%;
+    max-width: 500px;
+    padding: 25px;
+    border-radius: var(--radius);
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
-
-.checkout-content-grid {
+.checkout-header {
     display: flex;
-    gap: 30px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--primary);
 }
-
-.checkout-details-column {
-    flex: 2; 
+.checkout-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--dark-gray);
 }
-
-.checkout-summary-column {
-    flex: 1; 
-    background: #f7f7f7; 
-    padding: 20px;
-    border-radius: 8px;
-    height: fit-content;
-}
-
-/* Input Group Styling */
 .input-group {
     margin-bottom: 20px;
 }
@@ -284,15 +419,15 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 }
 #checkout-modal input, #checkout-modal #delivery-address {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #e0e0e0;
+    padding: 14px;
+    border: 1px solid var(--medium-gray);
     border-radius: 6px;
     box-sizing: border-box;
     font-size: 1em;
     transition: border-color 0.2s;
 }
 #checkout-modal input:focus {
-    border-color: #004c99;
+    border-color: var(--primary);
     outline: none;
     box-shadow: 0 0 0 2px rgba(0, 76, 153, 0.1);
 }
@@ -300,50 +435,49 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 /* Shipping Buttons */
 .shipping-options {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     margin-top: 15px;
 }
 .shipping-option-btn {
     flex: 1;
-    padding: 12px 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
+    padding: 15px 10px;
+    border: 2px solid var(--medium-gray);
+    border-radius: 8px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s;
     background: #fff;
-    font-weight: 500;
 }
 .shipping-option-btn.active {
-    border-color: #28a745;
-    background-color: #e6f6e9; 
-    color: #28a745;
+    border-color: var(--secondary);
+    background-color: rgba(40, 167, 69, 0.1);
+    color: var(--secondary);
 }
 .shipping-option-btn span {
     display: block;
-    font-size: 0.8em;
-    font-weight: 400;
-    color: #888;
-}
-.shipping-option-btn.active span {
-    color: #28a745;
+    font-size: 0.85em;
+    margin-top: 5px;
+    font-weight: 500;
 }
 
-/* Order Summary Box */
+/* Order Summary */
+#checkout-summary-box {
+    background: #f7f7f7;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
 #checkout-summary-box h4 {
     margin-top: 0;
     border-bottom: 1px solid #ddd;
     padding-bottom: 10px;
     margin-bottom: 15px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: 700;
     font-size: 1.2rem;
-    color: #212529;
 }
 .summary-line {
     display: flex;
     justify-content: space-between;
-    padding: 5px 0;
+    padding: 8px 0;
     font-size: 0.95em;
 }
 .summary-total {
@@ -352,7 +486,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     padding-top: 15px;
     font-size: 1.4em;
     font-weight: 700;
-    color: #004c99;
+    color: var(--primary);
 }
 
 /* WhatsApp Button */
@@ -362,7 +496,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     justify-content: center;
     background-color: #25D366; 
     color: white;
-    padding: 15px;
+    padding: 16px;
     border: none;
     border-radius: 8px;
     margin-top: 20px;
@@ -370,278 +504,346 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     font-size: 1.1em;
     font-weight: 700;
     transition: background-color 0.2s;
+    width: 100%;
 }
 .whatsapp-btn:hover {
     background-color: #1DA851;
 }
 .whatsapp-icon {
     margin-right: 10px;
-}
-.modal-btn-close {
-    background-color: #6c757d;
-    color: #fff;
-    padding: 10px;
-    margin-top: 8px;
-    border: none;
-    border-radius: 5px;
-    width: 100%;
-    transition: background-color 0.2s;
-}
-.modal-btn-close:hover {
-    background-color: #5a6268;
-}
-#delivery-charges {
-    margin-top: 5px;
-    font-size: 0.9em;
-    color: #dc3545;
+    font-size: 1.2em;
 }
 
-/* ========================================= */
-/* --- MOBILE OPTIMIZATION (Media Query) --- */
-/* ========================================= */
+/* --- MOBILE OPTIMIZATION --- */
 @media (max-width: 768px) {
-
-    /* HEADER */
+    /* Header adjustments */
     .header {
-        padding: 20px 10px;
+        padding: 15px 10px 10px;
     }
-
+    
     .header h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
+        margin-bottom: 5px;
     }
+    
+    .header p {
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+    
+    .mobile-header-controls {
+        display: flex;
+    }
+    
+    /* Product Grid for Mobile Portrait */
+    .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 15px;
+        padding: 20px 15px;
+    }
+    
+    .product-card {
+        padding: 12px;
+    }
+    
+    .product-card img {
+        height: 120px;
+    }
+    
+    .product-card h3 {
+        font-size: 1rem;
+    }
+    
+    /* Cart button */
+    #view-cart-btn {
+        padding: 12px 18px;
+        font-size: 0.9em;
+        bottom: 15px;
+        right: 15px;
+    }
+}
 
+/* --- LANDSCAPE ORIENTATION --- */
+@media (max-width: 768px) and (orientation: landscape) {
+    .header {
+        padding: 10px;
+    }
+    
+    .header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .header p {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    
     .search-container {
         padding: 0 10px 10px;
     }
-
-    .hidden-on-desktop {
-        display: block !important;
-    }
-
-    /* PRODUCT GRID BASE */
+    
     .product-grid {
-        gap: 15px;
-        padding: 20px 10px;
-        flex-wrap: wrap;
-        overflow-x: visible;
-        justify-content: center;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+        padding: 15px 10px;
     }
-
-    /* CATEGORY SCROLLER FOR LANDSCAPE */
-    .category-scroller {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        overflow-y: hidden;
-        gap: 15px;
-        padding: 0 10px 20px 10px;
-    }
-
-    .product-card,
-    .category-scroller .product-card {
-        flex: 0 0 200px;
-        width: 200px;
-        padding: 15px;
-        box-sizing: border-box;
-    }
-
-    /* CART */
-    #cart-container {
-        display: none !important;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        max-height: 100vh;
-        border-radius: 0;
-        padding: 60px 20px 20px;
-        background: white;
-        z-index: 9999;
-        box-shadow: none;
-        overflow-y: auto;
-        box-sizing: border-box;
-    }
-
-    #cart-container.mobile-active {
-        display: block !important;
-    }
-
-    /* CHECKOUT */
-    #checkout-modal > div {
-        max-width: 95%;
-        padding: 20px;
-    }
-
-    .checkout-content-grid {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .checkout-summary-column {
-        order: -1;
-    }
-
-    /* SCROLLBARS */
-    .product-grid::-webkit-scrollbar,
-    .category-scroller::-webkit-scrollbar {
-        height: 8px;
-    }
-
-    .product-grid::-webkit-scrollbar-thumb,
-    .category-scroller::-webkit-scrollbar-thumb {
-        background: #ccc;
-        border-radius: 10px;
-    }
-
-   
-
-    #product-list .product-card {
-        width: 100%;
-        flex: none;
+    
+    .product-card {
         padding: 10px;
-        box-sizing: border-box;
     }
-
-    #product-list h3 {
-        font-size: 0.95em;
+    
+    .product-card img {
+        height: 100px;
     }
-
-    #product-list .product-card img {
-        max-height: 100px;
+    
+    .product-card h3 {
+        font-size: 0.95rem;
+        margin-bottom: 8px;
     }
-
+    
+    .variation-btn {
+        padding: 6px 10px;
+        font-size: 0.8em;
+    }
+    
+    .btn-cart {
+        padding: 8px 10px;
+        font-size: 0.9em;
+    }
+    
+    .qty-row input {
+        padding: 8px;
+    }
+    
+    /* Cart in landscape */
+    #cart-container {
+        width: 70%;
+        max-width: 400px;
+    }
+    
+    /* Checkout modal in landscape */
+    #checkout-modal > div {
+        max-width: 90%;
+        max-height: 95vh;
+    }
 }
 
-@media (max-width: 768px) and (orientation: portrait) {
-    .category-scroller {
-        display: grid;
+/* --- SMALL PHONES --- */
+@media (max-width: 480px) {
+    .product-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 12px;
-        overflow-x: visible;
-        padding: 0 10px 20px;
+        padding: 15px 10px;
     }
-
-    .category-scroller .product-card {
-        width: 100%;
-        flex: none;
+    
+    .product-card {
         padding: 10px;
-        box-sizing: border-box;
+    }
+    
+    .product-card img {
+        height: 110px;
+    }
+    
+    .product-card h3 {
+        font-size: 0.95rem;
+    }
+    
+    .variation-grid {
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+    
+    .variation-btn {
+        padding: 6px 8px;
+        font-size: 0.75em;
+    }
+    
+    .btn-cart {
+        font-size: 0.85em;
+        padding: 8px;
+    }
+    
+    .qty-row {
+        gap: 8px;
+        margin-top: 12px;
+    }
+    
+    .qty-row input {
+        padding: 8px;
+        font-size: 0.9em;
+    }
+    
+    #view-cart-btn {
+        padding: 10px 15px;
+        font-size: 0.85em;
+        bottom: 10px;
+        right: 10px;
     }
 }
 
-
-#cart-close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #dc3545;
-    color: #fff;
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
-    font-weight: 700;
-    cursor: pointer;
-    z-index: 2001;
-}
-#cart-close-btn:hover {
-    background: #b52a37;
+/* --- UTILITY CLASSES --- */
+.hidden-on-desktop {
+    display: none !important;
 }
 
+.no-results {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--dark-gray);
+    font-size: 1.1em;
+    grid-column: 1 / -1;
+}
+
+.category-header {
+    grid-column: 1 / -1;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary);
+}
+
+/* --- ANIMATIONS --- */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.product-card {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* --- SCROLLBAR STYLING --- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
 }
 </style>
 </head>
 <body>
 
 <div class="header">
-<h1>Your Premium Paper Catalog</h1>
-<p>Precision paper products for your business needs</p>
-<div class="header">    
-    <button id="view-cart-btn" onclick="toggleCart()" 
-            style="position: absolute; top: 25px; right: 20px; 
-                   padding: 10px 15px; background: #28a745; color: white; 
-                   border: none; border-radius: 6px; cursor: pointer; font-weight: 700; 
-                   font-size: 0.9em;">
-        View Cart
-    </button>
-    
-</div>
-<div class="search-container">
-    <input type="text" id="search-input" onkeyup="searchProducts(this.value)" placeholder="Search by paper name, size, or GSM...">
-</div>
-</div>
-
-<div id="product-list" class="product-grid"></div>
-
-<div id="cart-container">
-<button id="cart-close-btn" onclick="closeCart()">✕</button>
-<h3>Shopping Cart</h3>
-<div id="cart-items"></div>
-<div class="cart-total" id="cart-total">Total: Rs 0</div>
-<button onclick="openCheckout()" class="checkout-btn">Proceed to Order</button>
-</div>
-
-<div id="checkout-modal" style="display:none;">
-    <div>
-        <div class="checkout-content-grid">
-            
-            <div class="checkout-details-column">
-                <h3 style="margin-top:0;">Checkout Details</h3>
-
-                <div class="input-group">
-                    <label for="cust-name">Name</label>
-                    <input id="cust-name" placeholder="Full Name" required>
-                </div>
-                
-                <div class="input-group">
-                    <label for="cust-email">Email</label>
-                    <input id="cust-email" placeholder="Email (Optional)">
-                </div>
-                
-                <div class="input-group">
-                    <label for="cust-phone">Phone</label>
-                    <input id="cust-phone" placeholder="Phone Number" required>
-                </div>
-                
-                <h3 style="border-bottom: none; margin-bottom:15px; padding-bottom:0;">Shipping</h3>
-                <div class="shipping-options">
-                    <div id="shipping-self" class="shipping-option-btn active" onclick="updateShipping('self')">
-                        <label><input type="radio" name="shipping" value="self" checked hidden> Pick up</label>
-                        <span>FREE</span>
-                    </div>
-                    <div id="shipping-delivery" class="shipping-option-btn" onclick="updateShipping('delivery')">
-                        <label><input type="radio" name="shipping" value="delivery" hidden> Delivery</label>
-                        <span>View Charges</span>
-                    </div>
-                </div>
-
-                <div id="delivery-address-container" style="display:none; margin-top:20px;">
-                    <div class="input-group">
-                        <label for="delivery-address">Delivery Address</label>
-                        <input id="delivery-address" placeholder="Enter Full Delivery Address">
-                    </div>
-                    <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545;"></p>
-                </div>
-
-                <button onclick="closeCheckout()" class="modal-btn-close" style="margin-top: 30px;">Cancel</button>
-
-            </div>
-
-            <div class="checkout-summary-column">
-                <div id="checkout-summary-box">
-                    <h4>Order Summary</h4>
-                    </div>
-
-                <button onclick="placeOrder()" class="whatsapp-btn">
-                    <span class="whatsapp-icon">📞</span> Place order on WhatsApp
-                </button>
-            </div>
+    <div class="header-content">
+        <div class="mobile-header-controls">
+            <button class="mobile-menu-toggle" onclick="toggleCart()">🛒</button>
+            <h1 style="font-size: 1.5rem; margin: 0;">Paper Store</h1>
+            <div style="width: 40px;"></div> <!-- Spacer for alignment -->
+        </div>
+        
+        <h1 class="hidden-on-mobile">Premium Paper Store</h1>
+        <p>Precision paper products for your business needs</p>
+        
+        <div class="search-container">
+            <input type="text" id="search-input" onkeyup="searchProducts(this.value)" 
+                   placeholder="Search by paper name, size, or GSM...">
         </div>
     </div>
 </div>
 
+<div id="product-list" class="product-grid"></div>
+
+<!-- Floating Cart Button -->
+<button id="view-cart-btn" onclick="toggleCart()">
+    <span class="cart-icon">🛒</span>
+    <span class="cart-text">View Cart</span>
+    <span id="cart-count-badge" class="cart-count">0</span>
+</button>
+
+<!-- Cart Sidebar -->
+<div id="cart-container">
+    <div class="cart-header">
+        <h3>Your Shopping Cart</h3>
+        <button id="cart-close-btn" onclick="closeCart()">✕</button>
+    </div>
+    
+    <div class="cart-content">
+        <div id="cart-items"></div>
+    </div>
+    
+    <div class="cart-footer">
+        <div class="cart-total" id="cart-total">Total: Rs 0</div>
+        <button onclick="openCheckout()" class="checkout-btn">Proceed to Checkout</button>
+    </div>
+</div>
+
+<!-- Checkout Modal -->
+<div id="checkout-modal" style="display:none;">
+    <div>
+        <div class="checkout-header">
+            <h3>Checkout Details</h3>
+            <button class="checkout-close-btn" onclick="closeCheckout()">✕</button>
+        </div>
+        
+        <div class="input-group">
+            <label for="cust-name">Full Name *</label>
+            <input id="cust-name" placeholder="Enter your full name" required>
+        </div>
+        
+        <div class="input-group">
+            <label for="cust-phone">Phone Number *</label>
+            <input id="cust-phone" placeholder="Enter your phone number" required>
+        </div>
+        
+        <div class="input-group">
+            <label for="cust-email">Email Address (Optional)</label>
+            <input id="cust-email" placeholder="Enter your email" type="email">
+        </div>
+        
+        <h3 style="margin-bottom:15px;">Shipping Method</h3>
+        <div class="shipping-options">
+            <div id="shipping-self" class="shipping-option-btn active" onclick="updateShipping('self')">
+                <div>Self Pickup</div>
+                <span>FREE</span>
+            </div>
+            <div id="shipping-delivery" class="shipping-option-btn" onclick="updateShipping('delivery')">
+                <div>Delivery</div>
+                <span>Extra Charges Apply</span>
+            </div>
+        </div>
+
+        <div id="delivery-address-container" style="display:none; margin-top:20px;">
+            <div class="input-group">
+                <label for="delivery-address">Delivery Address *</label>
+                <input id="delivery-address" placeholder="Enter full delivery address">
+            </div>
+            <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545; margin-top: 5px;"></p>
+        </div>
+
+        <div id="checkout-summary-box">
+            <h4>Order Summary</h4>
+            <div class="summary-line"><span>Subtotal</span><span>Rs 0</span></div>
+            <div class="summary-line"><span>Shipping</span><span>Rs 0</span></div>
+            <div class="summary-total"><span>Total</span><span>Rs 0</span></div>
+        </div>
+
+        <button onclick="placeOrder()" class="whatsapp-btn">
+            <span class="whatsapp-icon">📱</span> Place Order via WhatsApp
+        </button>
+        
+        <button onclick="closeCheckout()" class="modal-btn-close" style="margin-top: 15px; width: 100%; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+            Cancel Order
+        </button>
+    </div>
+</div>
 
 <script>
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
@@ -649,38 +851,68 @@ const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
 
 const COL = {
-ID:0, AVAILABILITY:1, CATEGORY:2, NAME:3,
-LENGTH:6, WIDTH:7, GSM:8, SHEETS:9,
-RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14
+    ID:0, AVAILABILITY:1, CATEGORY:2, NAME:3,
+    LENGTH:6, WIDTH:7, GSM:8, SHEETS:9,
+    RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14
 }
 
 let cart = {};
-let globalProducts = {}; // 3. NEW: Store all products globally for search and rendering
-let lunrIndex = null; // 4. NEW: lunr.js index
+let globalProducts = {};
+let lunrIndex = null;
 
-function safeKey(t){ return t.replace(/[^a-zA-Z0-9]/g,"_") }
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    fetchProducts();
+    updateCartBadge();
+    
+    // Close cart when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        const cartContainer = document.getElementById('cart-container');
+        const cartBtn = document.getElementById('view-cart-btn');
+        
+        if (cartContainer.classList.contains('active') && 
+            !cartContainer.contains(event.target) && 
+            event.target !== cartBtn && 
+            !cartBtn.contains(event.target)) {
+            closeCart();
+        }
+    });
+});
+
+function safeKey(t) { 
+    return t.replace(/[^a-zA-Z0-9]/g,"_") 
+}
 
 async function fetchProducts(){
-    const res = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:O?key=${API_KEY}`
-    )
-    const data = await res.json()
-    const rows = data.values || []
-    const groupedProducts = group(rows.filter(r=>r[COL.AVAILABILITY]?.toUpperCase()==="YES"))
-    
-    globalProducts = groupedProducts; // Store all products
-    buildLunrIndex(groupedProducts); // Build search index
-    renderProducts(groupedProducts)
+    try {
+        const res = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:O?key=${API_KEY}`
+        )
+        const data = await res.json()
+        const rows = data.values || []
+        const groupedProducts = group(rows.filter(r => r[COL.AVAILABILITY]?.toUpperCase() === "YES"))
+        
+        globalProducts = groupedProducts;
+        buildLunrIndex(groupedProducts);
+        renderProducts(groupedProducts)
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        document.getElementById("product-list").innerHTML = `
+            <div class="no-results" style="grid-column: 1/-1; text-align: center; padding: 40px 20px;">
+                <h3>Unable to load products</h3>
+                <p>Please check your connection and refresh the page.</p>
+            </div>
+        `;
+    }
 }
 
 function group(rows){
     const g = {}
-    rows.forEach(r=>{
-        const cat = r[COL.CATEGORY]
-        // Ensure category is present, default to 'Uncategorized' if necessary, though ideally fixed in spreadsheet
-        const categoryKey = cat || 'Uncategorized'; 
-        if(!g[categoryKey]) g[categoryKey]={category:categoryKey, items:[]}
-        g[categoryKey].items.push({
+    rows.forEach(r => {
+        const cat = r[COL.CATEGORY] || 'Uncategorized'
+        if(!g[cat]) g[cat] = {category: cat, items: []}
+        
+        g[cat].items.push({
             id: r[COL.ID],
             name: r[COL.NAME],
             size: `${r[COL.LENGTH]}x${r[COL.WIDTH]}`,
@@ -689,15 +921,14 @@ function group(rows){
             weight: parseFloat(r[COL.WEIGHT] || 0),
             price: Math.round(parseFloat(r[COL.PRICE] || 0)),
             rate: r[COL.RATE],
-            image: r[COL.IMAGE]||"https://via.placeholder.com/300x200",
+            image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper",
             maxQty: parseInt(r[COL.MAX] || 9999),
-            category: categoryKey // Store category in the item object for search retrieval
+            category: cat
         })
     })
     return g
 }
 
-// 5. NEW: Function to build the lunr.js index
 function buildLunrIndex(groups){
     const indexStore = {};
     let productIdCounter = 0;
@@ -712,7 +943,6 @@ function buildLunrIndex(groups){
         Object.keys(groups).forEach(cat => {
             const items = groups[cat].items;
             items.forEach(item => {
-                // Index the unique product variation
                 const docId = productIdCounter++;
                 const doc = {
                     ref: item.id,
@@ -722,117 +952,133 @@ function buildLunrIndex(groups){
                     gsm: item.gsm
                 };
                 this.add(doc);
-                // Store the item data indexed by its unique ID for retrieval
                 indexStore[item.id] = item;
             });
         });
     });
-    // Attach the store to the window for global lookup during search
     window.lunrStore = indexStore;
 }
 
-// 6. NEW: Hybrid Search Function
 function searchProducts(query){
     const list = document.getElementById("product-list");
     list.innerHTML = "";
 
     if (!query || query.trim() === "") {
-        // If query is empty, render all products from the global store
         renderProducts(globalProducts);
         return;
     }
 
     if (!lunrIndex) return;
     
-    // Perform search using lunr.js (full-text search)
-    // The query is configured to search for partial matches (wildcards)
     const results = lunrIndex.search(`*${query.toLowerCase()}*`); 
-
-    // Create a temporary group structure based on search results
     const filteredGroups = {};
+
+    if (results.length === 0) {
+        list.innerHTML = `
+            <div class="no-results">
+                <h3>No products found</h3>
+                <p>Try different search terms</p>
+            </div>
+        `;
+        return;
+    }
 
     results.forEach(result => {
         const item = window.lunrStore[result.ref];
         if (item) {
-            const cat = item.category || 'Search_Results'; // Fallback key for grouping
+            const cat = item.category;
             if (!filteredGroups[cat]) filteredGroups[cat] = { category: cat, items: [] };
             filteredGroups[cat].items.push(item);
         }
     });
 
-    renderProducts(filteredGroups);
+    renderProducts(filteredGroups, true);
 }
 
+function renderProducts(groups, isSearch = false){
+    const wrap = document.getElementById("product-list")
+    wrap.innerHTML = ""
 
-function renderProducts(groups){
-    const wrap=document.getElementById("product-list")
-    wrap.innerHTML=""
-
-    // Check if any products were found
     if (Object.keys(groups).length === 0) {
-        wrap.innerHTML = `<h2 style="width:100%; text-align:center; color:#dc3545; margin-top:50px;">No products found matching your search.</h2>`;
+        wrap.innerHTML = `
+            <div class="no-results">
+                <h3>No products available</h3>
+                <p>Please check back later</p>
+            </div>
+        `;
         return;
     }
 
-    Object.keys(groups).forEach(cat=>{
-        // FIX APPLIED HERE: Check if the category name is non-empty and not 'undefined'
-        if (cat && cat !== "undefined" && cat !== "Search_Results") {
-            wrap.innerHTML += `<h2 style="width:100%; text-align:left; border-bottom:2px solid #ccc; padding-bottom:5px;">${cat}</h2>`
-        } else {
-            // For search results, or uncategorized items, display a generic header if the search bar has text
-            const searchInput = document.getElementById("search-input");
-             if (searchInput && searchInput.value.trim() !== "") {
-                wrap.innerHTML += `<h2 style="width:100%; text-align:left; border-bottom:2px solid #ccc; padding-bottom:5px;">Search Results</h2>`
-            }
+    Object.keys(groups).forEach(cat => {
+        if (cat && cat !== "undefined") {
+            wrap.innerHTML += `<h2 class="category-header">${cat}</h2>`
         }
         
         const items = groups[cat].items
         const grouped = {}
-        items.forEach(i=>{
+        items.forEach(i => {
             const key = safeKey(i.name)
-            if(!grouped[key]) grouped[key] = {name:i.name, variations:[]}
+            if(!grouped[key]) grouped[key] = {name: i.name, variations: []}
             grouped[key].variations.push(i)
         })
-        Object.keys(grouped).forEach(k=>{
+        
+        Object.keys(grouped).forEach(k => {
             const g = grouped[k]
-            const sizes = [...new Set(g.variations.map(v=>v.size))]
-            const gsms = [...new Set(g.variations.map(v=>v.gsm))]
+            const sizes = [...new Set(g.variations.map(v => v.size))]
+            const gsms = [...new Set(g.variations.map(v => v.gsm))]
             const map = {}
-            g.variations.forEach(v=>map[`${v.size}_${v.gsm}`]=v)
-            window[`map_${k}`]=map
-            window[`size_${k}`]=sizes[0]
-            window[`gsm_${k}`]=gsms[0]
+            g.variations.forEach(v => map[`${v.size}_${v.gsm}`] = v)
+            
+            window[`map_${k}`] = map
+            window[`size_${k}`] = sizes[0]
+            window[`gsm_${k}`] = gsms[0]
 
-            wrap.innerHTML+=`
+            wrap.innerHTML += `
             <div class="product-card">
-                <img id="img_${k}" src="${g.variations[0].image}">
-                <h3>${g.name}</h3>
+                <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+                <div class="product-info">
+                    <h3>${g.name}</h3>
+                    
+                    <div class="variation-grid">
+                        ${sizes.map((s,i) => `
+                            <button class="variation-btn ${i===0?'active':''}" 
+                                    onclick="selectVar('${k}','size','${s}',this)">
+                                ${s}
+                            </button>`).join("")}
+                    </div>
 
-                <div class="variation-grid">
-                    ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
+                    <div class="variation-grid">
+                        ${gsms.map((g,i) => `
+                            <button class="variation-btn ${i===0?'active':''}" 
+                                    onclick="selectVar('${k}','gsm','${g}',this)">
+                                ${g} GSM
+                            </button>`).join("")}
+                    </div>
+
+                    <p class="details" id="info_${k}"></p>
+                    <div class="price" id="price_${k}"></div>
                 </div>
-
-                <div class="variation-grid">
-                    ${gsms.map((g,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${g}',this)">${g}</button>`).join("")}
-                </div>
-
-                <p class="details" id="info_${k}"></p>
-                <div class="price" id="price_${k}"></div>
 
                 <div class="qty-row">
-                    <input type="number" id="qty_${k}" value="1" min="0">
-                    <button class="btn-cart" onclick="addToCart('${k}')">Add to Cart</button>
+                    <div class="qty-input">
+                        <input type="number" id="qty_${k}" value="1" min="1" max="999">
+                    </div>
+                    <button class="btn-cart" onclick="addToCart('${k}')">
+                        Add to Cart
+                    </button>
                 </div>
             </div>`
+            
             updateUI(k)
         })
     })
 }
 
-function selectVar(key,type,val,btn){
-    if(type==="size") window[`size_${key}`]=val
-    if(type==="gsm") window[`gsm_${key}`]=val
-    btn.parentElement.querySelectorAll(".variation-btn").forEach(b=>b.classList.remove("active"))
+function selectVar(key, type, val, btn){
+    if(type === "size") window[`size_${key}`] = val
+    if(type === "gsm") window[`gsm_${key}`] = val
+    
+    btn.parentElement.querySelectorAll(".variation-btn").forEach(b => b.classList.remove("active"))
     btn.classList.add("active")
     updateUI(key)
 }
@@ -840,8 +1086,9 @@ function selectVar(key,type,val,btn){
 function updateUI(key){
     const p = window[`map_${key}`][`${window[`size_${key}`]}_${window[`gsm_${key}`]}`]
     if(!p) return
-    document.getElementById(`price_${key}`).innerText=`Rs ${p.price}`
-    document.getElementById(`info_${key}`).innerText=`${p.sheets} Sheets | ${Math.round(p.weight * p.qty || 1)} KG | Rs ${p.rate}/KG`
+    
+    document.getElementById(`price_${key}`).innerText = `Rs ${p.price}`
+    document.getElementById(`info_${key}`).innerText = `${p.sheets} Sheets | ${p.weight} KG | Rs ${p.rate}/KG`
     document.getElementById(`img_${key}`).src = p.image
 
     const qtyInput = document.getElementById(`qty_${key}`)
@@ -856,7 +1103,8 @@ function addToCart(key){
     let qty = parseInt(qtyInput.value)
 
     if(!qty || qty <= 0){
-        alert("Enter quantity")
+        alert("Please enter a valid quantity")
+        qtyInput.focus()
         return
     }
 
@@ -864,85 +1112,254 @@ function addToCart(key){
     const p = window[`map_${key}`][variantKey]
 
     if(!p){
-        alert("This size and GSM is not available")
+        alert("This size and GSM combination is not available")
         return
     }
 
     if(qty > p.maxQty){
         qty = p.maxQty
         qtyInput.value = qty
-        alert("Maximum allowed quantity is " + p.maxQty)
+        alert(`Maximum allowed quantity is ${p.maxQty}`)
     }
 
     const cartKey = key + "_" + p.size + "_" + p.gsm
     cart[cartKey] = { ...p, qty }
     renderCart()
+    updateCartBadge()
+    
+    // Show cart on mobile after adding item
+    if (window.innerWidth <= 768) {
+        openCart();
+    }
+    
+    // Visual feedback
+    const addBtn = document.querySelector(`[onclick="addToCart('${key}')"]`)
+    const originalText = addBtn.textContent
+    addBtn.textContent = "Added!"
+    addBtn.style.backgroundColor = "#1f8b3b"
+    
+    setTimeout(() => {
+        addBtn.textContent = originalText
+        addBtn.style.backgroundColor = ""
+    }, 1000)
 }
+
 function removeFromCart(cartKey){
     delete cart[cartKey]
     renderCart()
+    updateCartBadge()
 }
 
 function renderCart(){
     const container = document.getElementById("cart-items")
-    container.innerHTML=""
-    let total=0
-    let totalWeight=0
-    Object.keys(cart).forEach(k=>{
+    container.innerHTML = ""
+    
+    if (Object.keys(cart).length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #6a6a6a;">
+                <p style="font-size: 1.2em; margin-bottom: 10px;">🛒</p>
+                <p>Your cart is empty</p>
+                <p style="font-size: 0.9em;">Add some products to get started</p>
+            </div>
+        `
+        document.getElementById("cart-total").innerText = "Total: Rs 0"
+        return
+    }
+    
+    let total = 0
+    let totalWeight = 0
+    Object.keys(cart).forEach(k => {
         const item = cart[k]
         const itemTotalPrice = item.price * item.qty
         const itemTotalWeight = item.weight * item.qty
         total += itemTotalPrice
         totalWeight += itemTotalWeight
+        
         container.innerHTML += `
             <div class="cart-item">
-                <div>
-                    <strong>${item.name}</strong> (${item.size}, GSM ${item.gsm})<br>
-                    Rs ${item.price} x ${item.qty} = Rs ${itemTotalPrice}<br>
-                    Rs ${item.rate}/KG | Weight: ${Math.round(itemTotalWeight)} KG
+                <div class="cart-item-details">
+                    <strong>${item.name}</strong><br>
+                    <small>${item.size}, GSM ${item.gsm}</small><br>
+                    <div style="margin-top: 5px;">
+                        Rs ${item.price} × ${item.qty} = <strong>Rs ${itemTotalPrice}</strong><br>
+                        <small>${Math.round(itemTotalWeight)} KG @ Rs ${item.rate}/KG</small>
+                    </div>
                 </div>
-                <button class="remove-btn" onclick="removeFromCart('${k}')">X</button>
+                <div class="cart-item-actions">
+                    <button class="remove-btn" onclick="removeFromCart('${k}')">
+                        Remove
+                    </button>
+                </div>
             </div>`
     })
-    document.getElementById("cart-total").innerText = `Total: Rs ${total} | Total Weight: ${Math.round(totalWeight)} KG`
+    
+    document.getElementById("cart-total").innerText = `Total: Rs ${total} (${Math.round(totalWeight)} KG)`
 }
 
+function updateCartBadge(){
+    const totalItems = Object.values(cart).reduce((sum, item) => sum + item.qty, 0)
+    const badge = document.getElementById("cart-count-badge")
+    badge.textContent = totalItems
+    badge.style.display = totalItems > 0 ? "flex" : "none"
+}
+
+// Cart Management Functions
+function toggleCart() {
+    const cartEl = document.getElementById("cart-container")
+    const btn = document.getElementById("view-cart-btn")
+    
+    if (cartEl.classList.contains("active")) {
+        closeCart()
+    } else {
+        openCart()
+    }
+}
+
+function openCart() {
+    const cartEl = document.getElementById("cart-container")
+    cartEl.classList.add("active")
+    document.body.style.overflow = "hidden"
+    
+    // Update button text
+    const btn = document.getElementById("view-cart-btn")
+    btn.innerHTML = `<span class="cart-icon">🛒</span><span class="cart-text">Close Cart</span><span id="cart-count-badge" class="cart-count">${Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}</span>`
+}
+
+function closeCart() {
+    const cartEl = document.getElementById("cart-container")
+    cartEl.classList.remove("active")
+    document.body.style.overflow = "auto"
+    
+    // Update button text
+    const btn = document.getElementById("view-cart-btn")
+    btn.innerHTML = `<span class="cart-icon">🛒</span><span class="cart-text">View Cart</span><span id="cart-count-badge" class="cart-count">${Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}</span>`
+}
+
+// Checkout Functions
 function openCheckout(){
-    if(Object.keys(cart).length===0){
-        alert("Cart is empty")
+    if(Object.keys(cart).length === 0){
+        alert("Your cart is empty")
         return
     }
-	closeCart();
-    // Ensure initial state of shipping/charges
-    updateShipping('self', false) // Initialize as self, don't update radio buttons
-
-    // Set initial values from local storage/defaults if needed, or clear them
-    document.getElementById("cust-name").value = "";
-    document.getElementById("cust-email").value = "";
-    document.getElementById("cust-phone").value = "";
-    document.getElementById("delivery-address").value = "";
-
-    document.getElementById("checkout-modal").style.display = "flex" 
+    
+    closeCart()
+    updateShipping('self', false)
+    
+    // Clear previous inputs
+    document.getElementById("cust-name").value = ""
+    document.getElementById("cust-email").value = ""
+    document.getElementById("cust-phone").value = ""
+    document.getElementById("delivery-address").value = ""
+    
+    // Update summary
+    calculateDeliveryCharges()
+    
+    document.getElementById("checkout-modal").style.display = "flex"
+    document.body.style.overflow = "hidden"
 }
 
 function closeCheckout(){
-    document.getElementById("checkout-modal").style.display="none"
+    document.getElementById("checkout-modal").style.display = "none"
+    document.body.style.overflow = "auto"
+}
+
+function updateShipping(method, updateRadio = true){
+    const container = document.getElementById("delivery-address-container")
+    const selfBtn = document.getElementById("shipping-self")
+    const deliveryBtn = document.getElementById("shipping-delivery")
+
+    if (updateRadio) {
+        document.querySelector(`input[value="${method}"]`).checked = true
+    }
+    
+    if (method === "delivery") {
+        container.style.display = "block"
+        selfBtn.classList.remove("active")
+        deliveryBtn.classList.add("active")
+        calculateDeliveryCharges()
+    } else {
+        container.style.display = "none"
+        deliveryBtn.classList.remove("active")
+        selfBtn.classList.add("active")
+        document.getElementById("delivery-charges").innerText = ""
+        updateCheckoutTotal(0)
+    }
+}
+
+function calculateDeliveryCharges(){
+    let totalWeight = 0
+    Object.values(cart).forEach(item => {
+        totalWeight += item.weight * item.qty
+    })
+    
+    const charges = Math.max(Math.round(totalWeight * 3), 400)
+    document.getElementById("delivery-charges").innerText = `Delivery Charges: Rs ${charges} (Min Rs 400 or Rs 3/KG)`
+    updateCheckoutTotal(charges)
+}
+
+function updateCheckoutTotal(deliveryCharges){
+    let total = 0
+    Object.values(cart).forEach(i => {
+        total += i.price * i.qty
+    })
+    
+    const subtotal = total
+    total += deliveryCharges || 0
+    const totalWeight = Object.values(cart).reduce((sum, i) => sum + i.weight * i.qty, 0)
+    
+    document.getElementById("checkout-summary-box").innerHTML = generateSummaryText(subtotal, total, totalWeight, deliveryCharges)
+}
+
+function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
+    let summaryHtml = "<h4>Order Summary</h4>"
+    
+    summaryHtml += `<div class="summary-line"><span>Subtotal (${Object.keys(cart).length} Items)</span><span>Rs ${subtotal}</span></div>`
+    
+    const shippingText = deliveryCharges > 0 ? `Rs ${deliveryCharges}` : `FREE`
+    summaryHtml += `<div class="summary-line"><span>Shipping</span><span>${shippingText}</span></div>`
+    
+    summaryHtml += `<div class="summary-line" style="font-size: 0.9em; padding-top: 10px; border-top: 1px dashed #ddd;">
+                      <span>Total Weight</span><span>${Math.round(totalWeight)} KG</span></div>`
+    
+    summaryHtml += `<div class="summary-total"><span>Total</span><span>Rs ${total}</span></div>`
+    
+    // Items list
+    summaryHtml += `<div style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; font-size: 0.85em;">`
+    summaryHtml += `<p style="margin: 0 0 8px 0; font-weight: 700;">Items in Cart:</p>`
+    Object.values(cart).forEach(i => {
+        const itemTotal = i.price * i.qty
+        summaryHtml += `<div style="margin-bottom: 5px; padding: 5px 0; border-bottom: 1px dashed #f0f0f0;">
+                          ${i.name} (${i.size}, ${i.gsm} GSM)<br>
+                          <small>${i.qty} × Rs ${i.price} = Rs ${itemTotal}</small>
+                        </div>`
+    })
+    summaryHtml += `</div>`
+
+    return summaryHtml
 }
 
 function placeOrder(){
-    const name = document.getElementById("cust-name").value
-    const phone = document.getElementById("cust-phone").value
-    const email = document.getElementById("cust-email").value
+    const name = document.getElementById("cust-name").value.trim()
+    const phone = document.getElementById("cust-phone").value.trim()
+    const email = document.getElementById("cust-email").value.trim()
     const shipping = document.querySelector('input[name="shipping"]:checked').value
-    const address = document.getElementById("delivery-address").value
+    const address = document.getElementById("delivery-address").value.trim()
 
-    if(!name || !phone){
-        alert("Full Name and Phone Number are required fields.")
+    if(!name){
+        alert("Please enter your full name")
+        document.getElementById("cust-name").focus()
+        return
+    }
+
+    if(!phone || phone.length < 10){
+        alert("Please enter a valid phone number")
+        document.getElementById("cust-phone").focus()
         return
     }
 
     if(shipping === "delivery" && !address){
-        alert("Delivery shipping requires a Delivery Address.")
+        alert("Please enter delivery address")
+        document.getElementById("delivery-address").focus()
         return
     }
 
@@ -955,153 +1372,63 @@ function placeOrder(){
 
     let deliveryCharges = 0
     if(shipping === "delivery"){
-        // Recalculate final charges
         deliveryCharges = Math.max(Math.round(totalWeight * 3), 400)
         total += deliveryCharges
     }
 
-    // Build order summary with explicit line breaks for WhatsApp
-    let orderSummary = "--- *NEW ORDER REQUEST* ---\n\n"
-    orderSummary += `*Customer Details*\n`
-    orderSummary += `Name: ${name}\n`
-    orderSummary += `Phone: ${phone}\n`
-    if(email) orderSummary += `Email: ${email}\n`
-    orderSummary += `Shipping: ${shipping === "delivery" ? "Delivery" : "Self Pickup"}\n`
-    if(shipping === "delivery") orderSummary += `Address: ${address}\nDelivery Charges: Rs ${deliveryCharges}\n`
-    orderSummary += `\n*Items (${Object.keys(cart).length} unique)*:\n`
+    // Build order message
+    let orderSummary = "📄 *NEW PAPER ORDER REQUEST* 📄\n\n"
+    orderSummary += "*Customer Details:*\n"
+    orderSummary += `👤 Name: ${name}\n`
+    orderSummary += `📱 Phone: ${phone}\n`
+    if(email) orderSummary += `📧 Email: ${email}\n`
+    orderSummary += `🚚 Shipping: ${shipping === "delivery" ? "Delivery" : "Self Pickup"}\n`
+    if(shipping === "delivery") {
+        orderSummary += `📍 Address: ${address}\n`
+        orderSummary += `💰 Delivery Charges: Rs ${deliveryCharges}\n`
+    }
+    orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`
 
     Object.values(cart).forEach((i, index) => {
         const itemTotal = i.price * i.qty
         const itemWeight = i.weight * i.qty
-        orderSummary += `*${index + 1}.* ${i.name} (${i.size} | ${i.gsm} GSM)\n`
-        orderSummary += `  Qty: ${i.qty} packs (Rs ${i.price} each)\n`
-        orderSummary += `  Rate: Rs ${i.rate}/KG\n` // ADDED RATE/KG
-        orderSummary += `  Total Item Price: Rs ${itemTotal}\n`
-        orderSummary += `  Weight: ${Math.round(itemWeight)} KG\n\n`
+        orderSummary += `${index + 1}. *${i.name}*\n`
+        orderSummary += `   Size: ${i.size} | GSM: ${i.gsm}\n`
+        orderSummary += `   Qty: ${i.qty} packs × Rs ${i.price} = Rs ${itemTotal}\n`
+        orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${i.rate}/KG\n\n`
     })
 
-    orderSummary += `--- *FINANCIAL SUMMARY* ---\n`
-    const subtotal = total - deliveryCharges;
+    orderSummary += `*Order Summary:*\n`
+    const subtotal = total - deliveryCharges
     orderSummary += `Subtotal: Rs ${subtotal}\n`
-    orderSummary += `Delivery Charges: Rs ${deliveryCharges}\n`
+    if(deliveryCharges > 0) orderSummary += `Delivery: Rs ${deliveryCharges}\n`
     orderSummary += `*GRAND TOTAL: Rs ${total}*\n`
-    orderSummary += `*Total Weight: ${Math.round(totalWeight)} KG*\n\n` // ADDED TOTAL WEIGHT
-    orderSummary += `_Your order is recevied. Sales agent will be in touch with you shortly._`
+    orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
+    orderSummary += `⏳ _Please confirm availability and provide payment details._`
 
-    // Encode message for WhatsApp
+    // Encode for WhatsApp
     const whatsappMessage = encodeURIComponent(orderSummary)
-
-    // Replace with your WhatsApp number (country code without +)
     const whatsappNumber = "923138470666"
 
-    // Open WhatsApp Web or app
+    // Open WhatsApp
     window.open(`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`, "_blank")
 
-    // Reload page to empty cart
+    // Close modals and clear cart after a delay
+    closeCheckout()
     setTimeout(() => {
-        location.reload()
-    }, 1000); 
+        cart = {}
+        renderCart()
+        updateCartBadge()
+        alert("Order submitted! Our team will contact you shortly.")
+    }, 1000)
 }
-function updateShipping(method, updateRadio = true){
-    const container = document.getElementById("delivery-address-container");
-    const selfBtn = document.getElementById("shipping-self");
-    const deliveryBtn = document.getElementById("shipping-delivery");
 
-    if (updateRadio) {
-        document.querySelector(`input[value="${method}"]`).checked = true;
+// Handle window resize
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+        document.body.style.overflow = "auto"
     }
-    
-    // Toggle active class on buttons
-    if (method === "delivery") {
-        container.style.display = "block";
-        selfBtn.classList.remove("active");
-        deliveryBtn.classList.add("active");
-        calculateDeliveryCharges();
-    } else {
-        container.style.display = "none";
-        deliveryBtn.classList.remove("active");
-        selfBtn.classList.add("active");
-        document.getElementById("delivery-charges").innerText = ""; // Clear charges info
-        updateCheckoutTotal(0);
-    }
-}
-
-function calculateDeliveryCharges(){
-    let totalWeight = 0
-    Object.values(cart).forEach(item => {
-        totalWeight += item.weight * item.qty
-    })
-    // Delivery charges: Rs 3 per KG, minimum Rs 400
-    const charges = Math.max(Math.round(totalWeight * 3), 400)
-    document.getElementById("delivery-charges").innerText = `Delivery Charges: Rs ${charges} (Min Rs 400 or Rs 3/KG)`
-    updateCheckoutTotal(charges)
-}
-function updateCheckoutTotal(deliveryCharges){
-    let total = 0
-    Object.values(cart).forEach(i => {
-        total += i.price * i.qty
-    })
-    const subtotal = total;
-    total += deliveryCharges || 0
-    const totalWeight = Object.values(cart).reduce((sum, i) => sum + i.weight * i.qty, 0)
-    document.getElementById("checkout-summary-box").innerHTML = generateSummaryText(subtotal, total, totalWeight, deliveryCharges)
-}
-
-function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
-    let summaryHtml = "<h4>Order Summary</h4>";
-    
-    // Item Subtotal Line
-    summaryHtml += `<div class="summary-line"><span>Subtotal (${Object.keys(cart).length} Items)</span><span>PKR ${subtotal}</span></div>`;
-    
-    // Shipping Line
-    const shippingText = deliveryCharges > 0 ? `PKR ${deliveryCharges}` : `FREE`;
-    const shippingClass = deliveryCharges > 0 ? '' : 'style="color:#28a745; font-weight:700;"';
-    summaryHtml += `<div class="summary-line"><span>Shipping</span><span ${shippingClass}>${shippingText}</span></div>`;
-
-    // Total Weight Line (NEW)
-    summaryHtml += `<div class="summary-line" style="font-size: 0.9em; font-weight: 500; padding-top: 10px; border-top: 1px dashed #ddd;"><span>Total Weight</span><span>${Math.round(totalWeight)} KG</span></div>`;
-
-
-    // Total Line
-    summaryHtml += `<div class="summary-total"><span>Total</span><span>PKR ${total}</span></div>`;
-    
-    // Detailed Items
-    summaryHtml += `<div style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; font-size: 0.85em; max-height: 150px; overflow-y: auto;">`;
-    summaryHtml += `<p style="margin: 0; font-weight: 700;">Items:</p>`;
-    Object.values(cart).forEach(i => {
-        const itemTotal = i.price * i.qty
-        summaryHtml += `<div>${i.name} (${i.size} | ${i.gsm} GSM) x ${i.qty} = Rs ${itemTotal} (Rs ${i.rate}/KG)</div>`; // ADDED RATE/KG
-    });
-    summaryHtml += `</div>`;
-
-    return summaryHtml;
-}
-
-function toggleCart() {
-    const cartEl = document.getElementById("cart-container");
-    const btn = document.getElementById("view-cart-btn");
-    const isMobile = window.innerWidth <= 768;
-
-    let isVisible;
-    if (isMobile) {
-        isVisible = cartEl.classList.toggle("mobile-active");
-    } else {
-        isVisible = cartEl.classList.toggle("active");
-    }
-
-    btn.innerText = isVisible ? "Hide Cart" : "View Cart";
-}
-function closeCart() {
-    const cartEl = document.getElementById("cart-container");
-    const btn = document.getElementById("view-cart-btn");
-
-    cartEl.classList.remove("active");
-    cartEl.classList.remove("mobile-active");
-
-    btn.innerText = "View Cart";
-}
-
-
-document.addEventListener("DOMContentLoaded", fetchProducts)
+})
 </script>
 </body>
+</html>
