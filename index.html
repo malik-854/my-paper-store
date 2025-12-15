@@ -418,6 +418,33 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         display: block !important;
     }
 
+    /* PRODUCT GRID BASE */
+    .product-grid {
+        gap: 15px;
+        padding: 20px 10px;
+        flex-wrap: wrap;
+        overflow-x: visible;
+        justify-content: center;
+    }
+
+    /* CATEGORY SCROLLER FOR LANDSCAPE */
+    .category-scroller {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 15px;
+        padding: 0 10px 20px 10px;
+    }
+
+    .product-card,
+    .category-scroller .product-card {
+        flex: 0 0 200px;
+        width: 200px;
+        padding: 15px;
+        box-sizing: border-box;
+    }
+
     /* CART */
     #cart-container {
         display: none !important;
@@ -455,58 +482,6 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         order: -1;
     }
 
-    /* PRODUCT LIST (MAIN GRID) */
-    #product-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-        padding: 15px 10px;
-    }
-
-    #product-list .product-card {
-        width: 100%;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-
-    #product-list h3 {
-        font-size: 0.95em;
-        margin-bottom: 8px;
-    }
-
-    #product-list .product-card img {
-        width: 100%;
-        height: auto;
-        max-height: 120px;
-        object-fit: cover;
-    }
-
-    /* CATEGORY BLOCKS */
-    .category-block {
-        margin-bottom: 25px;
-    }
-
-    .category-block h2 {
-        font-size: 1.1em;
-        margin-bottom: 10px;
-        padding-left: 10px;
-    }
-
-    .category-scroller {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 15px;
-        padding: 0 10px 20px;
-    }
-
-    .category-scroller .product-card {
-        flex: 0 0 160px;
-        width: 160px;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-
     /* SCROLLBARS */
     .product-grid::-webkit-scrollbar,
     .category-scroller::-webkit-scrollbar {
@@ -518,18 +493,33 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         background: #ccc;
         border-radius: 10px;
     }
+
+   
+
+    #product-list .product-card {
+        width: 100%;
+        flex: none;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    #product-list h3 {
+        font-size: 0.95em;
+    }
+
+    #product-list .product-card img {
+        max-height: 100px;
+    }
+
 }
 
-/* PORTRAIT-SPECIFIC ADJUSTMENTS */
 @media (max-width: 768px) and (orientation: portrait) {
-
-    /* CATEGORY SCROLLER AS GRID IN PORTRAIT */
     .category-scroller {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
-        padding: 0 10px 20px;
         overflow-x: visible;
+        padding: 0 10px 20px;
     }
 
     .category-scroller .product-card {
@@ -539,6 +529,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         box-sizing: border-box;
     }
 }
+
 
 #cart-close-btn {
     position: absolute;
@@ -582,24 +573,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 </div>
 </div>
 
-<div id="product-container">
-    <div class="category-block">
-        <h2>Category 1</h2>
-        <div class="category-scroller">
-            <div class="product-card">Product 1</div>
-            <div class="product-card">Product 2</div>
-            <div class="product-card">Product 3</div>
-        </div>
-    </div>
-    <div class="category-block">
-        <h2>Category 2</h2>
-        <div class="category-scroller">
-            <div class="product-card">Product 4</div>
-            <div class="product-card">Product 5</div>
-        </div>
-    </div>
-</div>
-
+<div id="product-list" class="product-grid"></div>
 
 <div id="cart-container">
 <button id="cart-close-btn" onclick="closeCart()">✕</button>
