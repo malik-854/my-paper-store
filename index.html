@@ -561,7 +561,7 @@ h3 { font-size: 1.3rem; }
         margin-bottom: 10px;
     }
     
-    /* Product Grid for Mobile Portrait - HORIZONTAL SCROLL */
+    /* Product Grid for ALL Mobile - HORIZONTAL SCROLL */
     .product-grid {
         display: flex;
         flex-wrap: nowrap;
@@ -591,78 +591,25 @@ h3 { font-size: 1.3rem; }
         bottom: 15px;
         right: 15px;
     }
-}
-
-/* --- LANDSCAPE ORIENTATION --- */
-@media (max-width: 768px) and (orientation: landscape) {
-    .header {
-        padding: 10px;
-    }
     
-    .header h1 {
-        font-size: 1.5rem;
-    }
-    
-    .header p {
-        font-size: 0.9rem;
-        margin-bottom: 8px;
-    }
-    
-    .search-container {
-        padding: 0 10px 10px;
-    }
-    
-    /* REMOVED: grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); */
-    .product-grid {
-        gap: 10px;
-        padding: 15px 10px;
-    }
-    
-    .product-card {
-        flex: 0 0 140px; /* Smaller for landscape */
-        padding: 10px;
-    }
-    
-    .product-card img {
-        height: 100px;
-    }
-    
-    .product-card h3 {
-        font-size: 0.95rem;
-        margin-bottom: 8px;
-    }
-    
-    .variation-btn {
-        padding: 6px 10px;
-        font-size: 0.8em;
-    }
-    
-    .btn-cart {
-        padding: 8px 10px;
-        font-size: 0.9em;
-    }
-    
-    .qty-row input {
-        padding: 8px;
-    }
-    
-    /* Cart in landscape */
-    #cart-container {
-        width: 70%;
-        max-width: 400px;
-    }
-    
-    /* Checkout modal in landscape */
-    #checkout-modal > div {
-        max-width: 90%;
-        max-height: 95vh;
+    /* Landscape adjustments */
+    @media (orientation: landscape) {
+        .product-card {
+            flex: 0 0 140px; /* Smaller for landscape */
+        }
+        
+        .product-card img {
+            height: 100px;
+        }
     }
 }
 
 /* --- SMALL PHONES --- */
 @media (max-width: 480px) {
-    /* REMOVED: grid-template-columns: repeat(2, 1fr); */
     .product-grid {
+        display: flex; /* ADDED */
+        flex-wrap: nowrap; /* ADDED */
+        overflow-x: auto; /* ADDED */
         gap: 12px;
         padding: 15px 10px;
     }
