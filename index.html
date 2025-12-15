@@ -411,8 +411,8 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     }
     .product-card {
         /* Make the card nearly full width on smaller screens, allowing space for 1 or 2 columns */
-        width: 100%; /* Default to full width for stacking */
-        max-width: 320px; /* Cap the max width for extremely narrow screens */
+        width: calc(50% - 15px); 
+    max-width: none; /* Cap the max width for extremely narrow screens */
         padding: 15px;
     }
     /* If you prefer 2 columns on mobile, use this instead:
