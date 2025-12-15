@@ -1021,19 +1021,20 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
 }
 
 function toggleCart() {
-    const cart = document.getElementById("cart-container");
+    const cartEl = document.getElementById("cart-container");
     const btn = document.getElementById("view-cart-btn");
-    
-    // Check if the cart is visible
-    const isVisible = cart.classList.toggle('active');
+    const isMobile = window.innerWidth <= 768;
 
-    // Change button text based on visibility
-    btn.innerText = isVisible ? "Hide Cart" : "View Cart";
-    
-    // Optional: Scroll to top of cart when opening if it's not a full screen modal
-    if (isVisible && window.innerWidth > 768) {
-        cart.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    let isVisible;
+    if (isMobile) {
+        isVisible = cartEl.classList.toggle("mobile-active");
+    } else {
+        isVisible = cartEl.classList.toggle("active");
     }
+
+    btn.innerText = isVisible ? "Hide Cart" : "View Cart";
+}
+
 }
 
 document.addEventListener("DOMContentLoaded", fetchProducts)
