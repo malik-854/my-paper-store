@@ -65,22 +65,25 @@ h3 { font-size: 1.3rem; }
     margin-bottom: 15px;
 }
 
-/* --- MOBILE HEADER CONTROLS --- */
-.mobile-header-controls {
-    display: none;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    margin-bottom: 10px;
+/* --- LOADING INDICATOR --- */
+.loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--dark-gray);
 }
-
-.mobile-menu-toggle {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 5px;
+.loading-spinner {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* --- SEARCH --- */
@@ -377,10 +380,13 @@ h3 { font-size: 1.3rem; }
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
     z-index: 3000;
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
     padding: 20px;
+}
+#checkout-modal.active {
+    display: flex;
 }
 #checkout-modal > div {
     background: #fff;
@@ -447,6 +453,13 @@ h3 { font-size: 1.3rem; }
     cursor: pointer;
     transition: all 0.2s;
     background: #fff;
+    position: relative;
+}
+.shipping-option-btn input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
 }
 .shipping-option-btn.active {
     border-color: var(--secondary);
@@ -514,6 +527,23 @@ h3 { font-size: 1.3rem; }
     font-size: 1.2em;
 }
 
+/* Cancel Button */
+.modal-btn-close {
+    background-color: #6c757d;
+    color: white;
+    padding: 12px;
+    margin-top: 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+.modal-btn-close:hover {
+    background-color: #5a6268;
+}
+
 /* --- MOBILE OPTIMIZATION --- */
 @media (max-width: 768px) {
     /* Header adjustments */
@@ -529,10 +559,6 @@ h3 { font-size: 1.3rem; }
     .header p {
         font-size: 1rem;
         margin-bottom: 10px;
-    }
-    
-    .mobile-header-controls {
-        display: flex;
     }
     
     /* Product Grid for Mobile Portrait */
@@ -682,10 +708,6 @@ h3 { font-size: 1.3rem; }
 }
 
 /* --- UTILITY CLASSES --- */
-.hidden-on-desktop {
-    display: none !important;
-}
-
 .no-results {
     text-align: center;
     padding: 50px 20px;
@@ -743,13 +765,7 @@ h3 { font-size: 1.3rem; }
 
 <div class="header">
     <div class="header-content">
-        <div class="mobile-header-controls">
-            <button class="mobile-menu-toggle" onclick="toggleCart()">🛒</button>
-            <h1 style="font-size: 1.5rem; margin: 0;">Paper Store</h1>
-            <div style="width: 40px;"></div> <!-- Spacer for alignment -->
-        </div>
-        
-        <h1 class="hidden-on-mobile">Premium Paper Store</h1>
+        <h1>Premium Paper Store</h1>
         <p>Precision paper products for your business needs</p>
         
         <div class="search-container">
@@ -759,10 +775,22 @@ h3 { font-size: 1.3rem; }
     </div>
 </div>
 
-<div id="product-list" class="product-grid"></div>
+<!-- Loading Indicator -->
+<div id="loading-indicator" class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading products...</p>
+</div>
+
+<!-- Product Grid -->
+<div id="product-list" class="product-grid" style="display: none;"></div>
+
+<!-- Fallback Data Notification -->
+<div id="fallback-notice" style="display: none; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px; text-align: center;">
+    <p style="margin: 0; color: #856404;">⚠️ Using sample products. Real data will load when connection is restored.</p>
+</div>
 
 <!-- Floating Cart Button -->
-<button id="view-cart-btn" onclick="toggleCart()">
+<button id="view-cart-btn" onclick="toggleCart()" style="display: none;">
     <span class="cart-icon">🛒</span>
     <span class="cart-text">View Cart</span>
     <span id="cart-count-badge" class="cart-count">0</span>
@@ -786,7 +814,7 @@ h3 { font-size: 1.3rem; }
 </div>
 
 <!-- Checkout Modal -->
-<div id="checkout-modal" style="display:none;">
+<div id="checkout-modal">
     <div>
         <div class="checkout-header">
             <h3>Checkout Details</h3>
@@ -810,20 +838,22 @@ h3 { font-size: 1.3rem; }
         
         <h3 style="margin-bottom:15px;">Shipping Method</h3>
         <div class="shipping-options">
-            <div id="shipping-self" class="shipping-option-btn active" onclick="updateShipping('self')">
+            <label class="shipping-option-btn active" for="shipping-self">
+                <input type="radio" id="shipping-self" name="shipping" value="self" checked>
                 <div>Self Pickup</div>
                 <span>FREE</span>
-            </div>
-            <div id="shipping-delivery" class="shipping-option-btn" onclick="updateShipping('delivery')">
+            </label>
+            <label class="shipping-option-btn" for="shipping-delivery">
+                <input type="radio" id="shipping-delivery" name="shipping" value="delivery">
                 <div>Delivery</div>
                 <span>Extra Charges Apply</span>
-            </div>
+            </label>
         </div>
 
         <div id="delivery-address-container" style="display:none; margin-top:20px;">
             <div class="input-group">
                 <label for="delivery-address">Delivery Address *</label>
-                <input id="delivery-address" placeholder="Enter full delivery address">
+                <textarea id="delivery-address" placeholder="Enter full delivery address" rows="3"></textarea>
             </div>
             <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545; margin-top: 5px;"></p>
         </div>
@@ -839,13 +869,14 @@ h3 { font-size: 1.3rem; }
             <span class="whatsapp-icon">📱</span> Place Order via WhatsApp
         </button>
         
-        <button onclick="closeCheckout()" class="modal-btn-close" style="margin-top: 15px; width: 100%; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+        <button onclick="closeCheckout()" class="modal-btn-close">
             Cancel Order
         </button>
     </div>
 </div>
 
 <script>
+// Configuration
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -856,14 +887,82 @@ const COL = {
     RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14
 }
 
+// Sample fallback data
+const SAMPLE_PRODUCTS = {
+    "Premium Papers": {
+        category: "Premium Papers",
+        items: [
+            {
+                id: "sample-1",
+                name: "Art Paper Glossy",
+                size: "23x36",
+                gsm: "120",
+                sheets: "100",
+                weight: 8.5,
+                price: 850,
+                rate: "100",
+                image: "https://via.placeholder.com/300x200/004c99/ffffff?text=Art+Paper",
+                maxQty: 50,
+                category: "Premium Papers"
+            },
+            {
+                id: "sample-2",
+                name: "Art Paper Matt",
+                size: "23x36",
+                gsm: "150",
+                sheets: "100",
+                weight: 10.5,
+                price: 1050,
+                rate: "100",
+                image: "https://via.placeholder.com/300x200/28a745/ffffff?text=Matt+Paper",
+                maxQty: 50,
+                category: "Premium Papers"
+            },
+            {
+                id: "sample-3",
+                name: "Offset Paper",
+                size: "25x36",
+                gsm: "80",
+                sheets: "500",
+                weight: 36,
+                price: 1800,
+                rate: "50",
+                image: "https://via.placeholder.com/300x200/6c757d/ffffff?text=Offset+Paper",
+                maxQty: 100,
+                category: "Premium Papers"
+            }
+        ]
+    },
+    "Specialty Papers": {
+        category: "Specialty Papers",
+        items: [
+            {
+                id: "sample-4",
+                name: "Bond Paper",
+                size: "22x34",
+                gsm: "90",
+                sheets: "500",
+                weight: 33.5,
+                price: 1675,
+                rate: "50",
+                image: "https://via.placeholder.com/300x200/dc3545/ffffff?text=Bond+Paper",
+                maxQty: 75,
+                category: "Specialty Papers"
+            }
+        ]
+    }
+};
+
 let cart = {};
 let globalProducts = {};
 let lunrIndex = null;
+let currentShippingMethod = 'self';
+let usingFallbackData = false;
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
     fetchProducts();
-    updateCartBadge();
+    setupShippingListeners();
     
     // Close cart when clicking outside on mobile
     document.addEventListener('click', function(event) {
@@ -879,30 +978,100 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function safeKey(t) { 
-    return t.replace(/[^a-zA-Z0-9]/g,"_") 
+function setupShippingListeners() {
+    const selfRadio = document.getElementById('shipping-self');
+    const deliveryRadio = document.getElementById('shipping-delivery');
+    
+    if (selfRadio) {
+        selfRadio.addEventListener('change', function() {
+            if (this.checked) {
+                updateShipping('self');
+            }
+        });
+    }
+    
+    if (deliveryRadio) {
+        deliveryRadio.addEventListener('change', function() {
+            if (this.checked) {
+                updateShipping('delivery');
+            }
+        });
+    }
+    
+    const selfLabel = document.querySelector('label[for="shipping-self"]');
+    const deliveryLabel = document.querySelector('label[for="shipping-delivery"]');
+    
+    if (selfLabel) {
+        selfLabel.addEventListener('click', function() {
+            document.getElementById('shipping-self').checked = true;
+            updateShipping('self');
+        });
+    }
+    
+    if (deliveryLabel) {
+        deliveryLabel.addEventListener('click', function() {
+            document.getElementById('shipping-delivery').checked = true;
+            updateShipping('delivery');
+        });
+    }
 }
 
 async function fetchProducts(){
     try {
-        const res = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:O?key=${API_KEY}`
-        )
-        const data = await res.json()
-        const rows = data.values || []
-        const groupedProducts = group(rows.filter(r => r[COL.AVAILABILITY]?.toUpperCase() === "YES"))
+        // Show loading indicator
+        document.getElementById('loading-indicator').style.display = 'block';
+        
+        // Try to fetch from Google Sheets
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:O?key=${API_KEY}`;
+        console.log('Fetching from URL:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        if (!data.values || data.values.length === 0) {
+            throw new Error('No data found in spreadsheet');
+        }
+        
+        const rows = data.values;
+        const groupedProducts = group(rows.filter(r => r[COL.AVAILABILITY]?.toUpperCase() === "YES"));
+        
+        if (Object.keys(groupedProducts).length === 0) {
+            throw new Error('No available products found');
+        }
         
         globalProducts = groupedProducts;
         buildLunrIndex(groupedProducts);
-        renderProducts(groupedProducts)
+        renderProducts(groupedProducts);
+        
+        // Hide loading, show products
+        document.getElementById('loading-indicator').style.display = 'none';
+        document.getElementById('product-list').style.display = 'grid';
+        document.getElementById('view-cart-btn').style.display = 'flex';
+        
     } catch (error) {
-        console.error("Error fetching products:", error);
-        document.getElementById("product-list").innerHTML = `
-            <div class="no-results" style="grid-column: 1/-1; text-align: center; padding: 40px 20px;">
-                <h3>Unable to load products</h3>
-                <p>Please check your connection and refresh the page.</p>
-            </div>
-        `;
+        console.error('Error fetching products:', error);
+        
+        // Use fallback data
+        console.log('Using fallback data...');
+        usingFallbackData = true;
+        
+        globalProducts = SAMPLE_PRODUCTS;
+        buildLunrIndex(SAMPLE_PRODUCTS);
+        renderProducts(SAMPLE_PRODUCTS);
+        
+        // Show fallback notice
+        document.getElementById('fallback-notice').style.display = 'block';
+        
+        // Hide loading, show products
+        document.getElementById('loading-indicator').style.display = 'none';
+        document.getElementById('product-list').style.display = 'grid';
+        document.getElementById('view-cart-btn').style.display = 'flex';
     }
 }
 
@@ -913,15 +1082,15 @@ function group(rows){
         if(!g[cat]) g[cat] = {category: cat, items: []}
         
         g[cat].items.push({
-            id: r[COL.ID],
-            name: r[COL.NAME],
-            size: `${r[COL.LENGTH]}x${r[COL.WIDTH]}`,
-            gsm: r[COL.GSM],
-            sheets: r[COL.SHEETS],
+            id: r[COL.ID] || Math.random().toString(36).substr(2, 9),
+            name: r[COL.NAME] || 'Unknown Product',
+            size: `${r[COL.LENGTH] || 0}x${r[COL.WIDTH] || 0}`,
+            gsm: r[COL.GSM] || 'N/A',
+            sheets: r[COL.SHEETS] || 'N/A',
             weight: parseFloat(r[COL.WEIGHT] || 0),
             price: Math.round(parseFloat(r[COL.PRICE] || 0)),
-            rate: r[COL.RATE],
-            image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper",
+            rate: r[COL.RATE] || 'N/A',
+            image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper+Image",
             maxQty: parseInt(r[COL.MAX] || 9999),
             category: cat
         })
@@ -946,10 +1115,10 @@ function buildLunrIndex(groups){
                 const docId = productIdCounter++;
                 const doc = {
                     ref: item.id,
-                    name: item.name,
-                    category: cat,
-                    size: item.size,
-                    gsm: item.gsm
+                    name: item.name.toLowerCase(),
+                    category: cat.toLowerCase(),
+                    size: item.size.toLowerCase(),
+                    gsm: item.gsm.toLowerCase()
                 };
                 this.add(doc);
                 indexStore[item.id] = item;
@@ -961,38 +1130,67 @@ function buildLunrIndex(groups){
 
 function searchProducts(query){
     const list = document.getElementById("product-list");
-    list.innerHTML = "";
-
-    if (!query || query.trim() === "") {
+    const searchTerm = query.trim();
+    
+    if (!searchTerm) {
         renderProducts(globalProducts);
         return;
     }
 
-    if (!lunrIndex) return;
-    
-    const results = lunrIndex.search(`*${query.toLowerCase()}*`); 
-    const filteredGroups = {};
-
-    if (results.length === 0) {
-        list.innerHTML = `
-            <div class="no-results">
-                <h3>No products found</h3>
-                <p>Try different search terms</p>
-            </div>
-        `;
+    if (!lunrIndex) {
+        // Simple search fallback
+        const filteredGroups = {};
+        Object.keys(globalProducts).forEach(cat => {
+            const filteredItems = globalProducts[cat].items.filter(item => 
+                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.gsm.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.category.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            
+            if (filteredItems.length > 0) {
+                filteredGroups[cat] = {
+                    category: cat,
+                    items: filteredItems
+                };
+            }
+        });
+        
+        renderProducts(Object.keys(filteredGroups).length > 0 ? filteredGroups : {});
         return;
     }
+    
+    try {
+        const results = lunrIndex.search(`${searchTerm}* ${searchTerm}~1`); 
+        const filteredGroups = {};
 
-    results.forEach(result => {
-        const item = window.lunrStore[result.ref];
-        if (item) {
-            const cat = item.category;
-            if (!filteredGroups[cat]) filteredGroups[cat] = { category: cat, items: [] };
-            filteredGroups[cat].items.push(item);
+        if (results.length === 0) {
+            list.innerHTML = `
+                <div class="no-results" style="grid-column: 1/-1;">
+                    <h3>No products found for "${searchTerm}"</h3>
+                    <p>Try different search terms</p>
+                </div>
+            `;
+            return;
         }
-    });
 
-    renderProducts(filteredGroups, true);
+        results.forEach(result => {
+            const item = window.lunrStore[result.ref];
+            if (item) {
+                const cat = item.category;
+                if (!filteredGroups[cat]) filteredGroups[cat] = { category: cat, items: [] };
+                if (!filteredGroups[cat].items.some(i => i.id === item.id)) {
+                    filteredGroups[cat].items.push(item);
+                }
+            }
+        });
+
+        renderProducts(filteredGroups, true);
+    } catch (error) {
+        console.error('Search error:', error);
+        // Show all products on search error
+        renderProducts(globalProducts);
+    }
 }
 
 function renderProducts(groups, isSearch = false){
@@ -1002,8 +1200,8 @@ function renderProducts(groups, isSearch = false){
     if (Object.keys(groups).length === 0) {
         wrap.innerHTML = `
             <div class="no-results">
-                <h3>No products available</h3>
-                <p>Please check back later</p>
+                <h3>${isSearch ? 'No products found' : 'No products available'}</h3>
+                <p>${isSearch ? 'Try different search terms' : 'Please check back later'}</p>
             </div>
         `;
         return;
@@ -1035,7 +1233,7 @@ function renderProducts(groups, isSearch = false){
 
             wrap.innerHTML += `
             <div class="product-card">
-                <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+                <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}" onerror="this.src='https://via.placeholder.com/300x200?text=Paper+Image'">
                 <div class="product-info">
                     <h3>${g.name}</h3>
                     
@@ -1074,6 +1272,10 @@ function renderProducts(groups, isSearch = false){
     })
 }
 
+function safeKey(t) { 
+    return t.replace(/[^a-zA-Z0-9]/g,"_") 
+}
+
 function selectVar(key, type, val, btn){
     if(type === "size") window[`size_${key}`] = val
     if(type === "gsm") window[`gsm_${key}`] = val
@@ -1089,7 +1291,11 @@ function updateUI(key){
     
     document.getElementById(`price_${key}`).innerText = `Rs ${p.price}`
     document.getElementById(`info_${key}`).innerText = `${p.sheets} Sheets | ${p.weight} KG | Rs ${p.rate}/KG`
-    document.getElementById(`img_${key}`).src = p.image
+    
+    const img = document.getElementById(`img_${key}`)
+    if (img && p.image) {
+        img.src = p.image
+    }
 
     const qtyInput = document.getElementById(`qty_${key}`)
     if(qtyInput){
@@ -1220,7 +1426,6 @@ function openCart() {
     cartEl.classList.add("active")
     document.body.style.overflow = "hidden"
     
-    // Update button text
     const btn = document.getElementById("view-cart-btn")
     btn.innerHTML = `<span class="cart-icon">🛒</span><span class="cart-text">Close Cart</span><span id="cart-count-badge" class="cart-count">${Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}</span>`
 }
@@ -1230,7 +1435,6 @@ function closeCart() {
     cartEl.classList.remove("active")
     document.body.style.overflow = "auto"
     
-    // Update button text
     const btn = document.getElementById("view-cart-btn")
     btn.innerHTML = `<span class="cart-icon">🛒</span><span class="cart-text">View Cart</span><span id="cart-count-badge" class="cart-count">${Object.values(cart).reduce((sum, item) => sum + item.qty, 0)}</span>`
 }
@@ -1243,33 +1447,34 @@ function openCheckout(){
     }
     
     closeCart()
-    updateShipping('self', false)
     
-    // Clear previous inputs
     document.getElementById("cust-name").value = ""
     document.getElementById("cust-email").value = ""
     document.getElementById("cust-phone").value = ""
     document.getElementById("delivery-address").value = ""
     
-    // Update summary
+    document.getElementById('shipping-self').checked = true;
+    updateShipping('self', false);
+    
     calculateDeliveryCharges()
     
-    document.getElementById("checkout-modal").style.display = "flex"
+    document.getElementById("checkout-modal").classList.add("active")
     document.body.style.overflow = "hidden"
 }
 
 function closeCheckout(){
-    document.getElementById("checkout-modal").style.display = "none"
+    document.getElementById("checkout-modal").classList.remove("active")
     document.body.style.overflow = "auto"
 }
 
 function updateShipping(method, updateRadio = true){
+    currentShippingMethod = method;
     const container = document.getElementById("delivery-address-container")
-    const selfBtn = document.getElementById("shipping-self")
-    const deliveryBtn = document.getElementById("shipping-delivery")
+    const selfBtn = document.querySelector('label[for="shipping-self"]')
+    const deliveryBtn = document.querySelector('label[for="shipping-delivery"]')
 
     if (updateRadio) {
-        document.querySelector(`input[value="${method}"]`).checked = true
+        document.querySelector(`input[value="${method}"]`).checked = true;
     }
     
     if (method === "delivery") {
@@ -1323,7 +1528,6 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
     
     summaryHtml += `<div class="summary-total"><span>Total</span><span>Rs ${total}</span></div>`
     
-    // Items list
     summaryHtml += `<div style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; font-size: 0.85em;">`
     summaryHtml += `<p style="margin: 0 0 8px 0; font-weight: 700;">Items in Cart:</p>`
     Object.values(cart).forEach(i => {
@@ -1342,8 +1546,14 @@ function placeOrder(){
     const name = document.getElementById("cust-name").value.trim()
     const phone = document.getElementById("cust-phone").value.trim()
     const email = document.getElementById("cust-email").value.trim()
-    const shipping = document.querySelector('input[name="shipping"]:checked').value
     const address = document.getElementById("delivery-address").value.trim()
+    
+    const shippingElement = document.querySelector('input[name="shipping"]:checked')
+    if (!shippingElement) {
+        alert("Please select a shipping method")
+        return
+    }
+    const shipping = shippingElement.value
 
     if(!name){
         alert("Please enter your full name")
@@ -1406,21 +1616,24 @@ function placeOrder(){
     orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
     orderSummary += `⏳ _Please confirm availability and provide payment details._`
 
-    // Encode for WhatsApp
+    // Create WhatsApp URL
     const whatsappMessage = encodeURIComponent(orderSummary)
     const whatsappNumber = "923138470666"
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
 
     // Open WhatsApp
-    window.open(`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`, "_blank")
-
-    // Close modals and clear cart after a delay
-    closeCheckout()
+    window.open(whatsappUrl, "_blank")
+    
+    // Show confirmation
+    alert("Opening WhatsApp to send your order...")
+    
+    // Clear cart
     setTimeout(() => {
+        closeCheckout()
         cart = {}
         renderCart()
         updateCartBadge()
-        alert("Order submitted! Our team will contact you shortly.")
-    }, 1000)
+    }, 1500)
 }
 
 // Handle window resize
@@ -1429,6 +1642,29 @@ window.addEventListener('resize', function() {
         document.body.style.overflow = "auto"
     }
 })
+
+// Add CSS for textarea
+const style = document.createElement('style')
+style.textContent = `
+    #delivery-address {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid var(--medium-gray);
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 1em;
+        font-family: 'Roboto', sans-serif;
+        resize: vertical;
+        min-height: 100px;
+        transition: border-color 0.2s;
+    }
+    #delivery-address:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 76, 153, 0.1);
+    }
+`
+document.head.appendChild(style)
 </script>
 </body>
 </html>
