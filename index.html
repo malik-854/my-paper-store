@@ -494,6 +494,27 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     .product-grid::-webkit-scrollbar-thumb, .category-scroller::-webkit-scrollbar-thumb {
         background: #ccc;
         border-radius: 10px;
+/* MOBILE PRODUCT GRID FIX */
+#product-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 15px 10px;
+}
+
+#product-list .product-card {
+    width: 100%;
+    padding: 10px;
+}
+
+#product-list h3 {
+    font-size: 0.95em;
+}
+
+#product-list .product-card img {
+    max-height: 100px;
+}
+
     }
 #cart-close-btn {
     position: absolute;
