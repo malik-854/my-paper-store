@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Paper Webstore</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght=400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lunr/lunr.js"></script>
+<style>
+/* --- BASE & TYPOGRAPHY --- */
+body { 
+    font-family: 'Roboto', sans-serif; 
+    margin: 0; 
+    background-color: #f8f8f8; 
+    color: #333;
+}
+h1, h2, h3 { 
+    font-family: 'Playfair Display', serif; 
+    font-weight: 700;
+    color: #212529;
+}
+h1 { font-size: 2.5rem; }
+h2 { font-size: 1.8rem; margin-top: 25px; }
+
+/* --- HEADER --- */
+.header { 
+    background-color: #004c99; 
+    color: white; 
+    padding: 30px 15px; 
+    text-align: center; 
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative; /* Needed for search bar positioning */
+}
+.header p { 
+    font-weight: 300; 
+    font-size: 1.1rem; 
+    opacity: 0.9;
+    margin-bottom: 20px;
+}
+/* NEW SEARCH STYLES */
+.search-container {
+    padding: 0 20px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.search-container input {
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s;
+}
+.search-container input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+
+/* --- PRODUCT GRID --- */
+.product-grid { 
+    display: flex; 
+    flex-wrap: wrap; 
+    /* Optional: Reduce gap if needed */
+    gap: 20px; 
+    padding: 30px 20px; 
+    justify-content: center; 
+}
+.product-card { 
+    background: white; 
+    border: 1px solid #e0e0e0; 
+    border-radius: 12px; 
+    padding: 10px; 
+    /* CHANGED: Smaller width for the card */
+    width: 180px; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+.product-card img { 
+    width: 100%; 
+    max-height: 120px; 
+    object-fit: contain; 
+    margin-bottom: 2px; 
+    border-radius: 8px;
+}
+
+/* --- DETAILS & PRICE --- */
+.price { 
+    font-size: 1.3em; 
+    color: #004c99; 
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    margin: 5px 0;
+}
+.details { 
+    font-size: 0.95em; 
+    color: #6a6a6a; 
+    line-height: 1.4;
+    margin-bottom: 5px;
+}
+
+/* --- VARIATIONS --- */
+.variation-grid { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 6px; 
+    margin-bottom: 15px; 
+}
+.variation-btn { 
+    padding: 8px 15px; 
+    border: 1px solid #ccc; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    background-color: #ffffff;
+    font-size: 0.85em;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+.variation-btn:hover {
+    background-color: #f0f0f0;
+}
+.variation-btn.active { 
+    background-color: #004c99; 
+    color: white; 
+    border-color: #004c99; 
+    font-weight: 700;
+}
+
+/* --- QUANTITY & CART BUTTON --- */
+.qty-row { 
+    display: flex; 
+    gap: 15px; 
+    margin-top: 20px; 
+}
+.qty-row input { 
+    width: 80px; 
+    padding: 8px; 
+    border: 1px solid #ccc; 
+    border-radius: 5px; 
+    text-align: center; 
+    font-size: 1em;
+}
+.btn-cart { 
+    background-color: #28a745; 
+    color: white; 
+    border: none; 
+    padding: 10px; 
+    border-radius: 5px; 
+    cursor: pointer; 
+    font-weight: 700;
+    transition: background-color 0.2s;
+}
+.btn-cart:hover {
+    background-color: #1f8b3b;
+}
+
+/* --- CART CONTAINER --- */
+#cart-container { 
+    position: fixed; 
+    right: 20px; 
+    top: 20px; 
+    width: 300px; 
+    background: white; 
+    border: 1px solid #e0e0e0; 
+    border-radius: 12px; 
+    padding: 15px; 
+    max-height: 90vh; 
+    overflow-y: auto; 
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); 
+}
+#cart-container h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #004c99;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+}
+.cart-item { 
+    border-bottom: 1px dashed #e0e0e0; 
+    padding: 10px 0; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start;
+    font-size: 0.9em;
+}
+.cart-item:last-child { border-bottom: none; }
+.cart-total { 
+    font-weight: 700; 
+    margin-top: 15px; 
+    text-align: right; 
+    font-size: 1.1em;
+    color: #004c99;
+}
+.remove-btn { 
+    background: #dc3545; 
+    color: white; 
+    border: none; 
+    padding: 3px 6px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    font-size: 0.7em;
+    margin-left: 10px;
+    align-self: center;
+}
+.checkout-btn {
+    width: 100%;
+    padding: 12px;
+    background: #004c99; 
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 1.1em;
+    font-weight: 700;
+    transition: background-color 0.2s;
+}
+.checkout-btn:hover {
+    background-color: #003366;
+}
+
+/* --- CHECKOUT MODAL STYLES (UPDATED) --- */
+#checkout-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#checkout-modal > div {
+    background: #fff;
+    width: 950px; 
+    max-width: 90%;
+    padding: 30px;
+    border-radius: 12px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.checkout-content-grid {
+    display: flex;
+    gap: 30px;
+}
+
+.checkout-details-column {
+    flex: 2; 
+}
+
+.checkout-summary-column {
+    flex: 1; 
+    background: #f7f7f7; 
+    padding: 20px;
+    border-radius: 8px;
+    height: fit-content;
+}
+
+/* Input Group Styling */
+.input-group {
+    margin-bottom: 20px;
+}
+.input-group label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #555;
+    font-size: 0.95em;
+}
+#checkout-modal input, #checkout-modal #delivery-address {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.2s;
+}
+#checkout-modal input:focus {
+    border-color: #004c99;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 76, 153, 0.1);
+}
+
+/* Shipping Buttons */
+.shipping-options {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+}
+.shipping-option-btn {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fff;
+    font-weight: 500;
+}
+.shipping-option-btn.active {
+    border-color: #28a745;
+    background-color: #e6f6e9; 
+    color: #28a745;
+}
+.shipping-option-btn span {
+    display: block;
+    font-size: 0.8em;
+    font-weight: 400;
+    color: #888;
+}
+.shipping-option-btn.active span {
+    color: #28a745;
+}
+
+/* Order Summary Box */
+#checkout-summary-box h4 {
+    margin-top: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #212529;
+}
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 0.95em;
+}
+.summary-total {
+    border-top: 2px solid #ddd;
+    margin-top: 15px;
+    padding-top: 15px;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #004c99;
+}
+
+/* WhatsApp Button */
+.whatsapp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #25D366; 
+    color: white;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 700;
+    transition: background-color 0.2s;
+}
+.whatsapp-btn:hover {
+    background-color: #1DA851;
+}
+.whatsapp-icon {
+    margin-right: 10px;
+}
+.modal-btn-close {
+    background-color: #6c757d;
+    color: #fff;
+    padding: 10px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 5px;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+.modal-btn-close:hover {
+    background-color: #5a6268;
+}
+#delivery-charges {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #dc3545;
+}
+
+/* ========================================= */
+/* --- MOBILE OPTIMIZATION (Media Query) --- */
+/* ========================================= */
+@media (max-width: 768px) {
+    /* 1. HEADER & SEARCH */
+    .header {
+        padding: 20px 10px;
+    }
+    .header h1 {
+        font-size: 2rem; /* Reduce font size */
+    }
+    .search-container {
+        padding: 0 10px 10px;
+    }
+
+    /* 2. PRODUCT GRID & CARDS */
+    .product-grid {
+        gap: 15px; /* Slightly reduce gap */
+        padding: 20px 10px; /* Reduce overall padding */
+    }
+    .product-card {
+        /* Make the card nearly full width on smaller screens, allowing space for 1 or 2 columns */
+        width: 100%; /* Default to full width for stacking */
+        max-width: 320px; /* Cap the max width for extremely narrow screens */
+        padding: 15px;
+    }
+    /* If you prefer 2 columns on mobile, use this instead:
+    .product-card {
+        width: calc(50% - 20px); 
+    }
+    */
+    .product-card h3 {
+        font-size: 1.1rem; /* Smaller heading */
+    }
+    .product-card img {
+        max-height: 150px; /* Allow images to be slightly larger */
+    }
+
+
+    /* 3. CART CONTAINER (Crucial Change) */
+    #cart-container {
+        position: fixed;
+        bottom: 0; /* Move to the bottom */
+        left: 0; /* Full width */
+        right: 0;
+        width: 100%; /* Full width */
+        max-height: 40vh; /* Limit height so it doesn't cover the whole screen */
+        border-radius: 12px 12px 0 0; /* Rounded top corners */
+        padding: 15px;
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2); /* Shadow on top */
+        z-index: 1000;
+        /* Push the main product content up so it's not hidden behind the fixed cart */
+        padding-bottom: 90px; 
+    }
+    .checkout-btn {
+        font-size: 1em;
+        padding: 10px;
+    }
+
+
+    /* 4. CHECKOUT MODAL */
+    #checkout-modal > div {
+        /* Make the modal content take up more screen space */
+        max-width: 95%; 
+        padding: 20px;
+    }
+    .checkout-content-grid {
+        flex-direction: column; /* Stack details and summary vertically */
+        gap: 20px;
+    }
+    .checkout-summary-column {
+        /* Move summary box to the top of the column stack on mobile */
+        order: -1; 
+    }
+    .modal-btn-close {
+        /* Ensure the close button is easily accessible */
+        margin-bottom: 10px;
+    }
+
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>Your Premium Paper Catalog</h1>
+<p>Precision paper products for your business needs</p>
+<div class="search-container">
+    <input type="text" id="search-input" onkeyup="searchProducts(this.value)" placeholder="Search by paper name, size, or GSM...">
+</div>
+</div>
+
+<div id="product-list" class="product-grid"></div>
+
+<div id="cart-container">
+<h3>Shopping Cart</h3>
+<div id="cart-items"></div>
+<div class="cart-total" id="cart-total">Total: Rs 0</div>
+<button onclick="openCheckout()" class="checkout-btn">Proceed to Order</button>
+</div>
+
+<div id="checkout-modal" style="display:none;">
+    <div>
+        <div class="checkout-content-grid">
+            
+            <div class="checkout-details-column">
+                <h3 style="margin-top:0;">Checkout Details</h3>
+
+                <div class="input-group">
+                    <label for="cust-name">Name</label>
+                    <input id="cust-name" placeholder="Full Name" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="cust-email">Email</label>
+                    <input id="cust-email" placeholder="Email (Optional)">
+                </div>
+                
+                <div class="input-group">
+                    <label for="cust-phone">Phone</label>
+                    <input id="cust-phone" placeholder="Phone Number" required>
+                </div>
+                
+                <h3 style="border-bottom: none; margin-bottom:15px; padding-bottom:0;">Shipping</h3>
+                <div class="shipping-options">
+                    <div id="shipping-self" class="shipping-option-btn active" onclick="updateShipping('self')">
+                        <label><input type="radio" name="shipping" value="self" checked hidden> Pick up</label>
+                        <span>FREE</span>
+                    </div>
+                    <div id="shipping-delivery" class="shipping-option-btn" onclick="updateShipping('delivery')">
+                        <label><input type="radio" name="shipping" value="delivery" hidden> Delivery</label>
+                        <span>View Charges</span>
+                    </div>
+                </div>
+
+                <div id="delivery-address-container" style="display:none; margin-top:20px;">
+                    <div class="input-group">
+                        <label for="delivery-address">Delivery Address</label>
+                        <input id="delivery-address" placeholder="Enter Full Delivery Address">
+                    </div>
+                    <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545;"></p>
+                </div>
+
+                <button onclick="closeCheckout()" class="modal-btn-close" style="margin-top: 30px;">Cancel</button>
+
+            </div>
+
+            <div class="checkout-summary-column">
+                <div id="checkout-summary-box">
+                    <h4>Order Summary</h4>
+                    </div>
+
+                <button onclick="placeOrder()" class="whatsapp-btn">
+                    <span class="whatsapp-icon">📞</span> Place order on WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
+const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
+const SHEET_NAME = "Sheet1"
+
+const COL = {
+ID:0, AVAILABILITY:1, CATEGORY:2, NAME:3,
+LENGTH:6, WIDTH:7, GSM:8, SHEETS:9,
+RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14
+}
+
+let cart = {};
+let globalProducts = {}; // 3. NEW: Store all products globally for search and rendering
+let lunrIndex = null; // 4. NEW: lunr.js index
+
+function safeKey(t){ return t.replace(/[^a-zA-Z0-9]/g,"_") }
+
+async function fetchProducts(){
+    const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:O?key=${API_KEY}`
+    )
+    const data = await res.json()
+    const rows = data.values || []
+    const groupedProducts = group(rows.filter(r=>r[COL.AVAILABILITY]?.toUpperCase()==="YES"))
+    
+    globalProducts = groupedProducts; // Store all products
+    buildLunrIndex(groupedProducts); // Build search index
+    renderProducts(groupedProducts)
+}
+
+function group(rows){
+    const g = {}
+    rows.forEach(r=>{
+        const cat = r[COL.CATEGORY]
+        // Ensure category is present, default to 'Uncategorized' if necessary, though ideally fixed in spreadsheet
+        const categoryKey = cat || 'Uncategorized'; 
+        if(!g[categoryKey]) g[categoryKey]={category:categoryKey, items:[]}
+        g[categoryKey].items.push({
+            id: r[COL.ID],
+            name: r[COL.NAME],
+            size: `${r[COL.LENGTH]}x${r[COL.WIDTH]}`,
+            gsm: r[COL.GSM],
+            sheets: r[COL.SHEETS],
+            weight: parseFloat(r[COL.WEIGHT] || 0),
+            price: Math.round(parseFloat(r[COL.PRICE] || 0)),
+            rate: r[COL.RATE],
+            image: r[COL.IMAGE]||"https://via.placeholder.com/300x200",
+            maxQty: parseInt(r[COL.MAX] || 9999),
+            category: categoryKey // Store category in the item object for search retrieval
+        })
+    })
+    return g
+}
+
+// 5. NEW: Function to build the lunr.js index
+function buildLunrIndex(groups){
+    const indexStore = {};
+    let productIdCounter = 0;
+
+    lunrIndex = lunr(function(){
+        this.ref('ref');
+        this.field('name');
+        this.field('category');
+        this.field('size');
+        this.field('gsm');
+        
+        Object.keys(groups).forEach(cat => {
+            const items = groups[cat].items;
+            items.forEach(item => {
+                // Index the unique product variation
+                const docId = productIdCounter++;
+                const doc = {
+                    ref: item.id,
+                    name: item.name,
+                    category: cat,
+                    size: item.size,
+                    gsm: item.gsm
+                };
+                this.add(doc);
+                // Store the item data indexed by its unique ID for retrieval
+                indexStore[item.id] = item;
+            });
+        });
+    });
+    // Attach the store to the window for global lookup during search
+    window.lunrStore = indexStore;
+}
+
+// 6. NEW: Hybrid Search Function
+function searchProducts(query){
+    const list = document.getElementById("product-list");
+    list.innerHTML = "";
+
+    if (!query || query.trim() === "") {
+        // If query is empty, render all products from the global store
+        renderProducts(globalProducts);
+        return;
+    }
+
+    if (!lunrIndex) return;
+    
+    // Perform search using lunr.js (full-text search)
+    // The query is configured to search for partial matches (wildcards)
+    const results = lunrIndex.search(`*${query.toLowerCase()}*`); 
+
+    // Create a temporary group structure based on search results
+    const filteredGroups = {};
+
+    results.forEach(result => {
+        const item = window.lunrStore[result.ref];
+        if (item) {
+            const cat = item.category || 'Search_Results'; // Fallback key for grouping
+            if (!filteredGroups[cat]) filteredGroups[cat] = { category: cat, items: [] };
+            filteredGroups[cat].items.push(item);
+        }
+    });
+
+    renderProducts(filteredGroups);
+}
+
+
+function renderProducts(groups){
+    const wrap=document.getElementById("product-list")
+    wrap.innerHTML=""
+
+    // Check if any products were found
+    if (Object.keys(groups).length === 0) {
+        wrap.innerHTML = `<h2 style="width:100%; text-align:center; color:#dc3545; margin-top:50px;">No products found matching your search.</h2>`;
+        return;
+    }
+
+    Object.keys(groups).forEach(cat=>{
+        // FIX APPLIED HERE: Check if the category name is non-empty and not 'undefined'
+        if (cat && cat !== "undefined" && cat !== "Search_Results") {
+            wrap.innerHTML += `<h2 style="width:100%; text-align:left; border-bottom:2px solid #ccc; padding-bottom:5px;">${cat}</h2>`
+        } else {
+            // For search results, or uncategorized items, display a generic header if the search bar has text
+            const searchInput = document.getElementById("search-input");
+             if (searchInput && searchInput.value.trim() !== "") {
+                wrap.innerHTML += `<h2 style="width:100%; text-align:left; border-bottom:2px solid #ccc; padding-bottom:5px;">Search Results</h2>`
+            }
+        }
+        
+        const items = groups[cat].items
+        const grouped = {}
+        items.forEach(i=>{
+            const key = safeKey(i.name)
+            if(!grouped[key]) grouped[key] = {name:i.name, variations:[]}
+            grouped[key].variations.push(i)
+        })
+        Object.keys(grouped).forEach(k=>{
+            const g = grouped[k]
+            const sizes = [...new Set(g.variations.map(v=>v.size))]
+            const gsms = [...new Set(g.variations.map(v=>v.gsm))]
+            const map = {}
+            g.variations.forEach(v=>map[`${v.size}_${v.gsm}`]=v)
+            window[`map_${k}`]=map
+            window[`size_${k}`]=sizes[0]
+            window[`gsm_${k}`]=gsms[0]
+
+            wrap.innerHTML+=`
+            <div class="product-card">
+                <img id="img_${k}" src="${g.variations[0].image}">
+                <h3>${g.name}</h3>
+
+                <div class="variation-grid">
+                    ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
+                </div>
+
+                <div class="variation-grid">
+                    ${gsms.map((g,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${g}',this)">${g}</button>`).join("")}
+                </div>
+
+                <p class="details" id="info_${k}"></p>
+                <div class="price" id="price_${k}"></div>
+
+                <div class="qty-row">
+                    <input type="number" id="qty_${k}" value="1" min="0">
+                    <button class="btn-cart" onclick="addToCart('${k}')">Add to Cart</button>
+                </div>
+            </div>`
+            updateUI(k)
+        })
+    })
+}
+
+function selectVar(key,type,val,btn){
+    if(type==="size") window[`size_${key}`]=val
+    if(type==="gsm") window[`gsm_${key}`]=val
+    btn.parentElement.querySelectorAll(".variation-btn").forEach(b=>b.classList.remove("active"))
+    btn.classList.add("active")
+    updateUI(key)
+}
+
+function updateUI(key){
+    const p = window[`map_${key}`][`${window[`size_${key}`]}_${window[`gsm_${key}`]}`]
+    if(!p) return
+    document.getElementById(`price_${key}`).innerText=`Rs ${p.price}`
+    document.getElementById(`info_${key}`).innerText=`${p.sheets} Sheets | ${Math.round(p.weight * p.qty || 1)} KG | Rs ${p.rate}/KG`
+    document.getElementById(`img_${key}`).src = p.image
+
+    const qtyInput = document.getElementById(`qty_${key}`)
+    if(qtyInput){
+        qtyInput.max = p.maxQty
+        if(parseInt(qtyInput.value) > p.maxQty) qtyInput.value = p.maxQty
+    }
+}
+
+function addToCart(key){
+    const qtyInput = document.getElementById(`qty_${key}`)
+    let qty = parseInt(qtyInput.value)
+
+    if(!qty || qty <= 0){
+        alert("Enter quantity")
+        return
+    }
+
+    const variantKey = `${window[`size_${key}`]}_${window[`gsm_${key}`]}`
+    const p = window[`map_${key}`][variantKey]
+
+    if(!p){
+        alert("This size and GSM is not available")
+        return
+    }
+
+    if(qty > p.maxQty){
+        qty = p.maxQty
+        qtyInput.value = qty
+        alert("Maximum allowed quantity is " + p.maxQty)
+    }
+
+    const cartKey = key + "_" + p.size + "_" + p.gsm
+    cart[cartKey] = { ...p, qty }
+    renderCart()
+}
+function removeFromCart(cartKey){
+    delete cart[cartKey]
+    renderCart()
+}
+
+function renderCart(){
+    const container = document.getElementById("cart-items")
+    container.innerHTML=""
+    let total=0
+    let totalWeight=0
+    Object.keys(cart).forEach(k=>{
+        const item = cart[k]
+        const itemTotalPrice = item.price * item.qty
+        const itemTotalWeight = item.weight * item.qty
+        total += itemTotalPrice
+        totalWeight += itemTotalWeight
+        container.innerHTML += `
+            <div class="cart-item">
+                <div>
+                    <strong>${item.name}</strong> (${item.size}, GSM ${item.gsm})<br>
+                    Rs ${item.price} x ${item.qty} = Rs ${itemTotalPrice}<br>
+                    Rs ${item.rate}/KG | Weight: ${Math.round(itemTotalWeight)} KG
+                </div>
+                <button class="remove-btn" onclick="removeFromCart('${k}')">X</button>
+            </div>`
+    })
+    document.getElementById("cart-total").innerText = `Total: Rs ${total} | Total Weight: ${Math.round(totalWeight)} KG`
+}
+
+function openCheckout(){
+    if(Object.keys(cart).length===0){
+        alert("Cart is empty")
+        return
+    }
+
+    // Ensure initial state of shipping/charges
+    updateShipping('self', false) // Initialize as self, don't update radio buttons
+
+    // Set initial values from local storage/defaults if needed, or clear them
+    document.getElementById("cust-name").value = "";
+    document.getElementById("cust-email").value = "";
+    document.getElementById("cust-phone").value = "";
+    document.getElementById("delivery-address").value = "";
+
+    document.getElementById("checkout-modal").style.display = "flex" 
+}
+
+function closeCheckout(){
+    document.getElementById("checkout-modal").style.display="none"
+}
+
+function placeOrder(){
+    const name = document.getElementById("cust-name").value
+    const phone = document.getElementById("cust-phone").value
+    const email = document.getElementById("cust-email").value
+    const shipping = document.querySelector('input[name="shipping"]:checked').value
+    const address = document.getElementById("delivery-address").value
+
+    if(!name || !phone){
+        alert("Full Name and Phone Number are required fields.")
+        return
+    }
+
+    if(shipping === "delivery" && !address){
+        alert("Delivery shipping requires a Delivery Address.")
+        return
+    }
+
+    let total = 0
+    let totalWeight = 0
+    Object.values(cart).forEach(i => {
+        total += i.price * i.qty
+        totalWeight += i.weight * i.qty
+    })
+
+    let deliveryCharges = 0
+    if(shipping === "delivery"){
+        // Recalculate final charges
+        deliveryCharges = Math.max(Math.round(totalWeight * 3), 400)
+        total += deliveryCharges
+    }
+
+    // Build order summary with explicit line breaks for WhatsApp
+    let orderSummary = "--- *NEW ORDER REQUEST* ---\n\n"
+    orderSummary += `*Customer Details*\n`
+    orderSummary += `Name: ${name}\n`
+    orderSummary += `Phone: ${phone}\n`
+    if(email) orderSummary += `Email: ${email}\n`
+    orderSummary += `Shipping: ${shipping === "delivery" ? "Delivery" : "Self Pickup"}\n`
+    if(shipping === "delivery") orderSummary += `Address: ${address}\nDelivery Charges: Rs ${deliveryCharges}\n`
+    orderSummary += `\n*Items (${Object.keys(cart).length} unique)*:\n`
+
+    Object.values(cart).forEach((i, index) => {
+        const itemTotal = i.price * i.qty
+        const itemWeight = i.weight * i.qty
+        orderSummary += `*${index + 1}.* ${i.name} (${i.size} | ${i.gsm} GSM)\n`
+        orderSummary += `  Qty: ${i.qty} packs (Rs ${i.price} each)\n`
+        orderSummary += `  Rate: Rs ${i.rate}/KG\n` // ADDED RATE/KG
+        orderSummary += `  Total Item Price: Rs ${itemTotal}\n`
+        orderSummary += `  Weight: ${Math.round(itemWeight)} KG\n\n`
+    })
+
+    orderSummary += `--- *FINANCIAL SUMMARY* ---\n`
+    const subtotal = total - deliveryCharges;
+    orderSummary += `Subtotal: Rs ${subtotal}\n`
+    orderSummary += `Delivery Charges: Rs ${deliveryCharges}\n`
+    orderSummary += `*GRAND TOTAL: Rs ${total}*\n`
+    orderSummary += `*Total Weight: ${Math.round(totalWeight)} KG*\n\n` // ADDED TOTAL WEIGHT
+    orderSummary += `_Your order is recevied. Sales agent will be in touch with you shortly._`
+
+    // Encode message for WhatsApp
+    const whatsappMessage = encodeURIComponent(orderSummary)
+
+    // Replace with your WhatsApp number (country code without +)
+    const whatsappNumber = "923138470666"
+
+    // Open WhatsApp Web or app
+    window.open(`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`, "_blank")
+
+    // Reload page to empty cart
+    setTimeout(() => {
+        location.reload()
+    }, 1000); 
+}
+function updateShipping(method, updateRadio = true){
+    const container = document.getElementById("delivery-address-container");
+    const selfBtn = document.getElementById("shipping-self");
+    const deliveryBtn = document.getElementById("shipping-delivery");
+
+    if (updateRadio) {
+        document.querySelector(`input[value="${method}"]`).checked = true;
+    }
+    
+    // Toggle active class on buttons
+    if (method === "delivery") {
+        container.style.display = "block";
+        selfBtn.classList.remove("active");
+        deliveryBtn.classList.add("active");
+        calculateDeliveryCharges();
+    } else {
+        container.style.display = "none";
+        deliveryBtn.classList.remove("active");
+        selfBtn.classList.add("active");
+        document.getElementById("delivery-charges").innerText = ""; // Clear charges info
+        updateCheckoutTotal(0);
+    }
+}
+
+function calculateDeliveryCharges(){
+    let totalWeight = 0
+    Object.values(cart).forEach(item => {
+        totalWeight += item.weight * item.qty
+    })
+    // Delivery charges: Rs 3 per KG, minimum Rs 400
+    const charges = Math.max(Math.round(totalWeight * 3), 400)
+    document.getElementById("delivery-charges").innerText = `Delivery Charges: Rs ${charges} (Min Rs 400 or Rs 3/KG)`
+    updateCheckoutTotal(charges)
+}
+function updateCheckoutTotal(deliveryCharges){
+    let total = 0
+    Object.values(cart).forEach(i => {
+        total += i.price * i.qty
+    })
+    const subtotal = total;
+    total += deliveryCharges || 0
+    const totalWeight = Object.values(cart).reduce((sum, i) => sum + i.weight * i.qty, 0)
+    document.getElementById("checkout-summary-box").innerHTML = generateSummaryText(subtotal, total, totalWeight, deliveryCharges)
+}
+
+function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
+    let summaryHtml = "<h4>Order Summary</h4>";
+    
+    // Item Subtotal Line
+    summaryHtml += `<div class="summary-line"><span>Subtotal (${Object.keys(cart).length} Items)</span><span>PKR ${subtotal}</span></div>`;
+    
+    // Shipping Line
+    const shippingText = deliveryCharges > 0 ? `PKR ${deliveryCharges}` : `FREE`;
+    const shippingClass = deliveryCharges > 0 ? '' : 'style="color:#28a745; font-weight:700;"';
+    summaryHtml += `<div class="summary-line"><span>Shipping</span><span ${shippingClass}>${shippingText}</span></div>`;
+
+    // Total Weight Line (NEW)
+    summaryHtml += `<div class="summary-line" style="font-size: 0.9em; font-weight: 500; padding-top: 10px; border-top: 1px dashed #ddd;"><span>Total Weight</span><span>${Math.round(totalWeight)} KG</span></div>`;
+
+
+    // Total Line
+    summaryHtml += `<div class="summary-total"><span>Total</span><span>PKR ${total}</span></div>`;
+    
+    // Detailed Items
+    summaryHtml += `<div style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; font-size: 0.85em; max-height: 150px; overflow-y: auto;">`;
+    summaryHtml += `<p style="margin: 0; font-weight: 700;">Items:</p>`;
+    Object.values(cart).forEach(i => {
+        const itemTotal = i.price * i.qty
+        summaryHtml += `<div>${i.name} (${i.size} | ${i.gsm} GSM) x ${i.qty} = Rs ${itemTotal} (Rs ${i.rate}/KG)</div>`; // ADDED RATE/KG
+    });
+    summaryHtml += `</div>`;
+
+    return summaryHtml;
+}
+
+
+document.addEventListener("DOMContentLoaded", fetchProducts)
+</script>
+</body>
+
+</html>
