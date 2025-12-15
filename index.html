@@ -418,16 +418,31 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         display: block !important;
     }
 
-    /* PRODUCT GRID BASE */
-    .product-grid {
-        gap: 15px;
-        padding: 20px 10px;
-        flex-wrap: wrap;
-        overflow-x: visible;
-        justify-content: center;
+    /* PRODUCT GRID */
+    #product-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        padding: 15px 10px;
     }
 
-    /* CATEGORY SCROLLER FOR LANDSCAPE */
+    #product-list .product-card {
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+
+    #product-list h3 {
+        font-size: 0.95em;
+    }
+
+    #product-list .product-card img {
+        max-height: 100px;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    /* CATEGORY SCROLLER (horizontal for landscape/scrolling categories) */
     .category-scroller {
         display: flex;
         flex-wrap: nowrap;
@@ -437,7 +452,6 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         padding: 0 10px 20px 10px;
     }
 
-    .product-card,
     .category-scroller .product-card {
         flex: 0 0 200px;
         width: 200px;
@@ -494,29 +508,14 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         border-radius: 10px;
     }
 
-   
-
-    #product-list .product-card {
-        width: 100%;
-        flex: none;
-        padding: 10px;
-        box-sizing: border-box;
-    }
-
-    #product-list h3 {
-        font-size: 0.95em;
-    }
-
-    #product-list .product-card img {
-        max-height: 100px;
-    }
-
 }
 
+/* PORTRAIT-SPECIFIC ADJUSTMENTS */
 @media (max-width: 768px) and (orientation: portrait) {
+    /* Category scroller as grid for portrait view */
     .category-scroller {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 12px;
         overflow-x: visible;
         padding: 0 10px 20px;
@@ -529,7 +528,6 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         box-sizing: border-box;
     }
 }
-
 
 #cart-close-btn {
     position: absolute;
