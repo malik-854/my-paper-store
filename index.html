@@ -1411,14 +1411,16 @@ function updateCartBadge(){
 
 // Cart Management Functions
 function toggleCart() {
-    const cartEl = document.getElementById("cart-container")
-    const btn = document.getElementById("view-cart-btn")
+    const cartEl = document.getElementById("cart-container");
+    cartEl.classList.toggle("active");
     
-    if (cartEl.classList.contains("active")) {
-        closeCart()
-    } else {
-        openCart()
-    }
+    // Update button text based on state
+    const btn = document.getElementById("view-cart-btn");
+    const isOpen = cartEl.classList.contains("active");
+    btn.querySelector('.cart-text').textContent = isOpen ? "Close Cart" : "View Cart";
+    
+    // Prevent body scroll when cart is open
+    document.body.style.overflow = isOpen ? "hidden" : "auto";
 }
 
 function openCart() {
