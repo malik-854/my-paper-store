@@ -876,7 +876,7 @@ function openCheckout(){
         alert("Cart is empty")
         return
     }
-
+	closeCart();
     // Ensure initial state of shipping/charges
     updateShipping('self', false) // Initialize as self, don't update radio buttons
 
