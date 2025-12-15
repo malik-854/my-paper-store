@@ -494,13 +494,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         border-radius: 10px;
     }
 
-    /* PORTRAIT GRID FIX */
-    #product-list {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-        padding: 15px 10px;
-    }
+   
 
     #product-list .product-card {
         width: 100%;
@@ -518,6 +512,24 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     }
 
 }
+
+@media (max-width: 768px) and (orientation: portrait) {
+    .category-scroller {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        overflow-x: visible;
+        padding: 0 10px 20px;
+    }
+
+    .category-scroller .product-card {
+        width: 100%;
+        flex: none;
+        padding: 10px;
+        box-sizing: border-box;
+    }
+}
+
 
 #cart-close-btn {
     position: absolute;
