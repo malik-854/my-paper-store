@@ -562,14 +562,17 @@ h3 { font-size: 1.3rem; }
     }
     
     /* Product Grid for Mobile Portrait */
-    .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+       .product-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
         gap: 15px;
         padding: 20px 15px;
+        scrollbar-height: 6px;
     }
     
     .product-card {
-        padding: 12px;
+        flex: 0 0 160px; /* Fixed width for mobile */
     }
     
     .product-card img {
@@ -1422,7 +1425,6 @@ function toggleCart() {
     // Prevent body scroll when cart is open
     document.body.style.overflow = isOpen ? "hidden" : "auto";
 }
-
 function openCart() {
     const cartEl = document.getElementById("cart-container")
     cartEl.classList.add("active")
