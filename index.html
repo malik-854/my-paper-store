@@ -400,60 +400,54 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 /* --- MOBILE OPTIMIZATION (Media Query) --- */
 /* ========================================= */
 @media (max-width: 768px) {
+
     /* 1. HEADER & SEARCH */
     .header {
         padding: 20px 10px;
     }
+
     .header h1 {
         font-size: 2rem;
     }
+
     .search-container {
         padding: 0 10px 10px;
     }
-    /* Ensure the cart button is visible on mobile */
-    .hidden-on-desktop { /* Assuming you used the class I provided for the button */
+
+    .hidden-on-desktop {
         display: block !important;
     }
 
-    /* 2. PRODUCT GRID & CARDS (Horizontal Scroll) */
-    /* *** CRITICAL FIX: REMOVE GENERAL SCROLLING FOR CATEGORY SCROLLING *** */
+    /* 2. PRODUCT GRID BASE */
     .product-grid {
-        /* These lines are REMOVED to allow category-specific scrolling to work */
-        /* flex-wrap: nowrap; */
-        /* overflow-x: scroll; */
-        /* overflow-y: hidden; */
-        /* justify-content: flex-start; */ 
         gap: 15px;
         padding: 20px 10px;
-        /* Ensure the main grid now stacks vertically again */
-        flex-wrap: wrap; 
+        flex-wrap: wrap;
         overflow-x: visible;
         justify-content: center;
     }
-    
-    /* ADDED RULE FOR CATEGORY-SPECIFIC HORIZONTAL SCROLLING */
+
+    /* CATEGORY HORIZONTAL SCROLLER */
     .category-scroller {
         display: flex;
         flex-wrap: nowrap;
-        overflow-x: scroll;
+        overflow-x: auto;
         overflow-y: hidden;
         gap: 15px;
         padding: 0 10px 20px 10px;
     }
-    
-    /* Apply fixed card size to both containers */
-    .product-card, .category-scroller .product-card {
-        /* Set a fixed size for the cards to enable scrolling */
+
+    .product-card,
+    .category-scroller .product-card {
         flex: 0 0 200px;
-        width: 200px; 
+        width: 200px;
         padding: 15px;
         box-sizing: border-box;
     }
-    
-    /* 3. CART CONTAINER (Hidden/Modal Look) */
+
+    /* 3. CART CONTAINER */
     #cart-container {
-        /* HIDE THE CART IN THE MOBILE FLOW until the button is pressed */
-        display: none !important; 
+        display: none !important;
         position: fixed;
         top: 0;
         left: 0;
@@ -466,56 +460,63 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         z-index: 9999;
         box-shadow: none;
         overflow-y: auto;
-	box-sizing: border-box;
+        box-sizing: border-box;
     }
-    
-    /* *** CRITICAL FIX: SHOW CART WHEN mobile-active CLASS IS ADDED *** */
+
     #cart-container.mobile-active {
-        display: block !important; /* This overrides the 'display: none' above */
+        display: block !important;
     }
-    
+
     /* 4. CHECKOUT MODAL */
     #checkout-modal > div {
         max-width: 95%;
         padding: 20px;
     }
+
     .checkout-content-grid {
         flex-direction: column;
         gap: 20px;
     }
+
     .checkout-summary-column {
         order: -1;
     }
-    
-    /* Clear up old scrollbar rules which are now applied to .category-scroller */
-    .product-grid::-webkit-scrollbar, .category-scroller::-webkit-scrollbar {
-        height: 8px; /* Styling for the scrollbar */
+
+    /* SCROLLBARS */
+    .product-grid::-webkit-scrollbar,
+    .category-scroller::-webkit-scrollbar {
+        height: 8px;
     }
-    .product-grid::-webkit-scrollbar-thumb, .category-scroller::-webkit-scrollbar-thumb {
+
+    .product-grid::-webkit-scrollbar-thumb,
+    .category-scroller::-webkit-scrollbar-thumb {
         background: #ccc;
         border-radius: 10px;
-/* MOBILE PRODUCT GRID FIX */
-#product-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 15px 10px;
-}
-
-#product-list .product-card {
-    width: 100%;
-    padding: 10px;
-}
-
-#product-list h3 {
-    font-size: 0.95em;
-}
-
-#product-list .product-card img {
-    max-height: 100px;
-}
-
     }
+
+    /* MOBILE PRODUCT GRID FIX */
+    #product-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 15px 10px;
+    }
+
+    #product-list .product-card {
+        width: 100%;
+        padding: 10px;
+    }
+
+    #product-list h3 {
+        font-size: 0.95em;
+    }
+
+    #product-list .product-card img {
+        max-height: 100px;
+    }
+
+}
+
 #cart-close-btn {
     position: absolute;
     top: 10px;
