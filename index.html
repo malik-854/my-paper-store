@@ -561,8 +561,8 @@ h3 { font-size: 1.3rem; }
         margin-bottom: 10px;
     }
     
-    /* Product Grid for Mobile Portrait */
-       .product-grid {
+    /* Product Grid for Mobile Portrait - HORIZONTAL SCROLL */
+    .product-grid {
         display: flex;
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -573,6 +573,7 @@ h3 { font-size: 1.3rem; }
     
     .product-card {
         flex: 0 0 160px; /* Fixed width for mobile */
+        padding: 12px;
     }
     
     .product-card img {
@@ -611,13 +612,14 @@ h3 { font-size: 1.3rem; }
         padding: 0 10px 10px;
     }
     
+    /* REMOVED: grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); */
     .product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 10px;
         padding: 15px 10px;
     }
     
     .product-card {
+        flex: 0 0 140px; /* Smaller for landscape */
         padding: 10px;
     }
     
@@ -659,13 +661,14 @@ h3 { font-size: 1.3rem; }
 
 /* --- SMALL PHONES --- */
 @media (max-width: 480px) {
+    /* REMOVED: grid-template-columns: repeat(2, 1fr); */
     .product-grid {
-        grid-template-columns: repeat(2, 1fr);
         gap: 12px;
         padding: 15px 10px;
     }
     
     .product-card {
+        flex: 0 0 140px; /* Smaller width for very small phones */
         padding: 10px;
     }
     
@@ -709,7 +712,6 @@ h3 { font-size: 1.3rem; }
         right: 10px;
     }
 }
-
 /* --- UTILITY CLASSES --- */
 .no-results {
     text-align: center;
