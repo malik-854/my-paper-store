@@ -194,7 +194,6 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     align-items: flex-start;
     font-size: 0.9em;
 }
-
 .cart-item:last-child { border-bottom: none; }
 .cart-total { 
     font-weight: 700; 
@@ -476,21 +475,6 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         order: -1;
     }
 }
-/* --- NEW CART CLOSE BUTTON STYLES (Place in your <style> block) --- */
-#close-cart-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    z-index: 10000;
-    padding: 0;
-    line-height: 1;
-}
-
-
 </style>
 </head>
 <body>
@@ -498,10 +482,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 <div class="header">
 <h1>Your Premium Paper Catalog</h1>
 <p>Precision paper products for your business needs</p>
-<div class="header">
-    <h1>Your Premium Paper Catalog</h1>
-    <p>Precision paper products for your business needs</p>
-    
+<div class="header">    
     <button id="view-cart-btn" onclick="toggleCart()" 
             style="position: absolute; top: 25px; right: 20px; 
                    padding: 10px 15px; background: #28a745; color: white; 
@@ -509,6 +490,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
                    font-size: 0.9em;">
         View Cart
     </button>
+    
 </div>
 <div class="search-container">
     <input type="text" id="search-input" onkeyup="searchProducts(this.value)" placeholder="Search by paper name, size, or GSM...">
@@ -518,7 +500,6 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 <div id="product-list" class="product-grid"></div>
 
 <div id="cart-container">
-html<button id="close-cart-btn" onclick="toggleCart()">❌</button>
 <h3>Shopping Cart</h3>
 <div id="cart-items"></div>
 <div class="cart-total" id="cart-total">Total: Rs 0</div>
