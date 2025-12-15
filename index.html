@@ -159,18 +159,25 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 }
 
 /* --- CART CONTAINER --- */
-#cart-container { 
-    position: fixed; 
-    right: 20px; 
-    top: 20px; 
-    width: 300px; 
-    background: white; 
-    border: 1px solid #e0e0e0; 
-    border-radius: 12px; 
-    padding: 15px; 
-    max-height: 90vh; 
-    overflow-y: auto; 
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); 
+/* --- CART CONTAINER (NEW DESKTOP/DEFAULT STYLES) --- */
+/* The cart will be hidden by default on desktop, and only shown after clicking the button */
+#cart-container {
+    position: absolute; /* Change from fixed to absolute for desktop */
+    right: 20px;
+    top: 100px;
+    width: 300px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 15px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    z-index: 1500; /* Ensure it floats above content */
+    display: none; /* HIDE BY DEFAULT */
+}
+#cart-container.active {
+    display: block; /* Show when activated by button */
 }
 #cart-container h3 {
     margin-top: 0;
@@ -179,11 +186,11 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
     margin-bottom: 15px;
     font-size: 1.4rem;
 }
-.cart-item { 
-    border-bottom: 1px dashed #e0e0e0; 
-    padding: 10px 0; 
-    display: flex; 
-    justify-content: space-between; 
+.cart-item {
+    border-bottom: 1px dashed #e0e0e0;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-between;
     align-items: flex-start;
     font-size: 0.9em;
 }
@@ -398,76 +405,75 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         padding: 20px 10px;
     }
     .header h1 {
-        font-size: 2rem; /* Reduce font size */
+        font-size: 2rem;
     }
     .search-container {
         padding: 0 10px 10px;
     }
+    /* Hide the button on large screens if needed, though default position should handle it */
+    #view-cart-btn {
+        display: block; /* Ensure button is visible on mobile */
+    }
 
-    /* 2. PRODUCT GRID & CARDS */
+    /* 2. PRODUCT GRID & CARDS (Horizontal Scroll) */
     .product-grid {
-        gap: 15px; /* Slightly reduce gap */
-        padding: 20px 10px; /* Reduce overall padding */
+        /* CRITICAL CHANGE: Force content to be wide and allow scrolling */
+        flex-wrap: nowrap;
+        overflow-x: scroll; /* Enable horizontal scrolling */
+        overflow-y: hidden;
+        justify-content: flex-start; /* Align items to the left */
+        gap: 15px;
+        padding: 20px 10px;
     }
+    .product-grid::-webkit-scrollbar {
+        height: 6px; /* Styling for the scrollbar */
+    }
+    .product-grid::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+
     .product-card {
-        /* Make the card nearly full width on smaller screens, allowing space for 1 or 2 columns */
-        width: 100%; /* Default to full width for stacking */
-        max-width: 320px; /* Cap the max width for extremely narrow screens */
+        /* Set a fixed size for the cards to enable scrolling */
+        flex: 0 0 200px; /* Do not grow, do not shrink, fix width at 200px */
+        width: 200px; /* Explicit width */
         padding: 15px;
-    }
-    /* If you prefer 2 columns on mobile, use this instead:
-    .product-card {
-        width: calc(50% - 20px); 
-    }
-    */
-    .product-card h3 {
-        font-size: 1.1rem; /* Smaller heading */
+        box-sizing: border-box;
     }
     .product-card img {
-        max-height: 150px; /* Allow images to be slightly larger */
+        max-height: 150px;
     }
 
-
-    /* 3. CART CONTAINER (Crucial Change) */
+    /* 3. CART CONTAINER (Hidden/Modal Look) */
     #cart-container {
+        /* HIDE THE CART IN THE MOBILE FLOW until the button is pressed */
+        display: none !important; 
         position: fixed;
-        bottom: 0; /* Move to the bottom */
-        left: 0; /* Full width */
-        right: 0;
-        width: 100%; /* Full width */
-        max-height: 40vh; /* Limit height so it doesn't cover the whole screen */
-        border-radius: 12px 12px 0 0; /* Rounded top corners */
-        padding: 15px;
-        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2); /* Shadow on top */
-        z-index: 1000;
-        /* Push the main product content up so it's not hidden behind the fixed cart */
-        padding-bottom: 90px; 
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        padding: 20px;
+        background: white;
+        z-index: 9999;
+        box-shadow: none;
+        overflow-y: auto;
     }
-    .checkout-btn {
-        font-size: 1em;
-        padding: 10px;
-    }
-
-
+    
     /* 4. CHECKOUT MODAL */
     #checkout-modal > div {
-        /* Make the modal content take up more screen space */
-        max-width: 95%; 
+        max-width: 95%;
         padding: 20px;
     }
     .checkout-content-grid {
-        flex-direction: column; /* Stack details and summary vertically */
+        flex-direction: column;
         gap: 20px;
     }
     .checkout-summary-column {
-        /* Move summary box to the top of the column stack on mobile */
-        order: -1; 
+        order: -1;
     }
-    .modal-btn-close {
-        /* Ensure the close button is easily accessible */
-        margin-bottom: 10px;
-    }
-
 }
 </style>
 </head>
@@ -476,6 +482,21 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 <div class="header">
 <h1>Your Premium Paper Catalog</h1>
 <p>Precision paper products for your business needs</p>
+<div class="header">
+    <h1>Your Premium Paper Catalog</h1>
+    <p>Precision paper products for your business needs</p>
+    
+    <button id="view-cart-btn" onclick="toggleCart()" 
+            style="position: absolute; top: 25px; right: 20px; 
+                   padding: 10px 15px; background: #28a745; color: white; 
+                   border: none; border-radius: 6px; cursor: pointer; font-weight: 700; 
+                   font-size: 0.9em;">
+        View Cart
+    </button>
+    <div class="search-container">
+        <input type="text" id="search-input" onkeyup="searchProducts(this.value)" placeholder="Search by paper name, size, or GSM...">
+    </div>
+</div>
 <div class="search-container">
     <input type="text" id="search-input" onkeyup="searchProducts(this.value)" placeholder="Search by paper name, size, or GSM...">
 </div>
@@ -984,6 +1005,21 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
     return summaryHtml;
 }
 
+function toggleCart() {
+    const cart = document.getElementById("cart-container");
+    const btn = document.getElementById("view-cart-btn");
+    
+    // Check if the cart is visible
+    const isVisible = cart.classList.toggle('active');
+
+    // Change button text based on visibility
+    btn.innerText = isVisible ? "Hide Cart" : "View Cart";
+    
+    // Optional: Scroll to top of cart when opening if it's not a full screen modal
+    if (isVisible && window.innerWidth > 768) {
+        cart.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
 
 document.addEventListener("DOMContentLoaded", fetchProducts)
 </script>
