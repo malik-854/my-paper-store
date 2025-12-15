@@ -401,7 +401,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 /* ========================================= */
 @media (max-width: 768px) {
 
-    /* 1. HEADER & SEARCH */
+    /* HEADER */
     .header {
         padding: 20px 10px;
     }
@@ -418,7 +418,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         display: block !important;
     }
 
-    /* 2. PRODUCT GRID BASE */
+    /* PRODUCT GRID BASE */
     .product-grid {
         gap: 15px;
         padding: 20px 10px;
@@ -427,7 +427,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         justify-content: center;
     }
 
-    /* CATEGORY HORIZONTAL SCROLLER */
+    /* CATEGORY SCROLLER FOR LANDSCAPE */
     .category-scroller {
         display: flex;
         flex-wrap: nowrap;
@@ -445,7 +445,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         box-sizing: border-box;
     }
 
-    /* 3. CART CONTAINER */
+    /* CART */
     #cart-container {
         display: none !important;
         position: fixed;
@@ -467,7 +467,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         display: block !important;
     }
 
-    /* 4. CHECKOUT MODAL */
+    /* CHECKOUT */
     #checkout-modal > div {
         max-width: 95%;
         padding: 20px;
@@ -494,7 +494,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         border-radius: 10px;
     }
 
-    /* MOBILE PRODUCT GRID FIX */
+    /* PORTRAIT GRID FIX */
     #product-list {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -504,7 +504,9 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 
     #product-list .product-card {
         width: 100%;
+        flex: none;
         padding: 10px;
+        box-sizing: border-box;
     }
 
     #product-list h3 {
