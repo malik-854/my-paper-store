@@ -494,6 +494,25 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
         background: #ccc;
         border-radius: 10px;
     }
+#cart-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 2001;
+}
+#cart-close-btn:hover {
+    background: #b52a37;
+}
+
 }
 </style>
 </head>
@@ -520,6 +539,7 @@ h2 { font-size: 1.8rem; margin-top: 25px; }
 <div id="product-list" class="product-grid"></div>
 
 <div id="cart-container">
+<button id="cart-close-btn" onclick="closeCart()">✕</button>
 <h3>Shopping Cart</h3>
 <div id="cart-items"></div>
 <div class="cart-total" id="cart-total">Total: Rs 0</div>
@@ -1034,6 +1054,16 @@ function toggleCart() {
 
     btn.innerText = isVisible ? "Hide Cart" : "View Cart";
 }
+function closeCart() {
+    const cartEl = document.getElementById("cart-container");
+    const btn = document.getElementById("view-cart-btn");
+
+    cartEl.classList.remove("active");
+    cartEl.classList.remove("mobile-active");
+
+    btn.innerText = "View Cart";
+}
+
 
 document.addEventListener("DOMContentLoaded", fetchProducts)
 </script>
