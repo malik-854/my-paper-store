@@ -712,7 +712,10 @@ h3 { font-size: 1.3rem; }
     }
     
     .details {
-        display: none !important; /* Hide details on very small screens */
+        display: block !important;
+        font-size: 0.7rem !important;
+        line-height: 1.2 !important;
+        margin-bottom: 4px !important;
     }
     
     /* Variation buttons optimization for small phones - FIXED OVERFLOW */
@@ -1382,8 +1385,8 @@ function updateUI(key){
     const p = window[`map_${key}`][`${window[`size_${key}`]}_${window[`gsm_${key}`]}`]
     if(!p) return
     
-    document.getElementById(`price_${key}`).innerText = `Rs ${p.price}`
-    document.getElementById(`info_${key}`).innerText = `${p.sheets} Sheets | ${p.weight} KG | Rs ${p.rate}/KG`
+    document.getElementById(`price_${key}`).innerText = `Rs ${p.price} (Rs ${p.rate}/KG)`
+    document.getElementById(`info_${key}`).innerText = `${p.sheets} Sheets | Rs ${p.rate}/KG`
     
     const img = document.getElementById(`img_${key}`)
     if (img && p.image) {
