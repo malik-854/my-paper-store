@@ -612,8 +612,10 @@ h3 { font-size: 1.3rem; }
         margin-bottom: 5px !important;
     }
     
-    /* Variation buttons optimization */
+    /* Variation buttons optimization - FIXED OVERFLOW */
     .variation-grid {
+        display: flex !important;
+        flex-wrap: wrap !important;
         gap: 4px !important;
         margin-bottom: 8px !important;
     }
@@ -622,8 +624,19 @@ h3 { font-size: 1.3rem; }
         padding: 6px 8px !important;
         font-size: 0.75rem !important;
         min-height: 28px !important;
-        flex: 1 !important;
+        flex: 1 0 auto !important;
         min-width: 0 !important;
+        max-width: 100% !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+    }
+    
+    /* Limit buttons per row - ensures proper wrapping */
+    .variation-grid.size-grid .variation-btn,
+    .variation-grid:first-of-type .variation-btn {
+        flex-basis: calc(50% - 2px) !important; /* 2 buttons per row for sizes */
     }
     
     /* Quantity and cart button optimization */
@@ -702,10 +715,31 @@ h3 { font-size: 1.3rem; }
         display: none !important; /* Hide details on very small screens */
     }
     
+    /* Variation buttons optimization for small phones - FIXED OVERFLOW */
+    .variation-grid {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 3px !important;
+        margin-bottom: 6px !important;
+    }
+    
     .variation-btn {
         padding: 5px 6px !important;
         font-size: 0.7rem !important;
         min-height: 26px !important;
+        flex: 1 0 auto !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+    }
+    
+    /* Limit buttons per row for small phones */
+    .variation-grid.size-grid .variation-btn,
+    .variation-grid:first-of-type .variation-btn {
+        flex-basis: calc(50% - 1.5px) !important; /* 2 buttons per row */
     }
     
     .btn-cart {
@@ -735,7 +769,6 @@ h3 { font-size: 1.3rem; }
         right: 10px !important;
     }
 }
-
 /* --- TABLET (PORTRAIT) --- */
 @media (min-width: 769px) and (max-width: 1024px) {
     #product-list.product-grid {
