@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Premium Paper Store</title>
+<title>Hayyat Paper Store</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lunr/lunr.js"></script>
 <style>
@@ -106,6 +106,86 @@ h3 { font-size: 1.3rem; }
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
 }
 
+/* --- ANNOUNCEMENT BAR --- */
+.announcement-container {
+    background: linear-gradient(90deg, #ff6b00, #ff8c42);
+    color: white;
+    padding: 12px 0;
+    margin: 12px 0 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    min-height: 40px;
+}
+
+.announcement-wrapper {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.announcement-track {
+    display: inline-flex;
+    white-space: nowrap;
+    padding-left: 100%; /* Start off-screen to the right */
+    animation: scrollAnnouncements 20s linear infinite;
+    will-change: transform;
+}
+
+.announcement-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 50px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.announcement-separator {
+    margin: 0 25px;
+    color: white;
+    opacity: 0.7;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.announcement-container:hover .announcement-track {
+    animation-play-state: paused;
+}
+
+/* Keyframes for smooth continuous scroll */
+@keyframes scrollAnnouncements {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .announcement-container {
+        margin: 8px 0 15px 0;
+        padding: 10px 0;
+        min-height: 36px;
+    }
+    
+    .announcement-item {
+        padding: 0 30px;
+        font-size: 0.85rem;
+    }
+    
+    .announcement-separator {
+        margin: 0 15px;
+    }
+    
+    .announcement-track {
+        animation: scrollAnnouncements 30s linear infinite;
+    }
+}
 /* --- PRODUCT GRID --- */
 .product-grid { 
     display: grid; 
@@ -859,6 +939,14 @@ h3 { font-size: 1.3rem; }
     <div class="header-content">
         <h1>Premium Paper Store</h1>
         <p>Precision paper products for your business needs</p>
+	        <!-- ANNOUNCEMENT BAR -->
+        <div class="announcement-container">
+            <div class="announcement-wrapper">
+                <div class="announcement-track" id="announcement-track">
+                    <!-- Announcements will load here -->
+                </div>
+            </div>
+        </div>
         
         <div class="search-container">
             <input type="text" id="search-input" onkeyup="searchProducts(this.value)" 
@@ -1145,6 +1233,8 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'none';
         document.getElementById('product-list').style.display = 'grid';
         document.getElementById('view-cart-btn').style.display = 'flex';
+	// ADD THIS LINE:
+fetchAnnouncements();  // Load announcements
         
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -1165,6 +1255,97 @@ async function fetchProducts(){
         document.getElementById('product-list').style.display = 'grid';
         document.getElementById('view-cart-btn').style.display = 'flex';
     }
+}
+
+async function fetchAnnouncements() {
+    try {
+        const SHEET_NAME = "Announcement";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:C?key=${API_KEY}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch announcements');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.values || data.values.length === 0) {
+            console.log('No announcements found');
+            document.querySelector('.announcement-container').style.display = 'none';
+            return;
+        }
+        
+        const announcements = [];
+        
+        data.values.forEach(row => {
+            if (row.length >= 3) {
+                const text = row[0] || '';
+                const active = (row[1] || '').toLowerCase().trim();
+                const priority = parseInt(row[2]) || 999;
+                
+                if (text && active === 'active') {
+                    announcements.push({
+                        text: text,
+                        priority: priority
+                    });
+                }
+            }
+        });
+        
+        if (announcements.length === 0) {
+            document.querySelector('.announcement-container').style.display = 'none';
+            return;
+        }
+        
+        // Sort by priority
+        announcements.sort((a, b) => a.priority - b.priority);
+        
+        displayAnnouncements(announcements);
+        
+    } catch (error) {
+        console.error('Error fetching announcements:', error);
+        document.querySelector('.announcement-container').style.display = 'none';
+    }
+}
+
+function displayAnnouncements(announcements) {
+    const track = document.getElementById('announcement-track');
+    if (!track) return;
+    
+    track.innerHTML = '';
+    
+    // Create announcement items
+    announcements.forEach((ann, index) => {
+        const item = document.createElement('div');
+        item.className = 'announcement-item';
+        item.textContent = ann.text;
+        track.appendChild(item);
+        
+        // Add separator between announcements
+        if (index < announcements.length - 1) {
+            const separator = document.createElement('span');
+            separator.className = 'announcement-separator';
+            separator.innerHTML = '✦';
+            track.appendChild(separator);
+        }
+    });
+    
+    // Create seamless loop by duplicating content within same track
+    const originalContent = track.innerHTML;
+    track.innerHTML = originalContent + ' ' + originalContent;
+    
+    // Calculate scroll speed based on content length (longer content = slower)
+    const contentWidth = track.scrollWidth / 2; // Divide by 2 because we duplicated
+    const baseSpeed = 40; // Base speed in seconds
+    const speedFactor = Math.max(0.5, Math.min(2, contentWidth / 1000)); // Adjust factor
+    const finalSpeed = baseSpeed * speedFactor;
+    
+    // Apply the speed
+    track.style.animationDuration = `${finalSpeed}s`;
+    
+    // Show the container
+    document.querySelector('.announcement-container').style.display = 'block';
 }
 
 function group(rows){
