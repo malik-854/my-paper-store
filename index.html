@@ -1064,7 +1064,9 @@ const SHEET_NAME = "Sheet1"
 const COL = {
     ID:0, AVAILABILITY:1, CATEGORY:2, NAME:3,
     LENGTH:6, WIDTH:7, GSM:8, SHEETS:9,
-    RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14
+    RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14,
+    HAS_COLORS:15,        // NEW: Column P (index 15)
+    COLOR_OPTIONS:16      // NEW: Column Q (index 16)
 }
 
 // Sample fallback data
@@ -1202,7 +1204,7 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'block';
         
         // Try to fetch from Google Sheets
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:O?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:Q?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -1349,10 +1351,21 @@ function displayAnnouncements(announcements) {
 }
 
 function group(rows){
+    console.log("=== DEBUG: First row all columns ===")
+    if (rows.length > 0) {
+        const firstRow = rows[0]
+        for(let i = 0; i < firstRow.length; i++) {
+            console.log(`Column ${i}: "${firstRow[i] || '(empty)'}"`)
+        }
+    }
     const g = {}
     rows.forEach(r => {
         const cat = r[COL.CATEGORY] || 'Uncategorized'
         if(!g[cat]) g[cat] = {category: cat, items: []}
+        
+        // Get color info
+        const hasColors = (r[COL.HAS_COLORS] || '').toUpperCase() === 'YES'
+        const colorOptions = hasColors ? (r[COL.COLOR_OPTIONS] || '').split(',').map(c => c.trim()) : []
         
         g[cat].items.push({
             id: r[COL.ID] || Math.random().toString(36).substr(2, 9),
@@ -1365,12 +1378,14 @@ function group(rows){
             rate: r[COL.RATE] || 'N/A',
             image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper+Image",
             maxQty: parseInt(r[COL.MAX] || 9999),
-            category: cat
+            category: cat,
+            hasColors: hasColors,          // NEW
+            colorOptions: colorOptions,    // NEW
+            color: hasColors && colorOptions.length > 0 ? colorOptions[0] : ''  // NEW
         })
     })
     return g
 }
-
 function buildLunrIndex(groups){
     const indexStore = {};
     let productIdCounter = 0;
@@ -1466,7 +1481,42 @@ function searchProducts(query){
     }
 }
 
+// Helper function for color button styling
+function getColorStyle(colorName) {
+    const colorMap = {
+        'White': 'background: #ffffff; color: #333; border: 1px solid #ddd;',
+        'Black': 'background: #000000; color: white;',
+        'Blue': 'background: #007bff; color: white;',
+        'Red': 'background: #dc3545; color: white;',
+        'Green': 'background: #28a745; color: white;',
+        'Yellow': 'background: #ffc107; color: #333;',
+        'Cream': 'background: #fffdd0; color: #333; border: 1px solid #ddd;',
+        'Gray': 'background: #6c757d; color: white;',
+        'Brown': 'background: #8B4513; color: white;',
+'Pink': 'background: #e83e8c; color: white;', // ADD THIS LINE
+        'Orange': 'background: #fd7e14; color: white;'
+    };
+    
+    if (colorMap[colorName]) {
+        return colorMap[colorName];
+    }
+    return 'background: #f8f9fa; color: #333;';
+}
+
 function renderProducts(groups, isSearch = false){
+// TEMPORARY DEBUG
+    console.log("=== DEBUG: Checking groups ===")
+    Object.keys(groups).forEach(cat => {
+        console.log(`Category: ${cat}`)
+        groups[cat].items.forEach(item => {
+            if (item.hasColors) {
+                console.log(`  Product with colors: ${item.name}`)
+                console.log(`  Color options:`, item.colorOptions)
+            }
+        })
+    })
+    console.log("=== END DEBUG ===")
+    
     const wrap = document.getElementById("product-list")
     wrap.innerHTML = ""
 
@@ -1480,73 +1530,116 @@ function renderProducts(groups, isSearch = false){
         return;
     }
 
-Object.keys(groups).forEach(cat => {
-    if (cat && cat !== "undefined") {
-        // Create category container
-        wrap.innerHTML += `
-            <div class="category-section">
-                <h2 class="category-header">${cat}</h2>
-                <div class="category-products" id="cat-${safeKey(cat)}">
-                    <!-- Products will be added here -->
+    Object.keys(groups).forEach(cat => {
+        if (cat && cat !== "undefined") {
+            // Create category container
+            wrap.innerHTML += `
+                <div class="category-section">
+                    <h2 class="category-header">${cat}</h2>
+                    <div class="category-products" id="cat-${safeKey(cat)}">
+                        <!-- Products will be added here -->
+                    </div>
                 </div>
-            </div>
-        `
-    }
-    
-    const items = groups[cat].items
-    const grouped = {}
-    items.forEach(i => {
-        const key = safeKey(i.name)
-        if(!grouped[key]) grouped[key] = {name: i.name, variations: []}
-        grouped[key].variations.push(i)
-    })
-    
-    // Get the container for this category
-    const categoryContainer = document.getElementById(`cat-${safeKey(cat)}`)
-    
-    Object.keys(grouped).forEach(k => {
-        const g = grouped[k]
-        const sizes = [...new Set(g.variations.map(v => v.size))]
-        const gsms = [...new Set(g.variations.map(v => v.gsm))]
-        const map = {}
-        g.variations.forEach(v => map[`${v.size}_${v.gsm}`] = v)
+            `
+        }
         
-        window[`map_${k}`] = map
-        window[`size_${k}`] = sizes[0]
-        window[`gsm_${k}`] = gsms[0]
-
-        // ADD TO CATEGORY CONTAINER, NOT MAIN WRAP
-        categoryContainer.innerHTML += `
-        <div class="product-card">
-            <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
-            <div class="product-info">
-                <h3>${g.name}</h3>
+        const items = groups[cat].items
+        const grouped = {}
+        items.forEach(i => {
+            const key = safeKey(i.name)
+            if(!grouped[key]) grouped[key] = {name: i.name, variations: [], hasColors: i.hasColors, colorOptions: i.colorOptions}
+            grouped[key].variations.push(i)
+        })
+        
+        // Get the container for this category (ONCE)
+        const categoryContainer = document.getElementById(`cat-${safeKey(cat)}`)
+        
+        Object.keys(grouped).forEach(k => {
+            const g = grouped[k]
+            const sizes = [...new Set(g.variations.map(v => v.size))]
+            const gsms = [...new Set(g.variations.map(v => v.gsm))]
+            
+            // NEW: Get colors if product has colors
+            let colors = []
+            if (g.hasColors && g.colorOptions && g.colorOptions.length > 0) {
+                colors = g.colorOptions
+            } else {
+                // For products without colors, still track available colors from variations
+                const availableColors = [...new Set(g.variations.map(v => v.color || '').filter(c => c))]
+                if (availableColors.length > 0) {
+                    colors = availableColors
+                }
+            }
+            
+            const map = {}
+            g.variations.forEach(v => {
+                // Create keys for different combinations
+                const baseKey = `${v.size}_${v.gsm}`
+                map[baseKey] = v
                 
-                <div class="variation-grid">
-                    ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
-                </div>
+                // If product has color, also create key with color
+                if (v.color) {
+                    const colorKey = `${v.size}_${v.gsm}_${v.color}`
+                    map[colorKey] = v
+                }
+            })
+            
+            window[`map_${k}`] = map
+            window[`size_${k}`] = sizes[0]
+            window[`gsm_${k}`] = gsms[0]
+            
+            // NEW: Set default color
+            if (colors.length > 0) {
+                window[`color_${k}`] = colors[0]
+            } else {
+                window[`color_${k}`] = ''
+            }
 
-               <div class="variation-grid">
-    ${gsms.map((g,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${g}',this)">${g}</button>`).join("")}
-</div>
+            // ADD TO CATEGORY CONTAINER, NOT MAIN WRAP
+            categoryContainer.innerHTML += `
+            <div class="product-card">
+                <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+                <div class="product-info">
+                    <h3>${g.name}</h3>
+                    
+                    <div class="variation-grid size-grid">
+                        ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
+                    </div>
 
-                <p class="details" id="info_${k}"></p>
-                <div class="price" id="price_${k}"></div>
+                   <div class="variation-grid gsm-grid">
+                ${gsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
             </div>
 
-            <div class="qty-row">
-                <div class="qty-input">
-                    <input type="number" id="qty_${k}" value="1" min="1" max="999">
+                    <!-- COLOR SELECTOR - ONLY SHOW IF PRODUCT HAS COLORS -->
+                    ${colors.length > 0 ? `
+                    <div class="variation-grid color-grid" id="color-grid-${k}">
+                        ${colors.map((color,i)=>`
+                        <button class="variation-btn color-btn ${i===0?'active':''}" 
+                                onclick="selectVar('${k}','color','${color}',this)"
+                                style="${getColorStyle(color)}"
+                                title="${color}">
+                            ${color}
+                        </button>`).join("")}
+                    </div>
+                    ` : ''}
+
+                    <p class="details" id="info_${k}"></p>
+                    <div class="price" id="price_${k}"></div>
                 </div>
-                <button class="btn-cart" onclick="addToCart('${k}')">
-                    Add to Cart
-                </button>
-            </div>
-        </div>`
-        
-        updateUI(k)
-    })
-})
+
+                <div class="qty-row">
+                    <div class="qty-input">
+                        <input type="number" id="qty_${k}" value="1" min="1" max="999">
+                    </div>
+                    <button class="btn-cart" onclick="addToCart('${k}')">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>`
+            
+            updateUI(k)
+        }) // End of Object.keys(grouped).forEach
+    }) // End of Object.keys(groups).forEach
 }
 
 function safeKey(t) { 
@@ -1556,16 +1649,46 @@ function safeKey(t) {
 function selectVar(key, type, val, btn){
     if(type === "size") window[`size_${key}`] = val
     if(type === "gsm") window[`gsm_${key}`] = val
+    if(type === "color") window[`color_${key}`] = val  // NEW LINE
     
-    btn.parentElement.querySelectorAll(".variation-btn").forEach(b => b.classList.remove("active"))
+    // Remove active class from all buttons of the same type
+    const parent = btn.parentElement
+    parent.querySelectorAll(".variation-btn").forEach(b => b.classList.remove("active"))
     btn.classList.add("active")
+    
     updateUI(key)
 }
 
 function updateUI(key){
-    const p = window[`map_${key}`][`${window[`size_${key}`]}_${window[`gsm_${key}`]}`]
-    if(!p) return
+    // Get selected values
+    const selectedSize = window[`size_${key}`]
+    const selectedGsm = window[`gsm_${key}`]
+    const selectedColor = window[`color_${key}`] || ''  // Color might be undefined for products without colors
     
+    // Build the lookup key
+    let lookupKey = `${selectedSize}_${selectedGsm}`
+    if (selectedColor) {
+        lookupKey += `_${selectedColor}`
+    }
+    
+    // Find the product variation
+    const p = window[`map_${key}`][lookupKey]
+    if(!p) {
+        // If exact match not found (color mismatch), try without color
+        const fallbackKey = `${selectedSize}_${selectedGsm}`
+        const fallbackProduct = window[`map_${key}`][fallbackKey]
+        if (fallbackProduct) {
+            // Update color to match available product
+            if (fallbackProduct.color) {
+                window[`color_${key}`] = fallbackProduct.color
+            }
+            updateUI(key) // Recursive call with corrected color
+            return
+        }
+        return
+    }
+    
+    // Update display
     document.getElementById(`price_${key}`).innerText = `Rs ${p.price} (Rs ${p.rate}/KG)`
     document.getElementById(`info_${key}`).innerText = `${p.sheets} Sheets | Rs ${p.rate}/KG`
     
@@ -1580,7 +1703,6 @@ function updateUI(key){
         if(parseInt(qtyInput.value) > p.maxQty) qtyInput.value = p.maxQty
     }
 }
-
 function addToCart(key){
     const qtyInput = document.getElementById(`qty_${key}`)
     let qty = parseInt(qtyInput.value)
@@ -1591,11 +1713,31 @@ function addToCart(key){
         return
     }
 
-    const variantKey = `${window[`size_${key}`]}_${window[`gsm_${key}`]}`
-    const p = window[`map_${key}`][variantKey]
+    // Get selected values
+    const selectedSize = window[`size_${key}`]
+    const selectedGsm = window[`gsm_${key}`]
+    const selectedColor = window[`color_${key}`] || ''
+
+    // Try to find product with color first
+    let variantKey = `${selectedSize}_${selectedGsm}`
+    if (selectedColor) {
+        variantKey += `_${selectedColor}`
+    }
+    
+    let p = null
+if (selectedColor) {
+    // Try with color first
+    p = window[`map_${key}`][`${selectedSize}_${selectedGsm}_${selectedColor}`]
+}
+    
+    // If not found with color, try without color
+    if (!p && selectedColor) {
+        variantKey = `${selectedSize}_${selectedGsm}`
+        p = window[`map_${key}`][variantKey]
+    }
 
     if(!p){
-        alert("This size and GSM combination is not available")
+        alert("This combination is not available")
         return
     }
 
@@ -1605,8 +1747,17 @@ function addToCart(key){
         alert(`Maximum allowed quantity is ${p.maxQty}`)
     }
 
-    const cartKey = key + "_" + p.size + "_" + p.gsm
-    cart[cartKey] = { ...p, qty }
+    // Create cart key with all variations
+    const cartKey = key + "_" + p.size + "_" + p.gsm + (p.color ? "_" + p.color : "")
+    
+    // Include selected color in cart item (even if product doesn't have color property)
+    const cartItem = { 
+        ...p, 
+        qty,
+        selectedColor: selectedColor // Store the selected color separately
+    }
+    
+    cart[cartKey] = cartItem
     renderCart()
     updateCartBadge()
     
@@ -1626,7 +1777,6 @@ function addToCart(key){
         addBtn.style.backgroundColor = ""
     }, 1000)
 }
-
 function removeFromCart(cartKey){
     delete cart[cartKey]
     renderCart()
@@ -1658,11 +1808,17 @@ function renderCart(){
         total += itemTotalPrice
         totalWeight += itemTotalWeight
         
+        // Build specifications line
+        let specs = `${item.size}, GSM ${item.gsm}`
+        if (item.selectedColor && item.selectedColor !== '') {
+            specs += `, ${item.selectedColor}`
+        }
+        
         container.innerHTML += `
             <div class="cart-item">
                 <div class="cart-item-details">
                     <strong>${item.name}</strong><br>
-                    <small>${item.size}, GSM ${item.gsm}</small><br>
+                    <small>${specs}</small><br>
                     <div style="margin-top: 5px;">
                         Rs ${item.price} × ${item.qty} = <strong>Rs ${itemTotalPrice}</strong><br>
                         <small>${Math.round(itemTotalWeight)} KG @ Rs ${item.rate}/KG</small>
@@ -1881,7 +2037,14 @@ function placeOrder(){
         const itemTotal = i.price * i.qty
         const itemWeight = i.weight * i.qty
         orderSummary += `${index + 1}. *${i.name}*\n`
-        orderSummary += `   Size: ${i.size} | GSM: ${i.gsm}\n`
+        
+        // Build specifications line
+        let specs = `Size: ${i.size} | GSM: ${i.gsm}`
+        if (i.selectedColor && i.selectedColor !== '') {
+            specs += ` | Color: ${i.selectedColor}`
+        }
+        orderSummary += `   ${specs}\n`
+        
         orderSummary += `   Qty: ${i.qty} packs × Rs ${i.price} = Rs ${itemTotal}\n`
         orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${i.rate}/KG\n\n`
     })
@@ -1892,6 +2055,11 @@ function placeOrder(){
     if(deliveryCharges > 0) orderSummary += `Delivery: Rs ${deliveryCharges}\n`
     orderSummary += `*GRAND TOTAL: Rs ${total}*\n`
     orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
+    // Check if any items have colors
+    const hasColoredItems = Object.values(cart).some(item => item.selectedColor && item.selectedColor !== '')
+    if (hasColoredItems) {
+        orderSummary += `Items with color selection: Yes\n`
+    }
     orderSummary += `⏳ _Please confirm availability and provide payment details._`
 
     // Create WhatsApp URL
