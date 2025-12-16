@@ -132,7 +132,7 @@ h3 { font-size: 1.3rem; }
 }
 .product-card img { 
     width: 100%; 
-    height: 140px; 
+    height: 40px; 
     object-fit: contain; 
     margin-bottom: 12px; 
     border-radius: 8px;
@@ -544,7 +544,7 @@ h3 { font-size: 1.3rem; }
     background-color: #5a6268;
 }
 
-/* --- MOBILE OPTIMIZATION --- */
+/* --- MOBILE OPTIMIZATION - IMPROVED PRODUCT GRID --- */
 @media (max-width: 768px) {
     /* Header adjustments */
     .header {
@@ -561,104 +561,208 @@ h3 { font-size: 1.3rem; }
         margin-bottom: 10px;
     }
     
-    /* Product Grid for ALL Mobile - HORIZONTAL SCROLL */
-    .product-grid {
-        display: flex;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        gap: 15px;
-        padding: 20px 15px;
-        scrollbar-height: 6px;
+    /* IMPROVED: Multi-column grid for mobile */
+    #product-list.product-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        padding: 15px 10px !important;
+        overflow-x: visible !important;
+    }
+    
+    /* NEW: Row-wise category layout */
+    .category-section {
+        display: contents; /* Makes children flow directly in grid */
+    }
+    
+    /* NEW: Remove category products containers */
+    .category-products {
+        display: contents;
     }
     
     .product-card {
-        flex: 0 0 160px !important ; /* Fixed width for mobile */
+        width: 100% !important;
+        min-width: 0 !important;
         padding: 12px !important;
+        height: auto !important;
     }
     
     .product-card img {
-        height: 120px;
+        height: 40px !important;
     }
     
     .product-card h3 {
-        font-size: 1rem;
+        font-size: 0.95rem !important;
+        line-height: 1.2 !important;
+        margin: 3px 0 6px !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+    }
+    
+    .price {
+        font-size: 1.1rem !important;
+        margin: 3px 0 !important;
+    }
+    
+    .details {
+        font-size: 0.75rem !important;
+        line-height: 1.2 !important;
+        margin-bottom: 5px !important;
+    }
+    
+    /* Variation buttons optimization */
+    .variation-grid {
+        gap: 4px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .variation-btn {
+        padding: 6px 8px !important;
+        font-size: 0.75rem !important;
+        min-height: 28px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+    
+    /* Quantity and cart button optimization */
+    .qty-row {
+        gap: 6px !important;
+        margin-top: 8px !important;
+    }
+    
+    .qty-input {
+        width: 60px !important;
+    }
+    
+    .qty-row input {
+        padding: 8px !important;
+        font-size: 0.9rem !important;
+        height: 36px !important;
+    }
+    
+    .btn-cart {
+        padding: 8px 10px !important;
+        font-size: 0.85rem !important;
+        height: 36px !important;
+    }
+    
+    /* Category headers - Updated */
+    .category-header {
+        font-size: 1.4rem !important;
+        margin-top: 20px !important;
+        margin-bottom: 8px !important;
+        grid-column: 1 / -1 !important; /* Spans all columns */
     }
     
     /* Cart button */
     #view-cart-btn {
-        padding: 12px 18px;
-        font-size: 0.9em;
-        bottom: 15px;
-        right: 15px;
-    }
-    
-    /* Landscape adjustments */
-    @media (orientation: landscape) {
-        .product-card {
-            flex: 0 0 140px; /* Smaller for landscape */
-        }
-        
-        .product-card img {
-            height: 100px;
-        }
+        padding: 12px 18px !important;
+        font-size: 0.9rem !important;
+        bottom: 15px !important;
+        right: 15px !important;
     }
 }
 
-/* --- SMALL PHONES --- */
+/* --- SMALL PHONES (≤480px) --- */
 @media (max-width: 480px) {
-    .product-grid {
-        display: flex; /* ADDED */
-        flex-wrap: nowrap; /* ADDED */
-        overflow-x: auto; /* ADDED */
-        gap: 12px;
-        padding: 15px 10px;
+    #product-list.product-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        padding: 12px 8px !important;
+    }
+    
+    /* NEW: Row-wise category layout for small phones */
+    .category-section {
+        display: contents;
+    }
+    
+    .category-products {
+        display: contents;
     }
     
     .product-card {
-        flex: 0 0 140px; /* Smaller width for very small phones */
-        padding: 10px;
+        padding: 10px !important;
     }
     
     .product-card img {
-        height: 110px;
+        height: 40px !important;
     }
     
     .product-card h3 {
-        font-size: 0.95rem;
+        font-size: 0.9rem !important;
     }
     
-    .variation-grid {
-        gap: 4px;
-        margin-bottom: 8px;
+    .price {
+        font-size: 1rem !important;
+    }
+    
+    .details {
+        display: none !important; /* Hide details on very small screens */
     }
     
     .variation-btn {
-        padding: 6px 8px;
-        font-size: 0.75em;
+        padding: 5px 6px !important;
+        font-size: 0.7rem !important;
+        min-height: 26px !important;
     }
     
     .btn-cart {
-        font-size: 0.85em;
-        padding: 8px;
-    }
-    
-    .qty-row {
-        gap: 8px;
-        margin-top: 12px;
+        font-size: 0.8rem !important;
+        padding: 6px 8px !important;
+        height: 34px !important;
     }
     
     .qty-row input {
-        padding: 8px;
-        font-size: 0.9em;
+        padding: 6px !important;
+        font-size: 0.85rem !important;
+        height: 34px !important;
+    }
+    
+    /* Category headers for small phones */
+    .category-header {
+        font-size: 1.3rem !important;
+        margin-top: 15px !important;
+        margin-bottom: 6px !important;
+        grid-column: 1 / -1 !important;
     }
     
     #view-cart-btn {
-        padding: 10px 15px;
-        font-size: 0.85em;
-        bottom: 10px;
-        right: 10px;
+        padding: 10px 15px !important;
+        font-size: 0.85rem !important;
+        bottom: 10px !important;
+        right: 10px !important;
     }
 }
+
+/* --- TABLET (PORTRAIT) --- */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #product-list.product-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 15px !important;
+        padding: 20px 15px !important;
+    }
+}
+
+/* --- LANDSCAPE ORIENTATION --- */
+@media (max-width: 768px) and (orientation: landscape) {
+    #product-list.product-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 10px !important;
+        padding: 10px !important;
+    }
+    
+    .product-card img {
+        height: 40px !important;
+    }
+    
+    .product-card h3 {
+        font-size: 0.85rem !important;
+        -webkit-line-clamp: 1 !important;
+    }
+}
+
 /* --- UTILITY CLASSES --- */
 .no-results {
     text-align: center;
@@ -1159,69 +1263,73 @@ function renderProducts(groups, isSearch = false){
         return;
     }
 
-    Object.keys(groups).forEach(cat => {
-        if (cat && cat !== "undefined") {
-            wrap.innerHTML += `<h2 class="category-header">${cat}</h2>`
-        }
-        
-        const items = groups[cat].items
-        const grouped = {}
-        items.forEach(i => {
-            const key = safeKey(i.name)
-            if(!grouped[key]) grouped[key] = {name: i.name, variations: []}
-            grouped[key].variations.push(i)
-        })
-        
-        Object.keys(grouped).forEach(k => {
-            const g = grouped[k]
-            const sizes = [...new Set(g.variations.map(v => v.size))]
-            const gsms = [...new Set(g.variations.map(v => v.gsm))]
-            const map = {}
-            g.variations.forEach(v => map[`${v.size}_${v.gsm}`] = v)
-            
-            window[`map_${k}`] = map
-            window[`size_${k}`] = sizes[0]
-            window[`gsm_${k}`] = gsms[0]
-
-            wrap.innerHTML += `
-            <div class="product-card">
-                <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}" onerror="this.src='https://via.placeholder.com/300x200?text=Paper+Image'">
-                <div class="product-info">
-                    <h3>${g.name}</h3>
-                    
-                    <div class="variation-grid">
-                        ${sizes.map((s,i) => `
-                            <button class="variation-btn ${i===0?'active':''}" 
-                                    onclick="selectVar('${k}','size','${s}',this)">
-                                ${s}
-                            </button>`).join("")}
-                    </div>
-
-                    <div class="variation-grid">
-                        ${gsms.map((g,i) => `
-                            <button class="variation-btn ${i===0?'active':''}" 
-                                    onclick="selectVar('${k}','gsm','${g}',this)">
-                                ${g} GSM
-                            </button>`).join("")}
-                    </div>
-
-                    <p class="details" id="info_${k}"></p>
-                    <div class="price" id="price_${k}"></div>
+Object.keys(groups).forEach(cat => {
+    if (cat && cat !== "undefined") {
+        // Create category container
+        wrap.innerHTML += `
+            <div class="category-section">
+                <h2 class="category-header">${cat}</h2>
+                <div class="category-products" id="cat-${safeKey(cat)}">
+                    <!-- Products will be added here -->
                 </div>
-
-                <div class="qty-row">
-                    <div class="qty-input">
-                        <input type="number" id="qty_${k}" value="1" min="1" max="999">
-                    </div>
-                    <button class="btn-cart" onclick="addToCart('${k}')">
-                        Add to Cart
-                    </button>
-                </div>
-            </div>`
-            
-            updateUI(k)
-        })
+            </div>
+        `
+    }
+    
+    const items = groups[cat].items
+    const grouped = {}
+    items.forEach(i => {
+        const key = safeKey(i.name)
+        if(!grouped[key]) grouped[key] = {name: i.name, variations: []}
+        grouped[key].variations.push(i)
     })
+    
+    // Get the container for this category
+    const categoryContainer = document.getElementById(`cat-${safeKey(cat)}`)
+    
+    Object.keys(grouped).forEach(k => {
+        const g = grouped[k]
+        const sizes = [...new Set(g.variations.map(v => v.size))]
+        const gsms = [...new Set(g.variations.map(v => v.gsm))]
+        const map = {}
+        g.variations.forEach(v => map[`${v.size}_${v.gsm}`] = v)
+        
+        window[`map_${k}`] = map
+        window[`size_${k}`] = sizes[0]
+        window[`gsm_${k}`] = gsms[0]
+
+        // ADD TO CATEGORY CONTAINER, NOT MAIN WRAP
+        categoryContainer.innerHTML += `
+        <div class="product-card">
+            <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+            <div class="product-info">
+                <h3>${g.name}</h3>
+                
+                <div class="variation-grid">
+                    ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
+                </div>
+
+                <div class="variation-grid">
+                    ${gsms.map((g,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${g}',this)">${g} GSM</button>`).join("")}
+                </div>
+
+                <p class="details" id="info_${k}"></p>
+                <div class="price" id="price_${k}"></div>
+            </div>
+
+            <div class="qty-row">
+                <div class="qty-input">
+                    <input type="number" id="qty_${k}" value="1" min="1" max="999">
+                </div>
+                <button class="btn-cart" onclick="addToCart('${k}')">
+                    Add to Cart
+                </button>
+            </div>
+        </div>`
+        
+        updateUI(k)
+    })
+})
 }
 
 function safeKey(t) { 
