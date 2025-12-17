@@ -237,6 +237,7 @@ h3 { font-size: 1.3rem; }
     display: flex;
     flex-direction: column;
     height: 100%;
+position: relative; /* ADD THIS LINE */
 }
 .product-card:hover {
     transform: translateY(-5px);
@@ -666,6 +667,65 @@ font-family: 'Roboto', sans-serif !important;
     line-height: 1.2;      /* Tighter line spacing */
     font-size: 0.8em;      /* Slightly smaller text */
     word-break: break-word; /* Break long words if needed */
+}
+
+/* --- PRODUCT BADGES --- */
+.product-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    animation: pulse 0.5s infinite ease-in-out;
+}
+
+.badge-discounted {
+    background: linear-gradient(45deg, #ff0000, #ff4444);
+    color: white;
+    border: 2px solid #ff0000;
+}
+
+.badge-new {
+    background: linear-gradient(45deg, #00cc00, #44ff44);
+    color: white;
+    border: 2px solid #00aa00;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Product card needs relative positioning for absolute badges */
+.product-card {
+    position: relative; /* Add this to existing .product-card */
+}
+
+/* Badges on buttons */
+.badge-on-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.6em;
+    font-weight: 900;
+    z-index: 20;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+animation: bounce 0.5s infinite;
+}
+
+/* Brand button needs relative positioning */
+.variation-btn.brand-btn {
+    position: relative; /* Add this */
+    /* ... rest of your existing brand-btn styles ... */
 }
 
 /* --- MOBILE OPTIMIZATION - IMPROVED PRODUCT GRID --- */
@@ -1120,7 +1180,9 @@ const COL = {
     RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14,
     HAS_COLORS:15,        // NEW: Column P (index 15)
     COLOR_OPTIONS:16,
-DISPLAY_SIZE:17      // NEW: Column R (index 17)
+DISPLAY_SIZE:17,      // Column R
+    DISCOUNT_TAG:18,      // ADD THIS - Column S
+    NEW_TAG:19            // ADD THIS - Column T      // NEW: Column R (index 17)
 }
 
 // Function to get display size based on category
@@ -1270,7 +1332,7 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'block';
         
         // Try to fetch from Google Sheets
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:R?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:T?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -1450,7 +1512,9 @@ function group(rows){
             color: hasColors && colorOptions.length > 0 ? colorOptions[0] : '',
             displaySize: r[COL.DISPLAY_SIZE] || '',  // Custom display text from Column R
             showGSM: !["White Sticker", "Stickers"].includes(cat),  // Control GSM display
-            isStickerOnly: cat === "Stickers"  // NEW: Flag for stickers category
+            isStickerOnly: cat === "Stickers",  // NEW: Flag for stickers category
+    discountTag: r[COL.DISCOUNT_TAG] || '',      // ADD THIS
+    newTag: r[COL.NEW_TAG] || ''                // ADD THIS
         })
     })
     return g
@@ -1709,8 +1773,12 @@ function renderProducts(groups, isSearch = false){
 
             // ADD TO CATEGORY CONTAINER, NOT MAIN WRAP
             categoryContainer.innerHTML += `
-            <div class="product-card">
-                <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+<div class="product-card">
+    ${cat !== "Photocopy Paper" && cat !== "Stickers" ? `
+        ${g.variations.some(v => v.discountTag) ? `<div class="product-badge badge-discounted">${g.variations.find(v => v.discountTag).discountTag}</div>` : ''}
+        ${g.variations.some(v => v.newTag) ? `<div class="product-badge badge-new">${g.variations.find(v => v.newTag).newTag}</div>` : ''}
+    ` : ''}
+    <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
                 <div class="product-info">
                     <h3>${g.name}</h3>
                     
@@ -1720,7 +1788,11 @@ function renderProducts(groups, isSearch = false){
                     <div class="variation-grid brand-grid">
                         ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
                             console.log("Creating brand button for Photocopy Paper:", brand);
-                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
+                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">
+    ${brand}
+    ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
+    ${g.variations.find(v => v.displaySize === brand && v.newTag) ? `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
+</button>`;
                         }).join("")}
                     </div>
 
@@ -1735,7 +1807,11 @@ function renderProducts(groups, isSearch = false){
                     <div class="variation-grid brand-grid">
                         ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
                             console.log("Creating brand button for Stickers:", brand);
-                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
+                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">
+    ${brand}
+    ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
+    ${g.variations.find(v => v.displaySize === brand && v.newTag) ? `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
+</button>`;
                         }).join("")}
                     </div>
                     ` : `
