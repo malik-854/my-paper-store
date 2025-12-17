@@ -1066,8 +1066,21 @@ const COL = {
     LENGTH:6, WIDTH:7, GSM:8, SHEETS:9,
     RATE:10, WEIGHT:11, PRICE:12, MAX:13, IMAGE:14,
     HAS_COLORS:15,        // NEW: Column P (index 15)
-    COLOR_OPTIONS:16      // NEW: Column Q (index 16)
+    COLOR_OPTIONS:16,
+DISPLAY_SIZE:17      // NEW: Column R (index 17)
 }
+
+// Function to get display size based on category
+function getDisplaySize(category, actualSize) {
+    // Only apply labels to specific categories
+    if (LABEL_CATEGORIES.includes(category)) {
+        // Return the label if it exists, otherwise keep actual size
+        return SIZE_LABELS[actualSize] || actualSize;
+    }
+    // For all other categories, show actual size
+    return actualSize;
+}
+// ===== END SIZE LABEL SYSTEM =====
 
 // Sample fallback data
 const SAMPLE_PRODUCTS = {
@@ -1204,7 +1217,7 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'block';
         
         // Try to fetch from Google Sheets
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:Q?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:R?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -1379,13 +1392,17 @@ function group(rows){
             image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper+Image",
             maxQty: parseInt(r[COL.MAX] || 9999),
             category: cat,
-            hasColors: hasColors,          // NEW
-            colorOptions: colorOptions,    // NEW
-            color: hasColors && colorOptions.length > 0 ? colorOptions[0] : ''  // NEW
+            hasColors: hasColors,
+            colorOptions: colorOptions,
+            color: hasColors && colorOptions.length > 0 ? colorOptions[0] : '',
+            displaySize: r[COL.DISPLAY_SIZE] || '',  // Custom display text from Column R
+            showGSM: !["White Sticker", "Stickers"].includes(cat),  // Control GSM display
+            isStickerOnly: cat === "Stickers"  // NEW: Flag for stickers category
         })
     })
     return g
 }
+
 function buildLunrIndex(groups){
     const indexStore = {};
     let productIdCounter = 0;
@@ -1504,7 +1521,7 @@ function getColorStyle(colorName) {
 }
 
 function renderProducts(groups, isSearch = false){
-// TEMPORARY DEBUG
+    // TEMPORARY DEBUG
     console.log("=== DEBUG: Checking groups ===")
     Object.keys(groups).forEach(cat => {
         console.log(`Category: ${cat}`)
@@ -1571,22 +1588,61 @@ function renderProducts(groups, isSearch = false){
                 }
             }
             
+            // === DEBUG: Check variations ===
+            console.log("=== DEBUG: Variations for", g.name, "===")
+            g.variations.forEach((v, i) => {
+                console.log(`  ${i}: Size=${v.size}, GSM=${v.gsm}, Brand=${v.displaySize || '(none)'}, Color=${v.color || '(none)'}`)
+            })
+            
             const map = {}
             g.variations.forEach(v => {
-                // Create keys for different combinations
-                const baseKey = `${v.size}_${v.gsm}`
-                map[baseKey] = v
+                // ALWAYS create key with brand if brand exists
+                if (v.displaySize) {
+                    // Primary key: size_gsm_brand
+                    const brandKey = `${v.size}_${v.gsm}_${v.displaySize}`
+                    map[brandKey] = v
+                    console.log("  Added PRIMARY brand key:", brandKey, "for brand:", v.displaySize)
+                    
+                    // Also create fallback key without brand (for backward compatibility)
+                    const fallbackKey = `${v.size}_${v.gsm}`
+                    if (!map[fallbackKey]) {
+                        map[fallbackKey] = v
+                    }
+                } else {
+                    // For products without brand: size_gsm
+                    const baseKey = `${v.size}_${v.gsm}`
+                    map[baseKey] = v
+                }
                 
-                // If product has color, also create key with color
+                // If product has color, create color-specific keys
                 if (v.color) {
+                    if (v.displaySize) {
+                        // size_gsm_brand_color
+                        const colorBrandKey = `${v.size}_${v.gsm}_${v.displaySize}_${v.color}`
+                        map[colorBrandKey] = v
+                    }
+                    // size_gsm_color (fallback)
                     const colorKey = `${v.size}_${v.gsm}_${v.color}`
                     map[colorKey] = v
                 }
             })
             
+            console.log("All keys in map:", Object.keys(map))
+            // === END DEBUG ===
+            
             window[`map_${k}`] = map
             window[`size_${k}`] = sizes[0]
             window[`gsm_${k}`] = gsms[0]
+            
+            // NEW: Set default brand for Photocopy Paper AND Stickers
+            if (cat === "Photocopy Paper" || cat === "Stickers") {
+                const brands = [...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))]
+                console.log("Available brands for", cat, ":", brands)
+                if (brands.length > 0) {
+                    window[`brand_${k}`] = brands[0]
+                    console.log("Set default brand to:", brands[0])
+                }
+            }
             
             // NEW: Set default color
             if (colors.length > 0) {
@@ -1602,13 +1658,43 @@ function renderProducts(groups, isSearch = false){
                 <div class="product-info">
                     <h3>${g.name}</h3>
                     
+                    <!-- VARIATIONS: Different logic for different categories -->
+                    ${cat === "Photocopy Paper" ? `
+                    <!-- Photocopy Paper: Show brands + GSM -->
+                    <div class="variation-grid brand-grid">
+                        ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
+                            console.log("Creating brand button for Photocopy Paper:", brand);
+                            return `<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
+                        }).join("")}
+                    </div>
+
+                    <!-- GSM for Photocopy Paper -->
+                    ${g.variations[0].showGSM ? `
+                    <div class="variation-grid gsm-grid">
+                        ${gsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
+                    </div>
+                    ` : ''}
+                    ` : cat === "Stickers" ? `
+                    <!-- Stickers: Show ONLY brands (no size, no GSM) -->
+                    <div class="variation-grid brand-grid">
+                        ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
+                            console.log("Creating brand button for Stickers:", brand);
+                            return `<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
+                        }).join("")}
+                    </div>
+                    ` : `
+                    <!-- Other categories: Show size + GSM -->
                     <div class="variation-grid size-grid">
                         ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
                     </div>
 
-                   <div class="variation-grid gsm-grid">
-                ${gsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
-            </div>
+                    <!-- GSM for other categories -->
+                    ${g.variations[0].showGSM ? `
+                    <div class="variation-grid gsm-grid">
+                        ${gsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
+                    </div>
+                    ` : ''}
+                    `}
 
                     <!-- COLOR SELECTOR - ONLY SHOW IF PRODUCT HAS COLORS -->
                     ${colors.length > 0 ? `
@@ -1649,7 +1735,8 @@ function safeKey(t) {
 function selectVar(key, type, val, btn){
     if(type === "size") window[`size_${key}`] = val
     if(type === "gsm") window[`gsm_${key}`] = val
-    if(type === "color") window[`color_${key}`] = val  // NEW LINE
+    if(type === "color") window[`color_${key}`] = val
+    if(type === "brand") window[`brand_${key}`] = val  // THIS LINE MUST EXIST
     
     // Remove active class from all buttons of the same type
     const parent = btn.parentElement
@@ -1663,178 +1750,78 @@ function updateUI(key){
     // Get selected values
     const selectedSize = window[`size_${key}`]
     const selectedGsm = window[`gsm_${key}`]
-    const selectedColor = window[`color_${key}`] || ''  // Color might be undefined for products without colors
+    const selectedColor = window[`color_${key}`] || ''
+    const selectedBrand = window[`brand_${key}`] || ''  // Get selected brand
     
-    // Build the lookup key
+    // Build the lookup key - PRIORITY: size_gsm_brand_color
     let lookupKey = `${selectedSize}_${selectedGsm}`
+    
+    // Add brand to lookup if selected
+    if (selectedBrand) {
+        lookupKey += `_${selectedBrand}`
+    }
+    
+    // Add color to lookup if selected
     if (selectedColor) {
         lookupKey += `_${selectedColor}`
     }
     
     // Find the product variation
-    const p = window[`map_${key}`][lookupKey]
-    if(!p) {
-        // If exact match not found (color mismatch), try without color
-        const fallbackKey = `${selectedSize}_${selectedGsm}`
-        const fallbackProduct = window[`map_${key}`][fallbackKey]
-        if (fallbackProduct) {
-            // Update color to match available product
-            if (fallbackProduct.color) {
-                window[`color_${key}`] = fallbackProduct.color
-            }
-            updateUI(key) // Recursive call with corrected color
-            return
-        }
-        return
-    }
+    let p = window[`map_${key}`][lookupKey]
     
-    // Update display
-    document.getElementById(`price_${key}`).innerText = `Rs ${p.price} (Rs ${p.rate}/KG)`
-    document.getElementById(`info_${key}`).innerText = `${p.sheets} Sheets | Rs ${p.rate}/KG`
-    
-    const img = document.getElementById(`img_${key}`)
-    if (img && p.image) {
-        img.src = p.image
-    }
-
-    const qtyInput = document.getElementById(`qty_${key}`)
-    if(qtyInput){
-        qtyInput.max = p.maxQty
-        if(parseInt(qtyInput.value) > p.maxQty) qtyInput.value = p.maxQty
-    }
-}
-function addToCart(key){
-    const qtyInput = document.getElementById(`qty_${key}`)
-    let qty = parseInt(qtyInput.value)
-
-    if(!qty || qty <= 0){
-        alert("Please enter a valid quantity")
-        qtyInput.focus()
-        return
-    }
-
-    // Get selected values
-    const selectedSize = window[`size_${key}`]
-    const selectedGsm = window[`gsm_${key}`]
-    const selectedColor = window[`color_${key}`] || ''
-
-    // Try to find product with color first
-    let variantKey = `${selectedSize}_${selectedGsm}`
-    if (selectedColor) {
-        variantKey += `_${selectedColor}`
-    }
-    
-    let p = null
-if (selectedColor) {
-    // Try with color first
-    p = window[`map_${key}`][`${selectedSize}_${selectedGsm}_${selectedColor}`]
-}
-    
-    // If not found with color, try without color
+    // If not found with brand+color, try without color
     if (!p && selectedColor) {
-        variantKey = `${selectedSize}_${selectedGsm}`
-        p = window[`map_${key}`][variantKey]
-    }
-
-    if(!p){
-        alert("This combination is not available")
-        return
-    }
-
-    if(qty > p.maxQty){
-        qty = p.maxQty
-        qtyInput.value = qty
-        alert(`Maximum allowed quantity is ${p.maxQty}`)
-    }
-
-    // Create cart key with all variations
-    const cartKey = key + "_" + p.size + "_" + p.gsm + (p.color ? "_" + p.color : "")
-    
-    // Include selected color in cart item (even if product doesn't have color property)
-    const cartItem = { 
-        ...p, 
-        qty,
-        selectedColor: selectedColor // Store the selected color separately
+        lookupKey = `${selectedSize}_${selectedGsm}`
+        if (selectedBrand) {
+            lookupKey += `_${selectedBrand}`
+        }
+        p = window[`map_${key}`][lookupKey]
     }
     
-    cart[cartKey] = cartItem
-    renderCart()
-    updateCartBadge()
-    
-    // Show cart on mobile after adding item
-    if (window.innerWidth <= 768) {
-        openCart();
+    // If still not found with brand, try without brand (but with color if exists)
+    if (!p && selectedBrand) {
+        lookupKey = `${selectedSize}_${selectedGsm}`
+        if (selectedColor) {
+            lookupKey += `_${selectedColor}`
+        }
+        p = window[`map_${key}`][lookupKey]
     }
     
-    // Visual feedback
-    const addBtn = document.querySelector(`[onclick="addToCart('${key}')"]`)
-    const originalText = addBtn.textContent
-    addBtn.textContent = "Added!"
-    addBtn.style.backgroundColor = "#1f8b3b"
-    
-    setTimeout(() => {
-        addBtn.textContent = originalText
-        addBtn.style.backgroundColor = ""
-    }, 1000)
-}
-function removeFromCart(cartKey){
-    delete cart[cartKey]
-    renderCart()
-    updateCartBadge()
-}
-
-function renderCart(){
-    const container = document.getElementById("cart-items")
-    container.innerHTML = ""
-    
-    if (Object.keys(cart).length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #6a6a6a;">
-                <p style="font-size: 1.2em; margin-bottom: 10px;">🛒</p>
-                <p>Your cart is empty</p>
-                <p style="font-size: 0.9em;">Add some products to get started</p>
-            </div>
-        `
-        document.getElementById("cart-total").innerText = "Total: Rs 0"
-        return
+    // If still not found, try base key (size_gsm only)
+    if(!p) {
+        const fallbackKey = `${selectedSize}_${selectedGsm}`
+        p = window[`map_${key}`][fallbackKey]
     }
     
-    let total = 0
-    let totalWeight = 0
-    Object.keys(cart).forEach(k => {
-        const item = cart[k]
-        const itemTotalPrice = item.price * item.qty
-        const itemTotalWeight = item.weight * item.qty
-        total += itemTotalPrice
-        totalWeight += itemTotalWeight
+    // If product found
+    if(p) {
+        // Update display
+        document.getElementById(`price_${key}`).innerText = `Rs ${p.price} (Rs ${p.rate}/KG)`
         
-        // Build specifications line
-        let specs = `${item.size}, GSM ${item.gsm}`
-        if (item.selectedColor && item.selectedColor !== '') {
-            specs += `, ${item.selectedColor}`
+        // Show different info based on product type
+        const infoElement = document.getElementById(`info_${key}`)
+        if (p.showGSM === false) {
+            // For products that don't show GSM (White Sticker, Stickers)
+            infoElement.innerText = `${p.sheets} Sheets | Rs ${p.rate}/KG`
+        } else {
+            // For regular products (including Photocopy Paper)
+            infoElement.innerText = `${p.gsm} GSM | Rs ${p.rate}/KG`
         }
         
-        container.innerHTML += `
-            <div class="cart-item">
-                <div class="cart-item-details">
-                    <strong>${item.name}</strong><br>
-                    <small>${specs}</small><br>
-                    <div style="margin-top: 5px;">
-                        Rs ${item.price} × ${item.qty} = <strong>Rs ${itemTotalPrice}</strong><br>
-                        <small>${Math.round(itemTotalWeight)} KG @ Rs ${item.rate}/KG</small>
-                    </div>
-                </div>
-                <div class="cart-item-actions">
-                    <button class="remove-btn" onclick="removeFromCart('${k}')">
-                        Remove
-                    </button>
-                </div>
-            </div>`
-    })
-    
-    document.getElementById("cart-total").innerText = `Total: Rs ${total} (${Math.round(totalWeight)} KG)`
-}
+        // Update image
+        const img = document.getElementById(`img_${key}`)
+        if (img && p.image) {
+            img.src = p.image
+        }
 
+        // Update quantity limit
+        const qtyInput = document.getElementById(`qty_${key}`)
+        if(qtyInput){
+            qtyInput.max = p.maxQty
+            if(parseInt(qtyInput.value) > p.maxQty) qtyInput.value = p.maxQty
+        }
+    }
+}
 function updateCartBadge(){
     const totalItems = Object.values(cart).reduce((sum, item) => sum + item.qty, 0)
     const badge = document.getElementById("cart-count-badge")
@@ -1901,6 +1888,7 @@ function closeCheckout(){
     document.body.style.overflow = "auto"
 }
 
+// ===== CHECKOUT HELPER FUNCTIONS =====
 function updateShipping(method, updateRadio = true){
     currentShippingMethod = method;
     const container = document.getElementById("delivery-address-container")
@@ -1967,7 +1955,7 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
     Object.values(cart).forEach(i => {
         const itemTotal = i.price * i.qty
         summaryHtml += `<div style="margin-bottom: 5px; padding: 5px 0; border-bottom: 1px dashed #f0f0f0;">
-                          ${i.name} (${i.size}, ${i.gsm} GSM)<br>
+                          ${i.name} (${i.size}, ${i.gsm} GSM${i.selectedBrand ? `, ${i.selectedBrand}` : ''}${i.selectedColor ? `, ${i.selectedColor}` : ''})<br>
                           <small>${i.qty} × Rs ${i.price} = Rs ${itemTotal}</small>
                         </div>`
     })
@@ -1976,6 +1964,192 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
     return summaryHtml
 }
 
+function removeFromCart(cartKey){
+    delete cart[cartKey]
+    renderCart()
+    updateCartBadge()
+}
+// ===== END CHECKOUT FUNCTIONS =====
+
+// ADD TO CART FUNCTION - UPDATED FOR BRAND
+function addToCart(key){
+    const qtyInput = document.getElementById(`qty_${key}`)
+    let qty = parseInt(qtyInput.value)
+
+    if(!qty || qty <= 0){
+        alert("Please enter a valid quantity")
+        qtyInput.focus()
+        return
+    }
+
+    // Get selected values
+    const selectedSize = window[`size_${key}`]
+    const selectedGsm = window[`gsm_${key}`]
+    const selectedColor = window[`color_${key}`] || ''
+    const selectedBrand = window[`brand_${key}`] || ''
+
+    // Build lookup key in ORDER OF PRIORITY
+    let variantKey = `${selectedSize}_${selectedGsm}`
+    
+    // 1. Try with brand + color (if both exist)
+    if (selectedBrand && selectedColor) {
+        variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}_${selectedColor}`
+    }
+    // 2. Try with brand only
+    else if (selectedBrand) {
+        variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
+    }
+    // 3. Try with color only  
+    else if (selectedColor) {
+        variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
+    }
+    // 4. Base key already set
+    
+    let p = window[`map_${key}`][variantKey]
+    
+    // If not found, try other combinations
+    if (!p) {
+        // Try brand without color (if we tried with color)
+        if (selectedBrand && selectedColor) {
+            variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
+            p = window[`map_${key}`][variantKey]
+        }
+        // Try color without brand (if we tried with brand)
+        if (!p && selectedBrand && selectedColor) {
+            variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
+            p = window[`map_${key}`][variantKey]
+        }
+        // Try base key (no brand, no color)
+        if (!p) {
+            variantKey = `${selectedSize}_${selectedGsm}`
+            p = window[`map_${key}`][variantKey]
+        }
+    }
+
+    if(!p){
+        alert("This combination is not available")
+        return
+    }
+
+    // VALIDATION: Check if selected brand matches product brand
+    if (selectedBrand && p.displaySize && selectedBrand !== p.displaySize) {
+        alert(`Product not available`)
+        return
+    }
+
+    // VALIDATION: Check if selected color matches product color
+    if (selectedColor && p.color && selectedColor !== p.color) {
+        alert(`Color mismatch: Selected ${selectedColor} but product is ${p.color}`)
+        return
+    }
+
+    if(qty > p.maxQty){
+        qty = p.maxQty
+        qtyInput.value = qty
+        alert(`Maximum allowed quantity is ${p.maxQty}`)
+    }
+
+    // Create unique cart key
+    const cartKey = key + "_" + p.size + "_" + p.gsm + 
+                   (p.displaySize ? "_" + p.displaySize : "") + 
+                   (p.color ? "_" + p.color : "")
+    
+    const cartItem = { 
+        ...p, 
+        qty,
+        selectedColor: selectedColor,
+        selectedBrand: selectedBrand
+    }
+    
+    // Check if already in cart
+    if (cart[cartKey]) {
+        const newQty = cart[cartKey].qty + qty
+        if (newQty > p.maxQty) {
+            alert(`Maximum total quantity for this item is ${p.maxQty}. You already have ${cart[cartKey].qty} in cart.`)
+            return
+        }
+        cart[cartKey].qty = newQty
+    } else {
+        cart[cartKey] = cartItem
+    }
+    
+    renderCart()
+    updateCartBadge()
+    
+    // Show cart on mobile after adding item
+    if (window.innerWidth <= 768) {
+        openCart();
+    }
+    
+    // Visual feedback
+    const addBtn = document.querySelector(`[onclick="addToCart('${key}')"]`)
+    const originalText = addBtn.textContent
+    addBtn.textContent = "Added!"
+    addBtn.style.backgroundColor = "#1f8b3b"
+    
+    setTimeout(() => {
+        addBtn.textContent = originalText
+        addBtn.style.backgroundColor = ""
+    }, 1000)
+}
+
+// UPDATE CART RENDER FUNCTION FOR BRAND
+function renderCart(){
+    const container = document.getElementById("cart-items")
+    container.innerHTML = ""
+    
+    if (Object.keys(cart).length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #6a6a6a;">
+                <p style="font-size: 1.2em; margin-bottom: 10px;">🛒</p>
+                <p>Your cart is empty</p>
+                <p style="font-size: 0.9em;">Add some products to get started</p>
+            </div>
+        `
+        document.getElementById("cart-total").innerText = "Total: Rs 0"
+        return
+    }
+    
+    let total = 0
+    let totalWeight = 0
+    Object.keys(cart).forEach(k => {
+        const item = cart[k]
+        const itemTotalPrice = item.price * item.qty
+        const itemTotalWeight = item.weight * item.qty
+        total += itemTotalPrice
+        totalWeight += itemTotalWeight
+        
+        // Build specifications line - UPDATED FOR BRAND
+        let specs = `${item.size}, GSM ${item.gsm}`
+        if (item.selectedBrand && item.selectedBrand !== '') {
+            specs += `, ${item.selectedBrand}`
+        }
+        if (item.selectedColor && item.selectedColor !== '') {
+            specs += `, ${item.selectedColor}`
+        }
+        
+        container.innerHTML += `
+            <div class="cart-item">
+                <div class="cart-item-details">
+                    <strong>${item.name}</strong><br>
+                    <small>${specs}</small><br>
+                    <div style="margin-top: 5px;">
+                        Rs ${item.price} × ${item.qty} = <strong>Rs ${itemTotalPrice}</strong><br>
+                        <small>${Math.round(itemTotalWeight)} KG @ Rs ${item.rate}/KG</small>
+                    </div>
+                </div>
+                <div class="cart-item-actions">
+                    <button class="remove-btn" onclick="removeFromCart('${k}')">
+                        Remove
+                    </button>
+                </div>
+            </div>`
+    })
+    
+    document.getElementById("cart-total").innerText = `Total: Rs ${total} (${Math.round(totalWeight)} KG)`
+}
+
+// PLACE ORDER FUNCTION - UPDATE FOR BRAND IN WHATSAPP
 function placeOrder(){
     const name = document.getElementById("cust-name").value.trim()
     const phone = document.getElementById("cust-phone").value.trim()
@@ -2020,7 +2194,7 @@ function placeOrder(){
         total += deliveryCharges
     }
 
-    // Build order message
+    // Build order message - UPDATED FOR BRAND
     let orderSummary = "📄 *NEW PAPER ORDER REQUEST* 📄\n\n"
     orderSummary += "*Customer Details:*\n"
     orderSummary += `👤 Name: ${name}\n`
@@ -2038,8 +2212,11 @@ function placeOrder(){
         const itemWeight = i.weight * i.qty
         orderSummary += `${index + 1}. *${i.name}*\n`
         
-        // Build specifications line
+        // Build specifications line - UPDATED FOR BRAND
         let specs = `Size: ${i.size} | GSM: ${i.gsm}`
+        if (i.selectedBrand && i.selectedBrand !== '') {
+            specs += ` | Brand: ${i.selectedBrand}`
+        }
         if (i.selectedColor && i.selectedColor !== '') {
             specs += ` | Color: ${i.selectedColor}`
         }
@@ -2055,11 +2232,6 @@ function placeOrder(){
     if(deliveryCharges > 0) orderSummary += `Delivery: Rs ${deliveryCharges}\n`
     orderSummary += `*GRAND TOTAL: Rs ${total}*\n`
     orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
-    // Check if any items have colors
-    const hasColoredItems = Object.values(cart).some(item => item.selectedColor && item.selectedColor !== '')
-    if (hasColoredItems) {
-        orderSummary += `Items with color selection: Yes\n`
-    }
     orderSummary += `⏳ _Please confirm availability and provide payment details._`
 
     // Create WhatsApp URL
@@ -2088,7 +2260,6 @@ window.addEventListener('resize', function() {
         document.body.style.overflow = "auto"
     }
 })
-
 // Add CSS for textarea
 const style = document.createElement('style')
 style.textContent = `
