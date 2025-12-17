@@ -40,6 +40,38 @@ h1, h2, h3 {
     font-weight: 700;
     color: #212529;
     margin-top: 0;
+    transition: color 0.3s ease;
+}
+h1:hover, h2:hover, h3:hover {
+    color: #ff6b00; /* Added this block */
+}
+/* Option 3: Background highlight */
+/* Option 3: Background highlight - Separate colors */
+h1.highlight-bg {
+    background-color: #ff4444; /* Red for h1 */
+    color: #ffffff;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+h2.highlight-bg {
+    background-color: #4CAF50; /* Green for h2 */
+    color: #ffffff;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+h3.highlight-bg {
+    background-color: #2196F3; /* Blue for h3 */
+    color: #ffffff;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 h1 { font-size: 2.5rem; }
 h2 { font-size: 1.8rem; margin-top: 25px; }
@@ -310,7 +342,7 @@ h3 { font-size: 1.3rem; }
 /* --- CART BUTTON (FLOATING) --- */
 #view-cart-btn {
     position: fixed;
-    bottom: 20px;
+    top: 20px;
     right: 20px;
     padding: 15px 20px;
     background: var(--secondary);
@@ -624,6 +656,17 @@ h3 { font-size: 1.3rem; }
     background-color: #5a6268;
 }
 
+/* Brand button specific styling */
+.variation-btn.brand-btn {
+    min-width: 80px;        /* Minimum width for brand buttons */
+    white-space: normal;    /* Allow text to wrap to next line */
+    height: auto;          /* Allow height to adjust */
+    padding: 8px 6px;      /* Adjust padding for wrapped text */
+    line-height: 1.2;      /* Tighter line spacing */
+    font-size: 0.8em;      /* Slightly smaller text */
+    word-break: break-word; /* Break long words if needed */
+}
+
 /* --- MOBILE OPTIMIZATION - IMPROVED PRODUCT GRID --- */
 @media (max-width: 768px) {
     /* Header adjustments */
@@ -700,7 +743,7 @@ h3 { font-size: 1.3rem; }
         margin-bottom: 8px !important;
     }
     
-    .variation-btn {
+    .variation-btn:not(.brand-btn) {
         padding: 6px 8px !important;
         font-size: 0.75rem !important;
         min-height: 28px !important;
@@ -712,7 +755,11 @@ h3 { font-size: 1.3rem; }
         white-space: nowrap !important;
         text-align: center !important;
     }
-    
+    .variation-btn.brand-btn {
+        min-width: 60px;    /* Smaller on mobile */
+        font-size: 0.75em;  /* Even smaller text */
+        padding: 6px 4px;   /* Less padding */
+    }	
     /* Limit buttons per row - ensures proper wrapping */
     .variation-grid.size-grid .variation-btn,
     .variation-grid:first-of-type .variation-btn {
@@ -751,10 +798,10 @@ h3 { font-size: 1.3rem; }
     
     /* Cart button */
     #view-cart-btn {
-        padding: 12px 18px !important;
-        font-size: 0.9rem !important;
-        bottom: 15px !important;
-        right: 15px !important;
+        padding: 3px 00px !important;
+        font-size: 0.65rem !important;
+        top: 65px !important;
+        right: 10px !important;
     }
 }
 
@@ -806,7 +853,7 @@ h3 { font-size: 1.3rem; }
         margin-bottom: 6px !important;
     }
     
-    .variation-btn {
+    .variation-btn:not(.brand-btn) {
         padding: 5px 6px !important;
         font-size: 0.7rem !important;
         min-height: 26px !important;
@@ -818,7 +865,11 @@ h3 { font-size: 1.3rem; }
         white-space: nowrap !important;
         text-align: center !important;
     }
-    
+      .variation-btn.brand-btn {
+        min-width: 60px;    /* Smaller on mobile */
+        font-size: 0.75em;  /* Even smaller text */
+        padding: 6px 4px;   /* Less padding */
+    }	
     /* Limit buttons per row for small phones */
     .variation-grid.size-grid .variation-btn,
     .variation-grid:first-of-type .variation-btn {
@@ -846,9 +897,9 @@ h3 { font-size: 1.3rem; }
     }
     
     #view-cart-btn {
-        padding: 10px 15px !important;
-        font-size: 0.85rem !important;
-        bottom: 10px !important;
+     padding: 3px 00px !important;
+        font-size: 0.65rem !important;
+        top: 65px !important;
         right: 10px !important;
     }
 }
@@ -937,8 +988,8 @@ h3 { font-size: 1.3rem; }
 
 <div class="header">
     <div class="header-content">
-        <h1>HAYYAT Paper Store</h1>
-        <p>Precision paper products for your business needs</p>
+        <h1 class="highlight-bg">Hayyat Paper Store</h1>
+        <p>Your Partner in Premium Paper Solutions.</p>
 	        <!-- ANNOUNCEMENT BAR -->
         <div class="announcement-container">
             <div class="announcement-wrapper">
@@ -950,7 +1001,7 @@ h3 { font-size: 1.3rem; }
         
         <div class="search-container">
             <input type="text" id="search-input" onkeyup="searchProducts(this.value)" 
-                   placeholder="Search by paper name, size, or GSM...">
+                   placeholder="Search by paper name, size, brand or GSM...">
         </div>
     </div>
 </div>
@@ -989,7 +1040,7 @@ h3 { font-size: 1.3rem; }
     
     <div class="cart-footer">
         <div class="cart-total" id="cart-total">Total: Rs 0</div>
-        <button onclick="openCheckout()" class="checkout-btn">Proceed to Checkout</button>
+        <button onclick="openCheckout()" class="checkhout-btn">Proceed to Checkout</button>
     </div>
 </div>
 
@@ -1413,6 +1464,7 @@ function buildLunrIndex(groups){
         this.field('category');
         this.field('size');
         this.field('gsm');
+	this.field('displaySize');
         
         Object.keys(groups).forEach(cat => {
             const items = groups[cat].items;
@@ -1423,7 +1475,8 @@ function buildLunrIndex(groups){
                     name: item.name.toLowerCase(),
                     category: cat.toLowerCase(),
                     size: item.size.toLowerCase(),
-                    gsm: item.gsm.toLowerCase()
+                    gsm: item.gsm.toLowerCase(),
+displaySize: (item.displaySize || '').toLowerCase() 
                 };
                 this.add(doc);
                 indexStore[item.id] = item;
@@ -1450,7 +1503,8 @@ function searchProducts(query){
                 item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.size.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.gsm.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.category.toLowerCase().includes(searchTerm.toLowerCase())
+                item.category.toLowerCase().includes(searchTerm.toLowerCase())||
+  				    (item.displaySize || '').toLowerCase().includes(searchTerm.toLowerCase())
             );
             
             if (filteredItems.length > 0) {
@@ -1551,12 +1605,12 @@ function renderProducts(groups, isSearch = false){
         if (cat && cat !== "undefined") {
             // Create category container
             wrap.innerHTML += `
-                <div class="category-section">
-                    <h2 class="category-header">${cat}</h2>
-                    <div class="category-products" id="cat-${safeKey(cat)}">
-                        <!-- Products will be added here -->
-                    </div>
-                </div>
+    <div class="category-section">
+        <h2 class="category-header highlight-bg">${cat}</h2>
+        <div class="category-products" id="cat-${safeKey(cat)}">
+            <!-- Products will be added here -->
+        </div>
+    </div>
             `
         }
         
@@ -1664,7 +1718,7 @@ function renderProducts(groups, isSearch = false){
                     <div class="variation-grid brand-grid">
                         ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
                             console.log("Creating brand button for Photocopy Paper:", brand);
-                            return `<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
+                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
                         }).join("")}
                     </div>
 
@@ -1679,7 +1733,7 @@ function renderProducts(groups, isSearch = false){
                     <div class="variation-grid brand-grid">
                         ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
                             console.log("Creating brand button for Stickers:", brand);
-                            return `<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
+                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">${brand}</button>`;
                         }).join("")}
                     </div>
                     ` : `
