@@ -587,6 +587,42 @@ font-family: 'Roboto', sans-serif !important;
     font-weight: 500;
 }
 
+/* Payment Options - Same style as shipping */
+.payment-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+.payment-option-btn {
+    flex: 1;
+    padding: 15px 10px;
+    border: 2px solid var(--medium-gray);
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fff;
+    position: relative;
+}
+.payment-option-btn input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.payment-option-btn.active {
+    border-color: var(--secondary);
+    background-color: rgba(40, 167, 69, 0.1);
+    color: var(--secondary);
+}
+.payment-option-btn span {
+    display: block;
+    font-size: 0.85em;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
 /* Order Summary */
 #checkout-summary-box {
     background: #f7f7f7;
@@ -1159,7 +1195,19 @@ animation: bounce 0.5s infinite;
                 <span>Extra Charges Apply</span>
             </label>
         </div>
-
+<h3 style="margin-bottom:15px; margin-top:25px;">Payment Method</h3>
+<div class="payment-options">
+    <label class="payment-option-btn active" for="pay-shop">
+        <input type="radio" id="pay-shop" name="payment" value="shop" checked>
+        <div>Pay at Shop</div>
+        <span>Pay when collecting</span>
+    </label>
+    <label class="payment-option-btn" for="pay-bank">
+        <input type="radio" id="pay-bank" name="payment" value="bank">
+        <div>Bank Transfer</div>
+        <span>Details via WhatsApp</span>
+    </label>
+</div>
         <div id="delivery-address-container" style="display:none; margin-top:20px;">
             <div class="input-group">
                 <label for="delivery-address">Delivery Address *</label>
@@ -1286,10 +1334,46 @@ let lunrIndex = null;
 let currentShippingMethod = 'self';
 let usingFallbackData = false;
 
+// Payment method handling
+function setupPaymentListeners() {
+    const shopBtn = document.querySelector('label[for="pay-shop"]');
+    const bankBtn = document.querySelector('label[for="pay-bank"]');
+    const shopRadio = document.getElementById('pay-shop');
+    const bankRadio = document.getElementById('pay-bank');
+    
+    // Click on labels
+    if (shopBtn) {
+        shopBtn.addEventListener('click', function() {
+            shopRadio.checked = true;
+            updatePaymentButtons();
+        });
+    }
+    
+    if (bankBtn) {
+        bankBtn.addEventListener('click', function() {
+            bankRadio.checked = true;
+            updatePaymentButtons();
+        });
+    }
+    
+    // Also listen to radio button changes directly
+    if (shopRadio) {
+        shopRadio.addEventListener('change', updatePaymentButtons);
+    }
+    
+    if (bankRadio) {
+        bankRadio.addEventListener('change', updatePaymentButtons);
+    }
+    
+    // Initial update
+    updatePaymentButtons();
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', function() {
     fetchProducts();
     setupShippingListeners();
+setupPaymentListeners();
     
     // Close cart when clicking outside on mobile
     document.addEventListener('click', function(event) {
@@ -2066,11 +2150,40 @@ function calculateDeliveryCharges(){
         totalWeight += item.weight * item.qty
     })
     
-    const charges = Math.max(Math.round(totalWeight * 3), 400)
-    document.getElementById("delivery-charges").innerText = `Delivery Charges: Rs ${charges} (Min Rs 400 or Rs 3/KG)`
-    updateCheckoutTotal(charges)
+    // Calculate base delivery charges (minimum Rs 400 or weight × 3)
+    let baseCharges = Math.max(Math.round(totalWeight * 3), 400)
+    
+    // Calculate products total
+    let productsTotal = 0
+    Object.values(cart).forEach(i => {
+        productsTotal += i.price * i.qty
+    })
+    
+    // Calculate current total
+    let currentTotal = productsTotal + baseCharges
+    
+    // Check if current total already ends in 00
+    if (currentTotal % 100 === 0) {
+        // Already round number
+        document.getElementById("delivery-charges").innerText = `Delivery Charges: Rs ${baseCharges}`
+        updateCheckoutTotal(baseCharges)
+        return baseCharges
+    }
+    
+    // Calculate how much to add to make it round (ending with 00)
+    let remainder = currentTotal % 100
+    let amountToAdd = 100 - remainder
+    
+    // Final delivery charges
+    let finalCharges = baseCharges + amountToAdd
+    
+    // Update display
+    document.getElementById("delivery-charges").innerText = 
+    `Delivery Charges: Rs ${finalCharges}`
+    
+    updateCheckoutTotal(finalCharges)
+    return finalCharges
 }
-
 function updateCheckoutTotal(deliveryCharges){
     let total = 0
     Object.values(cart).forEach(i => {
@@ -2090,7 +2203,7 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges){
     summaryHtml += `<div class="summary-line"><span>Subtotal (${Object.keys(cart).length} Items)</span><span>Rs ${subtotal}</span></div>`
     
     const shippingText = deliveryCharges > 0 ? `Rs ${deliveryCharges}` : `FREE`
-    summaryHtml += `<div class="summary-line"><span>Shipping</span><span>${shippingText}</span></div>`
+summaryHtml += `<div class="summary-line"><span>Shipping</span><span>${shippingText}</span></div>`
     
     summaryHtml += `<div class="summary-line" style="font-size: 0.9em; padding-top: 10px; border-top: 1px dashed #ddd;">
                       <span>Total Weight</span><span>${Math.round(totalWeight)} KG</span></div>`
@@ -2335,9 +2448,22 @@ function placeOrder(){
         totalWeight += i.weight * i.qty
     })
 
-    let deliveryCharges = 0
+        let deliveryCharges = 0
     if(shipping === "delivery"){
-        deliveryCharges = Math.max(Math.round(totalWeight * 3), 400)
+        // Calculate base delivery charges
+        let baseCharges = Math.max(Math.round(totalWeight * 3), 400)
+        
+        // Check if total with base charges is already round
+        let currentTotalWithBase = total + baseCharges
+        if (currentTotalWithBase % 100 === 0) {
+            deliveryCharges = baseCharges
+        } else {
+            // Calculate how much to add to make it round
+            let remainder = currentTotalWithBase % 100
+            let amountToAdd = 100 - remainder
+            deliveryCharges = baseCharges + amountToAdd
+        }
+        
         total += deliveryCharges
     }
 
@@ -2348,10 +2474,11 @@ function placeOrder(){
     orderSummary += `📱 Phone: ${phone}\n`
     if(email) orderSummary += `📧 Email: ${email}\n`
     orderSummary += `🚚 Shipping: ${shipping === "delivery" ? "Delivery" : "Self Pickup"}\n`
+orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`
     if(shipping === "delivery") {
-        orderSummary += `📍 Address: ${address}\n`
-        orderSummary += `💰 Delivery Charges: Rs ${deliveryCharges}\n`
-    }
+    orderSummary += `📍 Address: ${address}\n`
+    orderSummary += `💰 Delivery Charges: Rs ${deliveryCharges}\n`
+}
     orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`
 
     Object.values(cart).forEach((i, index) => {
@@ -2453,6 +2580,19 @@ function expandAllCategories() {
         if (header) header.classList.add("expanded");
     });
 }
+function updatePaymentButtons() {
+    const shopLabel = document.querySelector('label[for="pay-shop"]');
+    const bankLabel = document.querySelector('label[for="pay-bank"]');
+    
+    if (document.getElementById('pay-shop').checked) {
+        shopLabel.classList.add('active');
+        bankLabel.classList.remove('active');
+    } else {
+        bankLabel.classList.add('active');
+        shopLabel.classList.remove('active');
+    }
+}
+
 document.head.appendChild(style)
 </script>
 </body>
