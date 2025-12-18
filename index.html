@@ -754,15 +754,11 @@ animation: bounce 0.5s infinite;
         overflow-x: visible !important;
     }
     
-    /* NEW: Row-wise category layout */
-    .category-section {
-        display: contents; /* Makes children flow directly in grid */
-    }
-    
     /* NEW: Remove category products containers */
     .category-products {
-        display: contents;
-    }
+    display: block; /* Change from contents to block */
+    grid-column: 1 / -1; /* Make it span full width */
+}
     
     .product-card {
         width: 100% !important;
@@ -874,14 +870,10 @@ animation: bounce 0.5s infinite;
         padding: 12px 8px !important;
     }
     
-    /* NEW: Row-wise category layout for small phones */
-    .category-section {
-        display: contents;
-    }
-    
     .category-products {
-        display: contents;
-    }
+    display: block; /* Change from contents to block */
+    grid-column: 1 / -1; /* Make it span full width */
+}
     
     .product-card {
         padding: 10px !important;
@@ -1044,6 +1036,31 @@ animation: bounce 0.5s infinite;
     background: var(--primary-dark);
 }
 
+/* Collapsible category arrows */
+.category-header {
+    cursor: pointer; /* Makes it clickable */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.category-header::after {
+    content: "▶"; /* Closed state arrow */
+    font-size: 0.8em;
+    margin-left: 10px;
+    transition: transform 0.3s;
+}
+
+.category-header.expanded::after {
+    content: "▼"; /* Open state arrow */
+    transform: rotate(90deg);
+}
+
+.category-products {
+    transition: max-height 0.3s ease-out;
+    overflow: hidden;
+    max-height: 0;
+}
 </style>
 </head>
 <body>
@@ -1670,14 +1687,14 @@ function renderProducts(groups, isSearch = false){
     Object.keys(groups).forEach(cat => {
         if (cat && cat !== "undefined") {
             // Create category container
-            wrap.innerHTML += `
-    <div class="category-section">
-        <h2 class="category-header highlight-bg">${cat}</h2>
-        <div class="category-products" id="cat-${safeKey(cat)}">
-            <!-- Products will be added here -->
-        </div>
+           wrap.innerHTML += `
+<div class="category-section">
+    <h2 class="category-header highlight-bg" onclick="toggleCategory('${safeKey(cat)}')">${cat}</h2>
+    <div class="category-products" id="cat-${safeKey(cat)}" style="max-height: 0;">
+        <!-- Products will be added here -->
     </div>
-            `
+</div>`
+       
         }
         
         const items = groups[cat].items
@@ -2008,7 +2025,6 @@ function openCheckout(){
     
     document.getElementById('shipping-self').checked = true;
     updateShipping('self', false);
-    
     
     document.getElementById("checkout-modal").classList.add("active")
     document.body.style.overflow = "hidden"
@@ -2412,6 +2428,31 @@ style.textContent = `
         box-shadow: 0 0 0 2px rgba(0, 76, 153, 0.1);
     }
 `
+
+// Category expand/collapse function
+function toggleCategory(categoryKey) {
+    const productsDiv = document.getElementById(`cat-${categoryKey}`);
+    const header = productsDiv.previousElementSibling;
+    
+    if (header.classList.contains("expanded")) {
+        // Collapse
+        productsDiv.style.maxHeight = "0";
+        header.classList.remove("expanded");
+    } else {
+        // Expand - use fixed large value
+        productsDiv.style.maxHeight = "5000px"; // Large enough for all products
+        header.classList.add("expanded");
+    }
+}
+// Expand all categories after products are loaded
+function expandAllCategories() {
+    const categories = document.querySelectorAll('.category-products');
+    categories.forEach(catDiv => {
+        catDiv.style.maxHeight = catDiv.scrollHeight + "px";
+        const header = catDiv.previousElementSibling;
+        if (header) header.classList.add("expanded");
+    });
+}
 document.head.appendChild(style)
 </script>
 </body>
