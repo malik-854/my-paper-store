@@ -1247,7 +1247,8 @@ const COL = {
     COLOR_OPTIONS:16,
 DISPLAY_SIZE:17,      // Column R
     DISCOUNT_TAG:18,      // ADD THIS - Column S
-    NEW_TAG:19            // ADD THIS - Column T      // NEW: Column R (index 17)
+    NEW_TAG:19,            // This is Column T (index 19)
+    HALF_QTY:20            // ADD THIS - Column T      // NEW: Column R (index 17)
 }
 
 // Function to get display size based on category
@@ -1433,7 +1434,7 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'block';
         
         // Try to fetch from Google Sheets
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:T?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:U?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -1615,7 +1616,8 @@ function group(rows){
             showGSM: !["White Sticker", "Stickers"].includes(cat),  // Control GSM display
             isStickerOnly: cat === "Stickers",  // NEW: Flag for stickers category
     discountTag: r[COL.DISCOUNT_TAG] || '',      // ADD THIS
-    newTag: r[COL.NEW_TAG] || ''                // ADD THIS
+    newTag: r[COL.NEW_TAG] || '',               // Existing line
+    halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES'  // NEW LINE                
         })
     })
     return g
@@ -1947,13 +1949,13 @@ function renderProducts(groups, isSearch = false){
                 </div>
 
                 <div class="qty-row">
-                    <div class="qty-input">
-                        <input type="number" id="qty_${k}" value="1" min="1" max="999">
-                    </div>
-                    <button class="btn-cart" onclick="addToCart('${k}')">
-                        Add to Cart
-                    </button>
-                </div>
+    <div class="qty-input">
+        <input type="number" id="qty_${k}" value="1" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${g.variations[0].halfQty ? '0.5' : '1'}">
+    </div>
+    <button class="btn-cart" onclick="addToCart('${k}')">
+        Add to Cart
+    </button>
+</div>
             </div>`
             
             updateUI(k)
@@ -2234,13 +2236,7 @@ function removeFromCart(cartKey){
 // ADD TO CART FUNCTION - UPDATED FOR BRAND
 function addToCart(key){
     const qtyInput = document.getElementById(`qty_${key}`)
-    let qty = parseInt(qtyInput.value)
-
-    if(!qty || qty <= 0){
-        alert("Please enter a valid quantity")
-        qtyInput.focus()
-        return
-    }
+    let rawQty = qtyInput.value;
 
     // Get selected values
     const selectedSize = window[`size_${key}`]
@@ -2291,6 +2287,34 @@ function addToCart(key){
         return
     }
 
+    // ✅ START OF NEW VALIDATION: Check if quantity is valid
+    let qty = parseFloat(rawQty); // Use parseFloat for decimals
+    const allowHalf = p.halfQty === true; // Check the flag from your sheet
+
+    // Check if it's a valid number for this product
+    if (isNaN(qty) || qty <= 0) {
+        alert("Please enter a valid quantity");
+        return;
+    }
+
+    // Check if quantity matches the required step (1 or 0.5)
+    if (allowHalf) {
+        // For half quantities: check if it's a multiple of 0.5
+        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) { // Account for float precision
+            alert(`For this item, please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).`);
+            qtyInput.focus();
+            return;
+        }
+    } else {
+        // For whole quantities: check if it's a whole number
+        if (Math.abs(qty - Math.round(qty)) > 0.001) { // Account for float precision
+            alert(`For this item, please enter a whole number quantity.`);
+            qtyInput.focus();
+            return;
+        }
+    }
+    // ✅ END OF NEW VALIDATION
+
     // VALIDATION: Check if selected brand matches product brand
     if (selectedBrand && p.displaySize && selectedBrand !== p.displaySize) {
         alert(`Product not available`)
@@ -2307,6 +2331,7 @@ function addToCart(key){
         qty = p.maxQty
         qtyInput.value = qty
         alert(`Maximum allowed quantity is ${p.maxQty}`)
+        return
     }
 
     // Create unique cart key
@@ -2351,9 +2376,7 @@ function addToCart(key){
         addBtn.textContent = originalText
         addBtn.style.backgroundColor = ""
     }, 1000)
-}
-
-// UPDATE CART RENDER FUNCTION FOR BRAND
+}// UPDATE CART RENDER FUNCTION FOR BRAND
 function renderCart(){
     const container = document.getElementById("cart-items")
     container.innerHTML = ""
