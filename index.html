@@ -505,7 +505,7 @@ font-family: 'Roboto', sans-serif !important;
 #checkout-modal > div {
     background: #fff;
     width: 100%;
-    max-width: 500px;
+    max-width: 900px;
     padding: 25px;
     border-radius: var(--radius);
     max-height: 90vh;
@@ -1097,6 +1097,55 @@ animation: bounce 0.5s infinite;
     overflow: hidden;
     max-height: 0;
 }
+
+/* ===== TWO-COLUMN CHECKOUT LAYOUT ===== */
+.checkout-two-column {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-top: 10px;
+}
+
+.checkout-left {
+    flex: 1;
+    min-width: 300px;
+}
+
+.checkout-right {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Adjust summary box for new layout */
+#checkout-summary-box {
+    background: #f7f7f7;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+/* Ensure buttons fill width in right column */
+.checkout-right .whatsapp-btn,
+.checkout-right .modal-btn-close {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .checkout-two-column {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .checkout-left,
+    .checkout-right {
+        min-width: 100%;
+    }
+}
 </style>
 </head>
 <body>
@@ -1167,72 +1216,85 @@ animation: bounce 0.5s infinite;
             <button class="checkout-close-btn" onclick="closeCheckout()">✕</button>
         </div>
         
-        <div class="input-group">
-            <label for="cust-name">Full Name *</label>
-            <input id="cust-name" placeholder="Enter your full name" required>
-        </div>
-        
-        <div class="input-group">
-            <label for="cust-phone">Phone Number *</label>
-            <input id="cust-phone" placeholder="Enter your phone number" required>
-        </div>
-        
-        <div class="input-group">
-            <label for="cust-email">Email Address (Optional)</label>
-            <input id="cust-email" placeholder="Enter your email" type="email">
-        </div>
-        
-        <h3 style="margin-bottom:15px;">Shipping Method</h3>
-        <div class="shipping-options">
-            <label class="shipping-option-btn active" for="shipping-self">
-                <input type="radio" id="shipping-self" name="shipping" value="self" checked>
-                <div>Self Pickup</div>
-                <span>FREE</span>
-            </label>
-            <label class="shipping-option-btn" for="shipping-delivery">
-                <input type="radio" id="shipping-delivery" name="shipping" value="delivery">
-                <div>Delivery</div>
-                <span>Extra Charges Apply</span>
-            </label>
-        </div>
-<h3 style="margin-bottom:15px; margin-top:25px;">Payment Method</h3>
-<div class="payment-options">
-    <label class="payment-option-btn active" for="pay-shop">
-        <input type="radio" id="pay-shop" name="payment" value="shop" checked>
-        <div>Pay at Shop</div>
-        <span>Pay when collecting</span>
-    </label>
-    <label class="payment-option-btn" for="pay-bank">
-        <input type="radio" id="pay-bank" name="payment" value="bank">
-        <div>Bank Transfer</div>
-        <span>Details via WhatsApp</span>
-    </label>
-</div>
-        <div id="delivery-address-container" style="display:none; margin-top:20px;">
-            <div class="input-group">
-                <label for="delivery-address">Delivery Address *</label>
-                <textarea id="delivery-address" placeholder="Enter full delivery address" rows="3"></textarea>
-            </div>
-            <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545; margin-top: 5px;"></p>
-        </div>
+        <!-- TWO-COLUMN CONTAINER -->
+        <div class="checkout-two-column">
+            
+            <!-- LEFT COLUMN: Customer Inputs -->
+            <div class="checkout-left">
+                <div class="input-group">
+                    <label for="cust-name">Full Name *</label>
+                    <input id="cust-name" placeholder="Enter your full name" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="cust-phone">Phone Number *</label>
+                    <input id="cust-phone" placeholder="Enter your phone number" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="cust-email">Email Address (Optional)</label>
+                    <input id="cust-email" placeholder="Enter your email" type="email">
+                </div>
+                
+                <h3 style="margin-bottom:15px;">Shipping Method</h3>
+                <div class="shipping-options">
+                    <label class="shipping-option-btn active" for="shipping-self">
+                        <input type="radio" id="shipping-self" name="shipping" value="self" checked>
+                        <div>Self Pickup</div>
+                        <span>FREE</span>
+                    </label>
+                    <label class="shipping-option-btn" for="shipping-delivery">
+                        <input type="radio" id="shipping-delivery" name="shipping" value="delivery">
+                        <div>Delivery</div>
+                        <span>Extra Charges Apply</span>
+                    </label>
+                </div>
+                
+                <h3 style="margin-bottom:15px; margin-top:25px;">Payment Method</h3>
+                <div class="payment-options">
+                    <label class="payment-option-btn active" for="pay-shop">
+                        <input type="radio" id="pay-shop" name="payment" value="shop" checked>
+                        <div>Pay at Shop</div>
+                        <span>Pay when collecting</span>
+                    </label>
+                    <label class="payment-option-btn" for="pay-bank">
+                        <input type="radio" id="pay-bank" name="payment" value="bank">
+                        <div>Bank Transfer</div>
+                        <span>Details via WhatsApp</span>
+                    </label>
+                </div>
+                
+                <div id="delivery-address-container" style="display:none; margin-top:20px;">
+                    <div class="input-group">
+                        <label for="delivery-address">Delivery Address *</label>
+                        <textarea id="delivery-address" placeholder="Enter full delivery address" rows="3"></textarea>
+                    </div>
+                    <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545; margin-top: 5px;"></p>
+                </div>
+            </div> <!-- END LEFT COLUMN -->
+            
+            <!-- RIGHT COLUMN: Order Summary & Buttons -->
+            <div class="checkout-right">
+                <div id="checkout-summary-box">
+                    <h4>Order Summary</h4>
+                    <div class="summary-line"><span>Subtotal</span><span>Rs 0</span></div>
+                    <div class="summary-line"><span>Shipping</span><span>Rs 0</span></div>
+                    <div class="summary-total"><span>Total</span><span>Rs 0</span></div>
+                </div>
 
-        <div id="checkout-summary-box">
-            <h4>Order Summary</h4>
-            <div class="summary-line"><span>Subtotal</span><span>Rs 0</span></div>
-            <div class="summary-line"><span>Shipping</span><span>Rs 0</span></div>
-            <div class="summary-total"><span>Total</span><span>Rs 0</span></div>
-        </div>
-
-        <button onclick="placeOrder()" class="whatsapp-btn">
-            <span class="whatsapp-icon">📱</span> Place Order via WhatsApp
-        </button>
+                <button onclick="placeOrder()" class="whatsapp-btn">
+                    <span class="whatsapp-icon">📱</span> Place Order via WhatsApp
+                </button>
+                
+                <button onclick="closeCheckout()" class="modal-btn-close">
+                    Cancel Order
+                </button>
+            </div> <!-- END RIGHT COLUMN -->
+            
+        </div> <!-- END checkout-two-column -->
         
-        <button onclick="closeCheckout()" class="modal-btn-close">
-            Cancel Order
-        </button>
     </div>
 </div>
-
 <script>
 // Configuration
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
