@@ -2244,6 +2244,20 @@ function addToCart(key){
     const selectedColor = window[`color_${key}`] || ''
     const selectedBrand = window[`brand_${key}`] || ''
 
+console.log("=== DEBUG START ===");
+    console.log("Selected Size:", selectedSize, "GSM:", selectedGsm, "Brand:", selectedBrand, "Color:", selectedColor);
+    console.log("All keys in map for this product:", Object.keys(window[`map_${key}`]));
+    let debugLookupKey = `${selectedSize}_${selectedGsm}`;
+    if (selectedBrand) debugLookupKey += `_${selectedBrand}`;
+    if (selectedColor) debugLookupKey += `_${selectedColor}`;
+    console.log("Looking for key:", debugLookupKey);
+    console.log("Product found?", window[`map_${key}`][debugLookupKey]);
+    if (window[`map_${key}`][debugLookupKey]) {
+        console.log("Found product color:", window[`map_${key}`][debugLookupKey].color);
+    }
+    console.log("=== DEBUG END ===");
+    // ===== END DEBUG BLOCK =====
+
     // Build lookup key in ORDER OF PRIORITY
     let variantKey = `${selectedSize}_${selectedGsm}`
     
@@ -2256,9 +2270,15 @@ function addToCart(key){
         variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
     }
     // 3. Try with color only  
-    else if (selectedColor) {
+    // 3. Try with color only  
+else if (selectedColor) {
+    // Include brand if available
+    if (selectedBrand) {
+        variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}_${selectedColor}`
+    } else {
         variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
     }
+}
     // 4. Base key already set
     
     let p = window[`map_${key}`][variantKey]
@@ -2271,10 +2291,18 @@ function addToCart(key){
             p = window[`map_${key}`][variantKey]
         }
         // Try color without brand (if we tried with brand)
-        if (!p && selectedBrand && selectedColor) {
-            variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
-            p = window[`map_${key}`][variantKey]
-        }
+        // Try color without brand (if we tried with brand)
+if (!p && selectedBrand && selectedColor) {
+    // Try with color only (no brand)
+    variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
+    p = window[`map_${key}`][variantKey]
+    
+    // If still not found, try brand only (no color)
+    if (!p) {
+        variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
+        p = window[`map_${key}`][variantKey]
+    }
+}
         // Try base key (no brand, no color)
         if (!p) {
             variantKey = `${selectedSize}_${selectedGsm}`
@@ -2533,7 +2561,15 @@ orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:c
 
     // Create WhatsApp URL
     const whatsappMessage = encodeURIComponent(orderSummary)
-    const whatsappNumber = "923036470666"
+    let whatsappNumber;
+const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
+const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+
+if (shippingMethod === "delivery" && paymentMethod === "bank") {
+    whatsappNumber = "923046470666"; // Your alternate number for bank transfer deliveries
+} else {
+    whatsappNumber = "923036470666"; // Your original default number
+}
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
 
     // Open WhatsApp
