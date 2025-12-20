@@ -2621,6 +2621,34 @@ orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:c
     orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
     orderSummary += `⏳ _Please confirm availability and provide payment details._`
 
+    // ===== START: Send email copy via Google Apps Script =====
+    // Prepare data for email
+    const emailData = {
+        customerName: name,
+        customerPhone: phone,
+        customerEmail: email || 'Not provided',
+        shippingMethod: shipping === "delivery" ? "Delivery" : "Self Pickup",
+        paymentMethod: document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop",
+        deliveryAddress: address || 'Not applicable',
+        orderSummary: orderSummary,
+        orderTotal: total,
+        orderWeight: Math.round(totalWeight)
+    };
+
+    // Send to Google Apps Script (in background, don't wait for response)
+    fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
+        method: 'POST',
+        mode: 'no-cors', // Important for cross-origin
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData)
+    }).catch(error => {
+        // Silently fail - email is just a backup
+        console.log('Email backup failed (non-critical):', error);
+    });
+    // ===== END: Send email copy =====
+
     // Create WhatsApp URL
     const whatsappMessage = encodeURIComponent(orderSummary)
     let whatsappNumber;
