@@ -2214,8 +2214,8 @@ function calculateDeliveryCharges(){
         totalWeight += item.weight * item.qty
     })
     
-    // Calculate base delivery charges (minimum Rs 400 or weight × 3)
-    let baseCharges = Math.max(Math.round(totalWeight * 3), 400)
+    // Calculate base delivery charges (minimum Rs 700 or weight × 3)
+    let baseCharges = Math.max(Math.round(totalWeight * 3), 700)
     
     // Calculate products total
     let productsTotal = 0
@@ -2564,7 +2564,7 @@ function placeOrder(){
         let deliveryCharges = 0
     if(shipping === "delivery"){
         // Calculate base delivery charges
-        let baseCharges = Math.max(Math.round(totalWeight * 3), 400)
+        let baseCharges = Math.max(Math.round(totalWeight * 3), 700)
         
         // Check if total with base charges is already round
         let currentTotalWithBase = total + baseCharges
