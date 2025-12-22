@@ -1237,18 +1237,23 @@ animation: bounce 0.5s infinite;
                 </div>
                 
                 <h3 style="margin-bottom:15px;">Shipping Method</h3>
-                <div class="shipping-options">
-                    <label class="shipping-option-btn active" for="shipping-self">
-                        <input type="radio" id="shipping-self" name="shipping" value="self" checked>
-                        <div>Self Pickup</div>
-                        <span>FREE</span>
-                    </label>
-                    <label class="shipping-option-btn" for="shipping-delivery">
-                        <input type="radio" id="shipping-delivery" name="shipping" value="delivery">
-                        <div>Delivery</div>
-                        <span>Extra Charges Apply</span>
-                    </label>
-                </div>
+<div class="shipping-options">
+    <label class="shipping-option-btn active" for="shipping-self">
+        <input type="radio" id="shipping-self" name="shipping" value="self" checked>
+        <div>Self Pickup</div>
+        <span>FREE</span>
+    </label>
+    <label class="shipping-option-btn" for="shipping-delivery-open">
+        <input type="radio" id="shipping-delivery-open" name="shipping" value="open">
+        <div>Delivery - Open</div>
+        <span>Min Rs 600</span>
+    </label>
+    <label class="shipping-option-btn" for="shipping-delivery-bundle">
+        <input type="radio" id="shipping-delivery-bundle" name="shipping" value="bundle">
+        <div>Delivery - Bundle</div>
+        <span>Bundle Rates</span>
+    </label>
+</div>
                 
                 <h3 style="margin-bottom:15px; margin-top:25px;">Payment Method</h3>
                 <div class="payment-options">
@@ -1453,8 +1458,10 @@ setupPaymentListeners();
 });
 
 function setupShippingListeners() {
+    // Radio button change listeners
     const selfRadio = document.getElementById('shipping-self');
-    const deliveryRadio = document.getElementById('shipping-delivery');
+    const openRadio = document.getElementById('shipping-delivery-open');
+    const bundleRadio = document.getElementById('shipping-delivery-bundle');
     
     if (selfRadio) {
         selfRadio.addEventListener('change', function() {
@@ -1464,16 +1471,26 @@ function setupShippingListeners() {
         });
     }
     
-    if (deliveryRadio) {
-        deliveryRadio.addEventListener('change', function() {
+    if (openRadio) {
+        openRadio.addEventListener('change', function() {
             if (this.checked) {
-                updateShipping('delivery');
+                updateShipping('open');
             }
         });
     }
     
+    if (bundleRadio) {
+        bundleRadio.addEventListener('change', function() {
+            if (this.checked) {
+                updateShipping('bundle');
+            }
+        });
+    }
+    
+    // Label click listeners
     const selfLabel = document.querySelector('label[for="shipping-self"]');
-    const deliveryLabel = document.querySelector('label[for="shipping-delivery"]');
+    const openLabel = document.querySelector('label[for="shipping-delivery-open"]');
+    const bundleLabel = document.querySelector('label[for="shipping-delivery-bundle"]');
     
     if (selfLabel) {
         selfLabel.addEventListener('click', function() {
@@ -1482,14 +1499,20 @@ function setupShippingListeners() {
         });
     }
     
-    if (deliveryLabel) {
-        deliveryLabel.addEventListener('click', function() {
-            document.getElementById('shipping-delivery').checked = true;
-            updateShipping('delivery');
+    if (openLabel) {
+        openLabel.addEventListener('click', function() {
+            document.getElementById('shipping-delivery-open').checked = true;
+            updateShipping('open');
+        });
+    }
+    
+    if (bundleLabel) {
+        bundleLabel.addEventListener('click', function() {
+            document.getElementById('shipping-delivery-bundle').checked = true;
+            updateShipping('bundle');
         });
     }
 }
-
 async function fetchProducts(){
     try {
         // Show loading indicator
@@ -2187,66 +2210,100 @@ function closeCheckout(){
 function updateShipping(method, updateRadio = true){
     currentShippingMethod = method;
     const container = document.getElementById("delivery-address-container")
+    
+    // Get all shipping buttons
     const selfBtn = document.querySelector('label[for="shipping-self"]')
-    const deliveryBtn = document.querySelector('label[for="shipping-delivery"]')
+    const openBtn = document.querySelector('label[for="shipping-delivery-open"]')
+    const bundleBtn = document.querySelector('label[for="shipping-delivery-bundle"]')
 
     if (updateRadio) {
         document.querySelector(`input[value="${method}"]`).checked = true;
     }
     
-    if (method === "delivery") {
+    // Remove active class from all shipping buttons
+    [selfBtn, openBtn, bundleBtn].forEach(btn => {
+        if (btn) btn.classList.remove("active")
+    })
+    
+    // Show/hide address container based on method
+    if (method === "open" || method === "bundle") {
         container.style.display = "block"
-        selfBtn.classList.remove("active")
-        deliveryBtn.classList.add("active")
-        calculateDeliveryCharges()
+        // Add active class to selected button
+        if (method === "open" && openBtn) openBtn.classList.add("active")
+        if (method === "bundle" && bundleBtn) bundleBtn.classList.add("active")
+        calculateDeliveryCharges(method)
     } else {
+        // Self pickup
         container.style.display = "none"
-        deliveryBtn.classList.remove("active")
-        selfBtn.classList.add("active")
+        if (selfBtn) selfBtn.classList.add("active")
         document.getElementById("delivery-charges").innerText = ""
         updateCheckoutTotal(0)
     }
 }
-
-function calculateDeliveryCharges(){
+function calculateDeliveryCharges(method = 'open'){
     let totalWeight = 0
     Object.values(cart).forEach(item => {
         totalWeight += item.weight * item.qty
     })
     
-    // Calculate base delivery charges (minimum Rs 700 or weight × 3)
-    let baseCharges = Math.max(Math.round(totalWeight * 3), 700)
+    let deliveryCharges = 0
+    let chargesText = ""
     
-    // Calculate products total
-    let productsTotal = 0
-    Object.values(cart).forEach(i => {
-        productsTotal += i.price * i.qty
-    })
-    
-    // Calculate current total
-    let currentTotal = productsTotal + baseCharges
-    
-    // Check if current total already ends in 00
-    if (currentTotal % 100 === 0) {
-        // Already round number
-        document.getElementById("delivery-charges").innerText = `Delivery Charges: Rs ${baseCharges}`
-        updateCheckoutTotal(baseCharges)
-        return baseCharges
+    if (method === 'open') {
+        // OPEN delivery logic (existing)
+        let baseCharges = Math.max(Math.round(totalWeight * 3), 600) // Changed from 700 to 400
+        
+        // Calculate products total
+        let productsTotal = 0
+        Object.values(cart).forEach(i => {
+            productsTotal += i.price * i.qty
+        })
+        
+        // Calculate current total
+        let currentTotal = productsTotal + baseCharges
+        
+        // Check if current total already ends in 00
+        if (currentTotal % 100 === 0) {
+            deliveryCharges = baseCharges
+            chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`
+        } else {
+            // Calculate how much to add to make it round (ending with 00)
+            let remainder = currentTotal % 100
+            let amountToAdd = 100 - remainder
+            deliveryCharges = baseCharges + amountToAdd
+            chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`
+        }
+        
+    } else if (method === 'bundle') {
+        // BUNDLE delivery logic (new)
+        // Step 1: Weight ÷ 70
+        let bundles = totalWeight / 70
+        
+        // Step 2: Round based on remainder rules
+        let decimalPart = bundles % 1
+        
+        if (decimalPart <= 0.5) {
+            // Round down if remainder ≤ 0.5
+            bundles = Math.floor(bundles)
+        } else {
+            // Round up if remainder > 0.5
+            bundles = Math.ceil(bundles)
+        }
+        
+        // Ensure at least 1 bundle
+        bundles = Math.max(1, bundles)
+        
+        // Step 3: Multiply by 250
+        deliveryCharges = bundles * 250
+        
+        // Show calculation details
+        chargesText = `Delivery Charges (Bundle): Rs ${deliveryCharges} (${bundles} bundles × Rs 250)`
     }
     
-    // Calculate how much to add to make it round (ending with 00)
-    let remainder = currentTotal % 100
-    let amountToAdd = 100 - remainder
-    
-    // Final delivery charges
-    let finalCharges = baseCharges + amountToAdd
-    
     // Update display
-    document.getElementById("delivery-charges").innerText = 
-    `Delivery Charges: Rs ${finalCharges}`
-    
-    updateCheckoutTotal(finalCharges)
-    return finalCharges
+    document.getElementById("delivery-charges").innerText = chargesText
+    updateCheckoutTotal(deliveryCharges)
+    return deliveryCharges
 }
 function updateCheckoutTotal(deliveryCharges){
     let total = 0
@@ -2548,7 +2605,7 @@ function placeOrder(){
         return
     }
 
-    if(shipping === "delivery" && !address){
+        if((shipping === "open" || shipping === "bundle") && !address){
         alert("Please enter delivery address")
         document.getElementById("delivery-address").focus()
         return
@@ -2561,37 +2618,50 @@ function placeOrder(){
         totalWeight += i.weight * i.qty
     })
 
-        let deliveryCharges = 0
-    if(shipping === "delivery"){
-        // Calculate base delivery charges
-        let baseCharges = Math.max(Math.round(totalWeight * 3), 700)
-        
-        // Check if total with base charges is already round
-        let currentTotalWithBase = total + baseCharges
-        if (currentTotalWithBase % 100 === 0) {
-            deliveryCharges = baseCharges
-        } else {
-            // Calculate how much to add to make it round
-            let remainder = currentTotalWithBase % 100
-            let amountToAdd = 100 - remainder
-            deliveryCharges = baseCharges + amountToAdd
+            let deliveryCharges = 0
+    if(shipping === "open" || shipping === "bundle"){
+        if (shipping === "open") {
+            // OPEN delivery logic
+            let baseCharges = Math.max(Math.round(totalWeight * 3), 600) // Note: 600, not 400
+            let currentTotalWithBase = total + baseCharges
+            
+            if (currentTotalWithBase % 100 === 0) {
+                deliveryCharges = baseCharges
+            } else {
+                let remainder = currentTotalWithBase % 100
+                let amountToAdd = 100 - remainder
+                deliveryCharges = baseCharges + amountToAdd
+            }
+        } else if (shipping === "bundle") {
+            // BUNDLE delivery logic
+            let bundles = totalWeight / 70
+            let decimalPart = bundles % 1
+            
+            if (decimalPart <= 0.5) {
+                bundles = Math.floor(bundles)
+            } else {
+                bundles = Math.ceil(bundles)
+            }
+            
+            bundles = Math.max(1, bundles)
+            deliveryCharges = bundles * 250
         }
         
         total += deliveryCharges
     }
 
-    // Build order message - UPDATED FOR BRAND
+            // Build order message - UPDATED FOR BRAND
     let orderSummary = "📄 *NEW PAPER ORDER REQUEST* 📄\n\n"
     orderSummary += "*Customer Details:*\n"
     orderSummary += `👤 Name: ${name}\n`
     orderSummary += `📱 Phone: ${phone}\n`
     if(email) orderSummary += `📧 Email: ${email}\n`
-    orderSummary += `🚚 Shipping: ${shipping === "delivery" ? "Delivery" : "Self Pickup"}\n`
-orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`
-    if(shipping === "delivery") {
-    orderSummary += `📍 Address: ${address}\n`
-    orderSummary += `💰 Delivery Charges: Rs ${deliveryCharges}\n`
-}
+    orderSummary += `🚚 Shipping: ${shipping === "self" ? "Self Pickup" : shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"}\n`
+    orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`
+    if(shipping === "open" || shipping === "bundle") {
+        orderSummary += `📍 Address: ${address}\n`
+        orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${deliveryCharges}\n`
+    }
     orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`
 
     Object.values(cart).forEach((i, index) => {
@@ -2620,7 +2690,6 @@ orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:c
     orderSummary += `*GRAND TOTAL: Rs ${total}*\n`
     orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
     orderSummary += `⏳ _Please confirm availability and provide payment details._`
-
     // ===== START: Send email copy via Google Apps Script =====
     // Prepare data for email
     const emailData = {
