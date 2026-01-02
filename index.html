@@ -1251,7 +1251,7 @@ animation: bounce 0.5s infinite;
     <label class="shipping-option-btn" for="shipping-delivery-bundle">
         <input type="radio" id="shipping-delivery-bundle" name="shipping" value="bundle">
         <div>Delivery - Bundle</div>
-        <span>Only FOR Adda</span>
+        <span>Only for Adda</span>
     </label>
 </div>
                 
@@ -2581,6 +2581,11 @@ function renderCart(){
 
 // PLACE ORDER FUNCTION - UPDATE FOR BRAND IN WHATSAPP
 function placeOrder(){
+    // Number formatting function
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+    
     const name = document.getElementById("cust-name").value.trim()
     const phone = document.getElementById("cust-phone").value.trim()
     const email = document.getElementById("cust-email").value.trim()
@@ -2605,7 +2610,7 @@ function placeOrder(){
         return
     }
 
-        if((shipping === "open" || shipping === "bundle") && !address){
+    if((shipping === "open" || shipping === "bundle") && !address){
         alert("Please enter delivery address")
         document.getElementById("delivery-address").focus()
         return
@@ -2618,11 +2623,11 @@ function placeOrder(){
         totalWeight += i.weight * i.qty
     })
 
-            let deliveryCharges = 0
+    let deliveryCharges = 0
     if(shipping === "open" || shipping === "bundle"){
         if (shipping === "open") {
             // OPEN delivery logic
-            let baseCharges = Math.max(Math.round(totalWeight * 3), 600) // Note: 600, not 400
+            let baseCharges = Math.max(Math.round(totalWeight * 3), 600)
             let currentTotalWithBase = total + baseCharges
             
             if (currentTotalWithBase % 100 === 0) {
@@ -2650,8 +2655,18 @@ function placeOrder(){
         total += deliveryCharges
     }
 
-            // Build order message - UPDATED FOR BRAND
+    // Build order message - REORDERED WITH COMMAS
     let orderSummary = "📄 *NEW PAPER ORDER REQUEST* 📄\n\n"
+    
+    // ORDER SUMMARY AT THE TOP
+    const subtotal = total - deliveryCharges
+    orderSummary += "*Order Summary:*\n"
+    orderSummary += `Subtotal: Rs ${formatNumber(subtotal)}\n`
+    if(deliveryCharges > 0) orderSummary += `Delivery: Rs ${formatNumber(deliveryCharges)}\n`
+    orderSummary += `*GRAND TOTAL: Rs ${formatNumber(total)}*\n`
+    orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
+    
+    // CUSTOMER DETAILS (WITH DELIVERY CHARGES KEPT AS ORIGINAL)
     orderSummary += "*Customer Details:*\n"
     orderSummary += `👤 Name: ${name}\n`
     orderSummary += `📱 Phone: ${phone}\n`
@@ -2660,16 +2675,20 @@ function placeOrder(){
     orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`
     if(shipping === "open" || shipping === "bundle") {
         orderSummary += `📍 Address: ${address}\n`
-        orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${deliveryCharges}\n`
+        orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${formatNumber(deliveryCharges)}\n`
     }
     orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`
 
+    // ORDER ITEMS WITH FORMATTED PRICES
     Object.values(cart).forEach((i, index) => {
         const itemTotal = i.price * i.qty
         const itemWeight = i.weight * i.qty
+        const formattedPrice = formatNumber(i.price)
+        const formattedItemTotal = formatNumber(itemTotal)
+        
         orderSummary += `${index + 1}. *${i.name}*\n`
         
-        // Build specifications line - UPDATED FOR BRAND
+        // Build specifications line
         let specs = `Size: ${i.size} | GSM: ${i.gsm}`
         if (i.selectedBrand && i.selectedBrand !== '') {
             specs += ` | Brand: ${i.selectedBrand}`
@@ -2679,19 +2698,13 @@ function placeOrder(){
         }
         orderSummary += `   ${specs}\n`
         
-        orderSummary += `   Qty: ${i.qty} packs × Rs ${i.price} = Rs ${itemTotal}\n`
+        orderSummary += `   Qty: ${i.qty} packs × Rs ${formattedPrice} = Rs ${formattedItemTotal}\n`
         orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${i.rate}/KG\n\n`
     })
 
-    orderSummary += `*Order Summary:*\n`
-    const subtotal = total - deliveryCharges
-    orderSummary += `Subtotal: Rs ${subtotal}\n`
-    if(deliveryCharges > 0) orderSummary += `Delivery: Rs ${deliveryCharges}\n`
-    orderSummary += `*GRAND TOTAL: Rs ${total}*\n`
-    orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`
     orderSummary += `⏳ _Please confirm availability and provide payment details._`
+    
     // ===== START: Send email copy via Google Apps Script =====
-    // Prepare data for email
     const emailData = {
         customerName: name,
         customerPhone: phone,
@@ -2704,31 +2717,21 @@ function placeOrder(){
         orderWeight: Math.round(totalWeight)
     };
 
-    // Send to Google Apps Script (in background, don't wait for response)
     fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
         method: 'POST',
-        mode: 'no-cors', // Important for cross-origin
+        mode: 'no-cors',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(emailData)
     }).catch(error => {
-        // Silently fail - email is just a backup
         console.log('Email backup failed (non-critical):', error);
     });
     // ===== END: Send email copy =====
 
     // Create WhatsApp URL
     const whatsappMessage = encodeURIComponent(orderSummary)
-    let whatsappNumber;
-const shippingMethod = document.querySelector('input[name="shipping"]:checked').value;
-const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
-
-if (shippingMethod === "delivery" && paymentMethod === "bank") {
-    whatsappNumber = "923046470666"; // Your alternate number for bank transfer deliveries
-} else {
-    whatsappNumber = "923036470666"; // Your original default number
-}
+    const whatsappNumber = "923036470666"; // Single number for all orders
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
 
     // Open WhatsApp
@@ -2745,7 +2748,6 @@ if (shippingMethod === "delivery" && paymentMethod === "bank") {
         updateCartBadge()
     }, 1500)
 }
-
 // Handle window resize
 window.addEventListener('resize', function() {
     if (window.innerWidth > 768) {
