@@ -17,6 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lunr/lunr.js"></script>
 <style>
+
 /* --- BASE & TYPOGRAPHY --- */
 :root {
     --primary: #004c99;
@@ -347,15 +348,9 @@ h3 { font-size: 1.3rem; }
     margin: 0 0 8px;
     letter-spacing: -0.01em;
     line-height: 1.4;
-    
-    /* Force single line */
-    white-space: nowrap;      /* Prevents text from wrapping to a second line */
-    overflow: hidden;         /* Hides the text that doesn't fit */
-    text-overflow: ellipsis;  /* Adds '...' to the end of long names */
-    
-    /* Adjust height for 1 line instead of 2 */
-    min-height: 1.4em;        /* Matches the line-height for a single row */
+    min-height: 2.8em; 
 }
+
 .price { 
     font-size: 1.1rem; 
     color: var(--text-main); 
