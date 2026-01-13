@@ -70,7 +70,7 @@ h2.highlight-bg {
     background: linear-gradient(135deg, #076ead, #7b8587);
     color: #fdcb6e;
     display: inline-block;
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: 10px;
     box-shadow: 
         0 3px 20px rgba(0, 0, 0, 0.2),
@@ -929,7 +929,7 @@ animation: bounce 0.5s infinite;
 
 /* Prevent sideways scroll globally */
 body {
-  overflow-x: hidden;
+  overflow-x: visible;
 }
 
 /* --- TABLET & MOBILE (≤768px) --- */
@@ -955,8 +955,8 @@ body {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--gap-lg);
     padding: 15px 10px;
-    overflow-x: hidden;
     box-sizing: border-box;
+    min-width: min-content;
   }
 
   .category-products {
@@ -1077,8 +1077,8 @@ body {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--gap-md);
     padding: 12px 8px;
-    overflow-x: hidden;
     box-sizing: border-box;
+    min-width: min-content;
   }
 
   .category-products {
