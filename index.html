@@ -1497,7 +1497,8 @@ const COL = {
 DISPLAY_SIZE:17,      // Column R
     DISCOUNT_TAG:18,      // ADD THIS - Column S
     NEW_TAG:19,            // This is Column T (index 19)
-    HALF_QTY:20            // ADD THIS - Column T      // NEW: Column R (index 17)
+    HALF_QTY:20,
+    EVEN_ONLY:21            
 }
 
 // Function to get display size based on category
@@ -1701,7 +1702,7 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'block';
         
         // Try to fetch from Google Sheets
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:U?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:V?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -1884,7 +1885,8 @@ function group(rows){
             isStickerOnly: cat === "Stickers",  // NEW: Flag for stickers category
     discountTag: r[COL.DISCOUNT_TAG] || '',      // ADD THIS
     newTag: r[COL.NEW_TAG] || '',               // Existing line
-    halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES'  // NEW LINE                
+    halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES',
+    evenOnly: (r[COL.EVEN_ONLY] || '').toUpperCase() === 'YES'  // NEW LINE               
         })
     })
     return g
@@ -2008,6 +2010,13 @@ function getColorStyle(colorName) {
         return colorMap[colorName];
     }
     return 'background: #f8f9fa; color: #333;';
+}
+
+// Helper function to get quantity step
+function getQuantityStep(product) {
+    if (product.evenOnly) return '2';
+    if (product.halfQty) return '0.5';
+    return '1';
 }
 
 function renderProducts(groups, isSearch = false){
@@ -2217,7 +2226,7 @@ function renderProducts(groups, isSearch = false){
 
                 <div class="qty-row">
     <div class="qty-input">
-        <input type="number" id="qty_${k}" value="1" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${g.variations[0].halfQty ? '0.5' : '1'}">
+        <input type="number" id="qty_${k}" value="${g.variations[0].evenOnly ? '2' : '1'}" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${getQuantityStep(g.variations[0])}">
     </div>
     <button class="btn-cart" onclick="addToCart('${k}')">
         Add to Cart
@@ -2616,9 +2625,10 @@ if (!p && selectedBrand && selectedColor) {
         return
     }
 
-    // ✅ START OF NEW VALIDATION: Check if quantity is valid
+        // ✅ START OF NEW VALIDATION: Check if quantity is valid
     let qty = parseFloat(rawQty); // Use parseFloat for decimals
     const allowHalf = p.halfQty === true; // Check the flag from your sheet
+    const evenOnly = p.evenOnly === true; // NEW: Check even-only flag
 
     // Check if it's a valid number for this product
     if (isNaN(qty) || qty <= 0) {
@@ -2626,18 +2636,28 @@ if (!p && selectedBrand && selectedColor) {
         return;
     }
 
-    // Check if quantity matches the required step (1 or 0.5)
-    if (allowHalf) {
-        // For half quantities: check if it's a multiple of 0.5
-        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) { // Account for float precision
-            alert(`For this item, please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).`);
+    // Check if quantity is a whole number (except for half quantities)
+    if (!allowHalf) {
+        // For non-half quantities: check if it's a whole number
+        if (Math.abs(qty - Math.round(qty)) > 0.001) { // Account for float precision
+            alert(`For this item, please enter a whole number quantity.`);
             qtyInput.focus();
             return;
         }
+        
+        // NEW: Check for even-only validation
+        if (evenOnly) {
+            // Check if quantity is even
+            if (qty % 2 !== 0) {
+                alert("For this item, please enter even quantities only (2, 4, 6, etc.).");
+                qtyInput.focus();
+                return;
+            }
+        }
     } else {
-        // For whole quantities: check if it's a whole number
-        if (Math.abs(qty - Math.round(qty)) > 0.001) { // Account for float precision
-            alert(`For this item, please enter a whole number quantity.`);
+        // For half quantities: check if it's a multiple of 0.5
+        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) { // Account for float precision
+            alert(`For this item, please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).`);
             qtyInput.focus();
             return;
         }
