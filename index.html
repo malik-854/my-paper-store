@@ -279,7 +279,7 @@ h3 { font-size: 1.3rem; }
     align-items: center;
     padding: 0 50px;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1.90rem;
     flex-shrink: 0;
     white-space: nowrap;
 }
@@ -1428,7 +1428,7 @@ body {
     <label class="shipping-option-btn" for="shipping-delivery-open">
         <input type="radio" id="shipping-delivery-open" name="shipping" value="open">
         <div>Delivery - Open</div>
-        <span>Min Rs 600</span>
+        <span>Min Rs 450</span>
     </label>
     <label class="shipping-option-btn" for="shipping-delivery-bundle">
         <input type="radio" id="shipping-delivery-bundle" name="shipping" value="bundle">
@@ -2442,7 +2442,7 @@ function calculateDeliveryCharges(method = 'open'){
     
     if (method === 'open') {
         // OPEN delivery logic (existing)
-        let baseCharges = Math.max(Math.round(totalWeight * 3), 600) // Changed from 700 to 400
+        let baseCharges = Math.max(Math.round(totalWeight * 3), 450) // Changed from 700 to 400
         
         // Calculate products total
         let productsTotal = 0
@@ -2829,7 +2829,7 @@ function placeOrder(){
     if(shipping === "open" || shipping === "bundle"){
         if (shipping === "open") {
             // OPEN delivery logic
-            let baseCharges = Math.max(Math.round(totalWeight * 3), 600)
+            let baseCharges = Math.max(Math.round(totalWeight * 3), 450)
             let currentTotalWithBase = total + baseCharges
             
             if (currentTotalWithBase % 100 === 0) {
