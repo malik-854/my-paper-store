@@ -2934,7 +2934,13 @@ orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n"
 
     // Create WhatsApp URL
     const whatsappMessage = encodeURIComponent(orderSummary)
-    const whatsappNumber = "923036470666"; // Single number for all orders
+    // Check if delivery + bank transfer
+let whatsappNumber;
+if ((shipping === "open" || shipping === "bundle") && document.querySelector('input[name="payment"]:checked').value === "bank") {
+    whatsappNumber = "923046470666"; // New number for delivery + bank transfer
+} else {
+    whatsappNumber = "923036470666"; // Original number for all others
+}
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`
 
     // Open WhatsApp
