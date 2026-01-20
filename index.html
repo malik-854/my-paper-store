@@ -2912,7 +2912,7 @@ orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n"
         customerName: name,
         customerPhone: phone,
         customerEmail: email || 'Not provided',
-        shippingMethod: shipping === "delivery" ? "Delivery" : "Self Pickup",
+        shippingMethod: shipping === "self" ? "Self Pickup" : (shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"),
         paymentMethod: document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop",
         deliveryAddress: address || 'Not applicable',
         orderSummary: orderSummary,
