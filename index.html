@@ -14,7 +14,7 @@
   gtag('config', 'G-H2V1WJFV61');
 </script>
 
-<!-- OneSignal Push Notifications -->
+<!-- OneSignal Push Notifications - FIXED -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -22,22 +22,24 @@
     await OneSignal.init({
       appId: "8ad44dbc-5936-4645-a92c-c10275d7b434",
       safari_web_id: "web.onesignal.auto.122898af-6461-4378-9cd0-e897364a2895",
-      notifyButton: {
-        enable: true,
-      },
+      
+      // REMOVE notifyButton section completely
+      
       promptOptions: {
         slidedown: {
           enabled: true,
-          autoPrompt: false, // We'll trigger manually
-          timeDelay: 45, // Show after 45 seconds
-          pageViews: 3 // Or after 3 page views
+          autoPrompt: false,
+          timeDelay: 30,
+          pageViews: 1
         }
       }
     });
+    
+    // Make OneSignal globally available
+    window.OneSignal = OneSignal;
   });
 </script>
 <!-- End OneSignal -->
-
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lunr/lunr.js"></script>
 <style>
@@ -3070,129 +3072,63 @@ function updatePaymentButtons() {
     }
 }
 
-// ===== ONESIGNAL PUSH NOTIFICATIONS =====
+// ===== ONESIGNAL PUSH NOTIFICATIONS - SIMPLE VERSION =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Custom notification button handler
     const notifyBtn = document.getElementById('custom-notify-btn');
+    
     if (notifyBtn) {
         notifyBtn.addEventListener('click', function() {
-            OneSignalDeferred.push(async function(OneSignal) {
-                try {
-                    await OneSignal.Slidedown.promptPush();
-                    // Change button after click
-                    notifyBtn.innerHTML = "✓ Notifications Requested";
-                    notifyBtn.style.background = "linear-gradient(135deg, #28a745, #1f8b3b)";
-                    notifyBtn.disabled = true;
-                } catch (error) {
-                    console.log("Notification prompt error:", error);
-                }
-            });
+            // Use browser's native Notification API (always works)
+            if (Notification.permission === "default") {
+                Notification.requestPermission().then(function(permission) {
+                    if (permission === "granted") {
+                        // Success - button turns green
+                        notifyBtn.innerHTML = "✓ Notifications Enabled";
+                        notifyBtn.style.background = "linear-gradient(135deg, #28a745, #1f8b3b)";
+                        notifyBtn.disabled = true;
+                        console.log("Notification permission granted!");
+                        
+                        // Also try to register with OneSignal
+                        if (window.OneSignalDeferred) {
+                            OneSignalDeferred.push(async function(OneSignal) {
+                                try {
+                                    await OneSignal.registerForPushNotifications();
+                                } catch (error) {
+                                    console.log("OneSignal registration failed:", error);
+                                }
+                            });
+                        }
+                    }
+                });
+            }
         });
     }
     
-    // Check if already subscribed
-    OneSignalDeferred.push(async function(OneSignal) {
-        const isSubscribed = await OneSignal.User.PushSubscription.id;
-        if (isSubscribed && notifyBtn) {
-            notifyBtn.innerHTML = "✓ Notifications Enabled";
-            notifyBtn.style.background = "linear-gradient(135deg, #28a745, #1f8b3b)";
-            notifyBtn.disabled = true;
-        }
-    });
-    
-    // Show notification prompt when user adds to cart
-    const originalAddToCart = window.addToCart;
-    if (originalAddToCart) {
-        window.addToCart = function(key) {
-            // Call original function
-            const result = originalAddToCart(key);
-            
-            // Show notification prompt after 2 seconds
-            setTimeout(() => {
-                OneSignalDeferred.push(async function(OneSignal) {
-                    const permission = await OneSignal.Notifications.permission;
-                    const isSubscribed = await OneSignal.User.PushSubscription.id;
-                    
-                    if (permission === 'default' && !isSubscribed) {
-                        // Not asked yet - show prompt
-                        setTimeout(() => {
-                            OneSignal.Slidedown.promptPush();
-                        }, 2000);
-                    }
-                });
-            }, 500);
-            
-            return result;
-        };
-    }
-    
-    // Track cart for abandoned cart notifications
-    function trackCartForNotifications() {
-        const cartCount = Object.keys(cart).length;
-        if (cartCount > 0) {
-            OneSignalDeferred.push(function(OneSignal) {
-                OneSignal.User.addTags({
-                    'has_items_in_cart': 'true',
-                    'cart_item_count': cartCount.toString()
-                });
-            });
-        }
-    }
-    
-    // Update cart tracking when cart changes
-    const originalRenderCart = window.renderCart;
-    if (originalRenderCart) {
-        window.renderCart = function() {
-            originalRenderCart();
-            trackCartForNotifications();
-        };
+    // Check current permission on page load
+    if (Notification.permission === "granted" && notifyBtn) {
+        notifyBtn.innerHTML = "✓ Notifications Enabled";
+        notifyBtn.style.background = "linear-gradient(135deg, #28a745, #1f8b3b)";
+        notifyBtn.disabled = true;
     }
 });
 
-// Add CSS for OneSignal notifications
-const onesignalStyle = document.createElement('style');
-onesignalStyle.textContent = `
-    .onesignal-slidedown-container {
-        border-radius: 12px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
-        font-family: 'Roboto', sans-serif !important;
-    }
+// TEST: Check if everything is working
+setTimeout(function() {
+    console.log("=== NOTIFICATION TEST ===");
+    console.log("Browser permission:", Notification.permission);
+    console.log("OneSignalDeferred exists:", typeof window.OneSignalDeferred !== 'undefined');
     
-    .onesignal-slidedown-dialog {
-        background: linear-gradient(135deg, #004c99, #003366) !important;
-        color: white !important;
-        border: 2px solid white !important;
+    // Check if service workers are installed
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            console.log("Service Workers registered:", registrations.length);
+            registrations.forEach(function(reg) {
+                console.log("Service Worker scope:", reg.scope);
+            });
+        });
     }
-    
-    .onesignal-slidedown-body {
-        color: white !important;
-    }
-    
-    .onesignal-slidedown-body-title {
-        font-weight: 700 !important;
-        font-size: 1.2em !important;
-    }
-    
-    .onesignal-slidedown-body-subtitle {
-        opacity: 0.9 !important;
-    }
-    
-    .onesignal-slidedown-button {
-        border-radius: 8px !important;
-        font-weight: bold !important;
-    }
-    
-    .onesignal-slidedown-button.onesignal-slidedown-allow-button {
-        background: #28a745 !important;
-    }
-    
-    .onesignal-slidedown-button.onesignal-slidedown-deny-button {
-        background: #6c757d !important;
-    }
-`;
-document.head.appendChild(onesignalStyle);
+}, 3000);
 // ===== END ONESIGNAL =====
-
 document.head.appendChild(style)
 </script>
 </body>
