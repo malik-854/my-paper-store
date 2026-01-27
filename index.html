@@ -14,32 +14,6 @@
   gtag('config', 'G-H2V1WJFV61');
 </script>
 
-<!-- OneSignal Push Notifications - FIXED -->
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "8ad44dbc-5936-4645-a92c-c10275d7b434",
-      safari_web_id: "web.onesignal.auto.122898af-6461-4378-9cd0-e897364a2895",
-      
-      // REMOVE notifyButton section completely
-      
-      promptOptions: {
-        slidedown: {
-          enabled: true,
-          autoPrompt: false,
-          timeDelay: 30,
-          pageViews: 1
-        }
-      }
-    });
-    
-    // Make OneSignal globally available
-    window.OneSignal = OneSignal;
-  });
-</script>
-<!-- End OneSignal -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lunr/lunr.js"></script>
 <style>
@@ -1375,33 +1349,6 @@ body {
             <input type="text" id="search-input" onkeyup="searchProducts(this.value)" 
                    placeholder="Search by paper name, size, brand or GSM...">
         </div>
-<!-- Notification Subscription Button -->
-<div class="notification-container" style="text-align: center; margin: 15px 0 5px 0;">
-    <button id="custom-notify-btn" style="
-        background: linear-gradient(135deg, #004c99, #003366);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        font-size: 0.95em;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s;
-        box-shadow: 0 4px 12px rgba(0, 76, 153, 0.3);
-    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 76, 153, 0.4)'"
-       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 76, 153, 0.3)'">
-        🔔 Get Latest Updates!
-    </button>
-    <p style="font-size: 0.9em; color: white; margin-top: 8px; line-height: 1.4; font-weight: bold; letter-spacing: 0.2px;">
-        <strong style="font-weight: 800;">نئی آئٹمز، سستے ریٹ اور خاص ڈیلز</strong><br>
-        <span style="color: rgba(255,255,255,0.9); font-size: 0.85em; font-weight: 500;">
-            New items, Discounted Prices and Special Deals
-        </span>
-    </p>
-</div>
     </div>
 </div>
 
@@ -3075,63 +3022,6 @@ function updatePaymentButtons() {
     }
 }
 
-// ===== ONESIGNAL PUSH NOTIFICATIONS - SIMPLE VERSION =====
-document.addEventListener('DOMContentLoaded', function() {
-    const notifyBtn = document.getElementById('custom-notify-btn');
-    
-    if (notifyBtn) {
-        notifyBtn.addEventListener('click', function() {
-            // Use browser's native Notification API (always works)
-            if (Notification.permission === "default") {
-                Notification.requestPermission().then(function(permission) {
-                    if (permission === "granted") {
-                        // Success - button turns green
-                        notifyBtn.innerHTML = "✓ Notifications Enabled";
-                        notifyBtn.style.background = "linear-gradient(135deg, #28a745, #1f8b3b)";
-                        notifyBtn.disabled = true;
-                        console.log("Notification permission granted!");
-                        
-                        // Also try to register with OneSignal
-                        if (window.OneSignalDeferred) {
-                            OneSignalDeferred.push(async function(OneSignal) {
-                                try {
-                                    await OneSignal.registerForPushNotifications();
-                                } catch (error) {
-                                    console.log("OneSignal registration failed:", error);
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        });
-    }
-    
-    // Check current permission on page load
-    if (Notification.permission === "granted" && notifyBtn) {
-        notifyBtn.innerHTML = "✓ Notifications Enabled";
-        notifyBtn.style.background = "linear-gradient(135deg, #28a745, #1f8b3b)";
-        notifyBtn.disabled = true;
-    }
-});
-
-// TEST: Check if everything is working
-setTimeout(function() {
-    console.log("=== NOTIFICATION TEST ===");
-    console.log("Browser permission:", Notification.permission);
-    console.log("OneSignalDeferred exists:", typeof window.OneSignalDeferred !== 'undefined');
-    
-    // Check if service workers are installed
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            console.log("Service Workers registered:", registrations.length);
-            registrations.forEach(function(reg) {
-                console.log("Service Worker scope:", reg.scope);
-            });
-        });
-    }
-}, 3000);
-// ===== END ONESIGNAL =====
 document.head.appendChild(style)
 </script>
 </body>
