@@ -2926,7 +2926,7 @@ let isOrderBeingPlaced = false; // ADD THIS LINE AT TOP
 
 // Updated placeOrder() function with link generation and email copy
 async function placeOrder(){
-	// ⬇️ ADD THESE 2 LINES AT THE START ⬇️
+    // ⬇️ ADD THESE 2 LINES AT THE START ⬇️
     const btn = document.querySelector('.whatsapp-btn');
     if (btn.disabled) return; else btn.innerHTML = '<span class="whatsapp-icon">⏳</span> Saving...', btn.disabled = true;
     // Generate unique Order ID
@@ -2950,6 +2950,7 @@ async function placeOrder(){
     const shippingElement = document.querySelector('input[name="shipping"]:checked');
     if (!shippingElement) {
         alert("Please select a shipping method");
+        btn.disabled = false; btn.innerHTML = 'Place Order via WhatsApp';
         return;
     }
     const shipping = shippingElement.value;
@@ -2957,18 +2958,21 @@ async function placeOrder(){
     if(!name){
         alert("Please enter your full name");
         document.getElementById("cust-name").focus();
+        btn.disabled = false; btn.innerHTML = 'Place Order via WhatsApp';
         return;
     }
 
     if(!phone || phone.length < 10){
         alert("Please enter a valid phone number");
         document.getElementById("cust-phone").focus();
+        btn.disabled = false; btn.innerHTML = 'Place Order via WhatsApp';
         return;
     }
 
     if((shipping === "open" || shipping === "bundle") && !address){
         alert("Please enter delivery address");
         document.getElementById("delivery-address").focus();
+        btn.disabled = false; btn.innerHTML = 'Place Order via WhatsApp';
         return;
     }
 
@@ -3104,14 +3108,29 @@ async function placeOrder(){
     };
 
     try {
-        // Save order to Google Sheets
-        const saveResponse = await saveOrderToGoogleSheets(orderData);
+        // --- ONE-CLICK BULLETPROOF LOGIC ---
         
-        if (!saveResponse.success) {
-            throw new Error('Failed to save order');
-        }
-        
-        // ===== START: EMAIL COPY (KEEP EXACTLY SAME) =====
+        // 1. Prepare WhatsApp Message
+        let whatsappMessage = `📦 *NEW ORDER - HAYYAT PAPER STORE*\n\n`;
+        whatsappMessage += `Order #${orderId}\n`;
+        whatsappMessage += `Customer: ${name}\n`;
+        whatsappMessage += `Phone: ${phone}\n\n`;
+        whatsappMessage += `📋 *VIEW ORDER DETAILS & TRACKING:*\n`;
+        whatsappMessage += `${invoiceLink}\n\n`;
+        whatsappMessage += `⚠️ *DO NOT EDIT THIS LINK*`;
+
+        let whatsappNumber = ((shipping === "open" || shipping === "bundle") && 
+                             document.querySelector('input[name="payment"]:checked').value === "bank") 
+                             ? "923046470666" : "923036470666";
+
+        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+
+        // 2. OPEN WHATSAPP IMMEDIATELY (Before any 'await' calls to satisfy Safari)
+        window.location.href = whatsappUrl;
+
+        // 3. START SAVING IN BACKGROUND (We don't 'await' here so the redirect isn't blocked)
+        saveOrderToGoogleSheets(orderData).catch(err => console.error('Sheet Save Error:', err));
+
         const emailData = {
             customerName: name,
             customerPhone: phone,
@@ -3127,52 +3146,25 @@ async function placeOrder(){
         fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
             method: 'POST',
             mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(emailData)
-        }).catch(error => {
-            console.log('Email backup failed (non-critical):', error);
-        });
-        // ===== END: EMAIL COPY =====
-        
-        // Build WhatsApp message (LINK ONLY)
-        let whatsappMessage = `📦 *NEW ORDER - HAYYAT PAPER STORE*\n\n`;
-        whatsappMessage += `Order #${orderId}\n`;
-        whatsappMessage += `Customer: ${name}\n`;
-        whatsappMessage += `Phone: ${phone}\n\n`;
-        whatsappMessage += `📋 *VIEW ORDER DETAILS & TRACKING:*\n`;
-        whatsappMessage += `${invoiceLink}\n\n`;
-        whatsappMessage += `⚠️ *DO NOT EDIT THIS LINK*`;
-        
-        // Determine WhatsApp number based on shipping + payment
-        let whatsappNumber;
-        if ((shipping === "open" || shipping === "bundle") && 
-            document.querySelector('input[name="payment"]:checked').value === "bank") {
-            whatsappNumber = "923046470666"; // Delivery + bank transfer
-        } else {
-            whatsappNumber = "923036470666"; // All others
-        }
-        
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
-        
-        // Open WhatsApp
-        window.open(whatsappUrl, "_blank");
-        
-        // Show confirmation
-        alert(`Order #${orderId} placed! Opening WhatsApp...\n\nShare the link with us to confirm.`);
-        
-        // Clear cart and close checkout
+        }).catch(err => console.error('Email Backup Error:', err));
+
+        // 4. UI CLEANUP
         setTimeout(() => {
             closeCheckout();
             cart = {};
             renderCart();
             updateCartBadge();
-        }, 1500);
-        
+            btn.disabled = false;
+            btn.innerHTML = 'Place Order via WhatsApp';
+        }, 2000);
+
     } catch (error) {
         console.error('Order error:', error);
         alert('Error saving order. Please try again or contact support.');
+        btn.disabled = false;
+        btn.innerHTML = 'Place Order via WhatsApp';
     }
 }
 
