@@ -2131,6 +2131,11 @@ function searchProducts(query){
     }
 }
 
+// After rendering products
+setTimeout(() => {
+    initializeAllProducts()
+}, 100)
+
 // Helper function for color button styling
 function getColorStyle(colorName) {
     const colorMap = {
@@ -2161,19 +2166,6 @@ function getQuantityStep(product) {
 }
 
 function renderProducts(groups, isSearch = false){
-    // TEMPORARY DEBUG
-    console.log("=== DEBUG: Checking groups ===")
-    Object.keys(groups).forEach(cat => {
-        console.log(`Category: ${cat}`)
-        groups[cat].items.forEach(item => {
-            if (item.hasColors) {
-                console.log(`  Product with colors: ${item.name}`)
-                console.log(`  Color options:`, item.colorOptions)
-            }
-        })
-    })
-    console.log("=== END DEBUG ===")
-    
     const wrap = document.getElementById("product-list")
     wrap.innerHTML = ""
 
@@ -2190,14 +2182,13 @@ function renderProducts(groups, isSearch = false){
     Object.keys(groups).forEach(cat => {
         if (cat && cat !== "undefined") {
             // Create category container
-           wrap.innerHTML += `
+            wrap.innerHTML += `
 <div class="category-section">
     <h2 class="category-header highlight-bg" onclick="toggleCategory('${safeKey(cat)}')">${cat}</h2>
     <div class="category-products" id="cat-${safeKey(cat)}" style="max-height: 0;">
         <!-- Products will be added here -->
     </div>
 </div>`
-       
         }
         
         const items = groups[cat].items
@@ -2208,13 +2199,36 @@ function renderProducts(groups, isSearch = false){
             grouped[key].variations.push(i)
         })
         
-        // Get the container for this category (ONCE)
+        // Get the container for this category
         const categoryContainer = document.getElementById(`cat-${safeKey(cat)}`)
         
         Object.keys(grouped).forEach(k => {
             const g = grouped[k]
             const sizes = [...new Set(g.variations.map(v => v.size))]
-            const gsms = [...new Set(g.variations.map(v => v.gsm))]
+            
+            // CRITICAL: Determine if this category needs GSM filtering
+            // Photocopy Paper and Stickers should NOT have GSM filtering
+            const shouldFilterGsms = !["Photocopy Paper", "Stickers", "A4 Paper", "White Sticker"].includes(cat)
+            
+            // Only create GSM map if needed
+            let sizeToGsmsMap = {}
+            if (shouldFilterGsms) {
+                // Create a map of available GSMs for each size (for categories that need filtering)
+                g.variations.forEach(v => {
+                    if (!sizeToGsmsMap[v.size]) {
+                        sizeToGsmsMap[v.size] = []
+                    }
+                    if (!sizeToGsmsMap[v.size].includes(v.gsm)) {
+                        sizeToGsmsMap[v.size].push(v.gsm)
+                    }
+                })
+                
+                // Store this map globally for dynamic updates
+                window[`sizeToGsms_${k}`] = sizeToGsmsMap
+            }
+            
+            // Get ALL GSMs for the product (for all categories)
+            const allGsms = [...new Set(g.variations.map(v => v.gsm))]
             
             // NEW: Get colors if product has colors
             let colors = []
@@ -2228,12 +2242,7 @@ function renderProducts(groups, isSearch = false){
                 }
             }
             
-            // === DEBUG: Check variations ===
-            console.log("=== DEBUG: Variations for", g.name, "===")
-            g.variations.forEach((v, i) => {
-                console.log(`  ${i}: Size=${v.size}, GSM=${v.gsm}, Brand=${v.displaySize || '(none)'}, Color=${v.color || '(none)'}`)
-            })
-            
+            // Create variation map
             const map = {}
             g.variations.forEach(v => {
                 // ALWAYS create key with brand if brand exists
@@ -2241,7 +2250,6 @@ function renderProducts(groups, isSearch = false){
                     // Primary key: size_gsm_brand
                     const brandKey = `${v.size}_${v.gsm}_${v.displaySize}`
                     map[brandKey] = v
-                    console.log("  Added PRIMARY brand key:", brandKey, "for brand:", v.displaySize)
                     
                     // Also create fallback key without brand (for backward compatibility)
                     const fallbackKey = `${v.size}_${v.gsm}`
@@ -2267,20 +2275,18 @@ function renderProducts(groups, isSearch = false){
                 }
             })
             
-            console.log("All keys in map:", Object.keys(map))
-            // === END DEBUG ===
-            
             window[`map_${k}`] = map
             window[`size_${k}`] = sizes[0]
-            window[`gsm_${k}`] = gsms[0]
+            window[`gsm_${k}`] = allGsms[0] // Set to first GSM
+            
+            // Store category info for this product
+            window[`category_${k}`] = cat
             
             // NEW: Set default brand for Photocopy Paper AND Stickers
             if (cat === "Photocopy Paper" || cat === "Stickers") {
                 const brands = [...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))]
-                console.log("Available brands for", cat, ":", brands)
                 if (brands.length > 0) {
                     window[`brand_${k}`] = brands[0]
-                    console.log("Set default brand to:", brands[0])
                 }
             }
             
@@ -2291,93 +2297,111 @@ function renderProducts(groups, isSearch = false){
                 window[`color_${k}`] = ''
             }
 
-            // ADD TO CATEGORY CONTAINER, NOT MAIN WRAP
-            categoryContainer.innerHTML += `
+            // Create product card HTML
+            let productHtml = ''
+            
+            if (cat === "Photocopy Paper" || cat === "Stickers") {
+                // SPECIAL HANDLING for Photocopy Paper & Stickers (show brands + GSM)
+                productHtml = `
+<div class="product-card">
+    <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+    <div class="product-info">
+        <h3>${g.name}</h3>
+        
+        <!-- Photocopy Paper & Stickers: Show brands + GSM -->
+        <div class="variation-grid brand-grid">
+            ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
+                return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">
+    ${brand}
+    ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
+    ${g.variations.find(v => v.displaySize === brand && v.newTag) ? `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
+</button>`;
+            }).join("")}
+        </div>
+
+        <!-- GSM for Photocopy Paper & Stickers (show all GSMs) -->
+        ${g.variations[0].showGSM ? `
+        <div class="variation-grid gsm-grid">
+            ${allGsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
+        </div>
+        ` : ''}
+        
+        <p class="details" id="info_${k}"></p>
+        <div class="price" id="price_${k}"></div>
+    </div>
+
+    <div class="qty-row">
+        <div class="qty-input">
+            <input type="number" id="qty_${k}" value="${g.variations[0].evenOnly ? '2' : '1'}" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${getQuantityStep(g.variations[0])}">
+        </div>
+        <button class="btn-cart" onclick="addToCart('${k}')">
+            Add to Cart
+        </button>
+    </div>
+</div>`
+            } else {
+                // REGULAR PRODUCTS with GSM filtering
+                productHtml = `
 <div class="product-card">
     ${cat !== "Photocopy Paper" && cat !== "Stickers" ? `
         ${g.variations.some(v => v.discountTag) ? `<div class="product-badge badge-discounted">${g.variations.find(v => v.discountTag).discountTag}</div>` : ''}
         ${g.variations.some(v => v.newTag) ? `<div class="product-badge badge-new">${g.variations.find(v => v.newTag).newTag}</div>` : ''}
     ` : ''}
     <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
-                <div class="product-info">
-                    <h3>${g.name}</h3>
-                    
-                    <!-- VARIATIONS: Different logic for different categories -->
-                    ${cat === "Photocopy Paper" ? `
-                    <!-- Photocopy Paper: Show brands + GSM -->
-                    <div class="variation-grid brand-grid">
-                        ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
-                            console.log("Creating brand button for Photocopy Paper:", brand);
-                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">
-    ${brand}
-    ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
-    ${g.variations.find(v => v.displaySize === brand && v.newTag) ? `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
-</button>`;
-                        }).join("")}
-                    </div>
+    <div class="product-info">
+        <h3>${g.name}</h3>
+        
+        <!-- SIZE SELECTION (for regular products) -->
+        <div class="variation-grid size-grid">
+            ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
+        </div>
 
-                    <!-- GSM for Photocopy Paper -->
-                    ${g.variations[0].showGSM ? `
-                    <div class="variation-grid gsm-grid">
-                        ${gsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
-                    </div>
-                    ` : ''}
-                    ` : cat === "Stickers" ? `
-                    <!-- Stickers: Show ONLY brands (no size, no GSM) -->
-                    <div class="variation-grid brand-grid">
-                        ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
-                            console.log("Creating brand button for Stickers:", brand);
-                            return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">
-    ${brand}
-    ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
-    ${g.variations.find(v => v.displaySize === brand && v.newTag) ? `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
-</button>`;
-                        }).join("")}
-                    </div>
-                    ` : `
-                    <!-- Other categories: Show size + GSM -->
-                    <div class="variation-grid size-grid">
-                        ${sizes.map((s,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("")}
-                    </div>
+        <!-- DYNAMIC GSM SELECTION - Will be updated when size changes (for regular products) -->
+        <div class="variation-grid gsm-grid" id="gsm-grid-${k}">
+            ${shouldFilterGsms ? 
+                // Show GSMs for the first size
+                (sizeToGsmsMap[sizes[0]] || []).map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("") 
+                : 
+                // Show all GSMs for categories that don't need filtering
+                allGsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")
+            }
+        </div>
 
-                    <!-- GSM for other categories -->
-                    ${g.variations[0].showGSM ? `
-                    <div class="variation-grid gsm-grid">
-                        ${gsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
-                    </div>
-                    ` : ''}
-                    `}
+        <!-- COLOR SELECTOR - ONLY SHOW IF PRODUCT HAS COLORS -->
+        ${colors.length > 0 ? `
+        <div class="variation-grid color-grid" id="color-grid-${k}">
+            ${colors.map((color,i)=>`
+            <button class="variation-btn color-btn ${i===0?'active':''}" 
+                    onclick="selectVar('${k}','color','${color}',this)"
+                    style="${getColorStyle(color)}"
+                    title="${color}">
+                ${color}
+            </button>`).join("")}
+        </div>
+        ` : ''}
 
-                    <!-- COLOR SELECTOR - ONLY SHOW IF PRODUCT HAS COLORS -->
-                    ${colors.length > 0 ? `
-                    <div class="variation-grid color-grid" id="color-grid-${k}">
-                        ${colors.map((color,i)=>`
-                        <button class="variation-btn color-btn ${i===0?'active':''}" 
-                                onclick="selectVar('${k}','color','${color}',this)"
-                                style="${getColorStyle(color)}"
-                                title="${color}">
-                            ${color}
-                        </button>`).join("")}
-                    </div>
-                    ` : ''}
-
-                    <p class="details" id="info_${k}"></p>
-                    <div class="price" id="price_${k}"></div>
-                </div>
-
-                <div class="qty-row">
-    <div class="qty-input">
-        <input type="number" id="qty_${k}" value="${g.variations[0].evenOnly ? '2' : '1'}" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${getQuantityStep(g.variations[0])}">
+        <p class="details" id="info_${k}"></p>
+        <div class="price" id="price_${k}"></div>
     </div>
-    <button class="btn-cart" onclick="addToCart('${k}')">
-        Add to Cart
-    </button>
-</div>
-            </div>`
+
+    <div class="qty-row">
+        <div class="qty-input">
+            <input type="number" id="qty_${k}" value="${g.variations[0].evenOnly ? '2' : '1'}" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${getQuantityStep(g.variations[0])}">
+        </div>
+        <button class="btn-cart" onclick="addToCart('${k}')">
+            Add to Cart
+        </button>
+    </div>
+</div>`
+            }
             
+            // Add to category container
+            categoryContainer.innerHTML += productHtml
+            
+            // Initialize UI with default values
             updateUI(k)
-        }) // End of Object.keys(grouped).forEach
-    }) // End of Object.keys(groups).forEach
+        })
+    })
 }
 
 function safeKey(t) { 
@@ -2385,16 +2409,121 @@ function safeKey(t) {
 }
 
 function selectVar(key, type, val, btn){
-    if(type === "size") window[`size_${key}`] = val
+    // Get the category for this product
+    const category = window[`category_${key}`]
+    
+    // Check if this category needs GSM filtering
+    const shouldFilterGsms = !["Photocopy Paper", "Stickers", "A4 Paper", "White Sticker"].includes(category)
+    
+    if(type === "size") {
+        window[`size_${key}`] = val
+        
+        // When size changes, update available GSM options dynamically (only for categories that need filtering)
+        if (shouldFilterGsms) {
+            updateAvailableGsms(key, val)
+        }
+    }
     if(type === "gsm") window[`gsm_${key}`] = val
     if(type === "color") window[`color_${key}`] = val
-    if(type === "brand") window[`brand_${key}`] = val  // THIS LINE MUST EXIST
+    if(type === "brand") window[`brand_${key}`] = val
     
     // Remove active class from all buttons of the same type
     const parent = btn.parentElement
     parent.querySelectorAll(".variation-btn").forEach(b => b.classList.remove("active"))
     btn.classList.add("active")
     
+    updateUI(key)
+}
+
+// GSM updating function (only for categories that need it)
+function updateAvailableGsms(key, selectedSize) {
+    // Get the GSM map for this product
+    const gsmMap = window[`sizeToGsms_${key}`]
+    
+    if (!gsmMap) {
+        console.error(`No GSM map found for product: ${key}`)
+        return
+    }
+    
+    // Get available GSMs for the selected size
+    const availableGsms = gsmMap[selectedSize] || []
+    
+    // Get the GSM grid container
+    const gsmGrid = document.getElementById(`gsm-grid-${key}`)
+    
+    if (!gsmGrid) {
+        console.error(`No GSM grid found for product: ${key}`)
+        return
+    }
+    
+    // Clear existing GSM buttons
+    gsmGrid.innerHTML = ''
+    
+    if (availableGsms.length === 0) {
+        // No GSMs available for this size
+        gsmGrid.innerHTML = '<button class="variation-btn" disabled>No GSM available</button>'
+        window[`gsm_${key}`] = ''
+    } else {
+        // Create new GSM buttons for available GSMs
+        availableGsms.forEach((gsm, index) => {
+            const button = document.createElement('button')
+            button.className = `variation-btn ${index === 0 ? 'active' : ''}`
+            button.textContent = gsm
+            button.onclick = function() { selectVar(key, 'gsm', gsm, this) }
+            gsmGrid.appendChild(button)
+        })
+        
+        // Update the selected GSM to the first available option
+        window[`gsm_${key}`] = availableGsms[0]
+    }
+    
+    // Update UI immediately to reflect the change
+    updateUI(key)
+}
+
+// NEW FUNCTION: Update available GSM options when size changes
+function updateAvailableGsms(key, selectedSize) {
+    // Get the GSM map for this product
+    const gsmMap = window[`sizeToGsms_${key}`]
+    
+    if (!gsmMap) {
+        console.error(`No GSM map found for product: ${key}`)
+        return
+    }
+    
+    // Get available GSMs for the selected size
+    const availableGsms = gsmMap[selectedSize] || []
+    
+    // Get the GSM grid container
+    const gsmGrid = document.getElementById(`gsm-grid-${key}`)
+    
+    if (!gsmGrid) {
+        console.error(`No GSM grid found for product: ${key}`)
+        return
+    }
+    
+    // Clear existing GSM buttons
+    gsmGrid.innerHTML = ''
+    
+    if (availableGsms.length === 0) {
+        // No GSMs available for this size
+        gsmGrid.innerHTML = '<button class="variation-btn" disabled>No GSM available</button>'
+        window[`gsm_${key}`] = ''
+    } else {
+        // Create new GSM buttons for available GSMs
+        availableGsms.forEach((gsm, index) => {
+            const button = document.createElement('button')
+            button.className = `variation-btn ${index === 0 ? 'active' : ''}`
+            button.textContent = gsm
+            button.onclick = function() { selectVar(key, 'gsm', gsm, this) }
+            gsmGrid.appendChild(button)
+        })
+        
+        // Update the selected GSM to the first available option
+        window[`gsm_${key}`] = availableGsms[0]
+    }
+    
+    // Update UI immediately to reflect the change
     updateUI(key)
 }
 
