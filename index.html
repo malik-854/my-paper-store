@@ -2814,7 +2814,8 @@ function removeFromCart(cartKey){
 // ===== END CHECKOUT FUNCTIONS =====
 
 // ADD TO CART FUNCTION - UPDATED FOR BRAND
-function addToCart(key){
+async function addToCart(key){
+    
     const qtyInput = document.getElementById(`qty_${key}`)
     let rawQty = qtyInput.value;
 
@@ -2824,7 +2825,7 @@ function addToCart(key){
     const selectedColor = window[`color_${key}`] || ''
     const selectedBrand = window[`brand_${key}`] || ''
 
-console.log("=== DEBUG START ===");
+    console.log("=== DEBUG START ===");
     console.log("Selected Size:", selectedSize, "GSM:", selectedGsm, "Brand:", selectedBrand, "Color:", selectedColor);
     console.log("All keys in map for this product:", Object.keys(window[`map_${key}`]));
     let debugLookupKey = `${selectedSize}_${selectedGsm}`;
@@ -2850,15 +2851,14 @@ console.log("=== DEBUG START ===");
         variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
     }
     // 3. Try with color only  
-    // 3. Try with color only  
-else if (selectedColor) {
-    // Include brand if available
-    if (selectedBrand) {
-        variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}_${selectedColor}`
-    } else {
-        variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
+    else if (selectedColor) {
+        // Include brand if available
+        if (selectedBrand) {
+            variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}_${selectedColor}`
+        } else {
+            variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
+        }
     }
-}
     // 4. Base key already set
     
     let p = window[`map_${key}`][variantKey]
@@ -2871,18 +2871,17 @@ else if (selectedColor) {
             p = window[`map_${key}`][variantKey]
         }
         // Try color without brand (if we tried with brand)
-        // Try color without brand (if we tried with brand)
-if (!p && selectedBrand && selectedColor) {
-    // Try with color only (no brand)
-    variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
-    p = window[`map_${key}`][variantKey]
-    
-    // If still not found, try brand only (no color)
-    if (!p) {
-        variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
-        p = window[`map_${key}`][variantKey]
-    }
-}
+        if (!p && selectedBrand && selectedColor) {
+            // Try with color only (no brand)
+            variantKey = `${selectedSize}_${selectedGsm}_${selectedColor}`
+            p = window[`map_${key}`][variantKey]
+            
+            // If still not found, try brand only (no color)
+            if (!p) {
+                variantKey = `${selectedSize}_${selectedGsm}_${selectedBrand}`
+                p = window[`map_${key}`][variantKey]
+            }
+        }
         // Try base key (no brand, no color)
         if (!p) {
             variantKey = `${selectedSize}_${selectedGsm}`
@@ -2895,29 +2894,69 @@ if (!p && selectedBrand && selectedColor) {
         return
     }
 
-        // ✅ START OF NEW VALIDATION: Check if quantity is valid
-    let qty = parseFloat(rawQty); // Use parseFloat for decimals
-    const allowHalf = p.halfQty === true; // Check the flag from your sheet
-    const evenOnly = p.evenOnly === true; // NEW: Check even-only flag
+    // === PRICE VALIDATION - LIVE CHECK (MOVED AFTER p IS FOUND) ===
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:V?key=${API_KEY}&_=${Date.now()}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.values) {
+            // Parse size
+            const sizeParts = selectedSize.split('x');
+            const length = sizeParts[0];
+            const width = sizeParts[1];
+            
+            // Get product name
+            const productName = p.name;
+            
+            // Find matching product in fresh data
+            const freshProduct = data.values.find(row => 
+                row[3] === productName && 
+                row[6] == length && 
+                row[7] == width && 
+                row[8] == selectedGsm
+            );
+            
+            if (freshProduct) {
+                const freshPrice = Math.round(parseFloat(freshProduct[12] || 0));
+                const currentPrice = p.price;
+                
+                console.log('Fresh price:', freshPrice, 'Current price:', currentPrice);
+                
+                if (freshPrice > 0 && currentPrice > 0 && freshPrice !== currentPrice) {
+    alert(`⚠️ قیمت تبدیل ہو گئی ہے!\n\n` +
+          `اس پروڈکٹ کی نئی قیمت ${freshPrice} روپے ہے۔\n\n` +
+          `تازہ ترین قیمتیں دیکھنے کے لیے پیج کو ریفریش کریں۔`);
+    
+    window.location.reload(); 
+    return;
+}
+            }
+        }
+    } catch(e) {
+        console.log('Price check failed:', e);
+        // Allow add to cart if check fails
+    }
+    // === END PRICE VALIDATION ===
 
-    // Check if it's a valid number for this product
+    // ✅ START OF NEW VALIDATION: Check if quantity is valid
+    let qty = parseFloat(rawQty);
+    const allowHalf = p.halfQty === true;
+    const evenOnly = p.evenOnly === true;
+
     if (isNaN(qty) || qty <= 0) {
         alert("Please enter a valid quantity");
         return;
     }
 
-    // Check if quantity is a whole number (except for half quantities)
     if (!allowHalf) {
-        // For non-half quantities: check if it's a whole number
-        if (Math.abs(qty - Math.round(qty)) > 0.001) { // Account for float precision
+        if (Math.abs(qty - Math.round(qty)) > 0.001) {
             alert(`For this item, please enter a whole number quantity.`);
             qtyInput.focus();
             return;
         }
         
-        // NEW: Check for even-only validation
         if (evenOnly) {
-            // Check if quantity is even
             if (qty % 2 !== 0) {
                 alert("200 SHEETS Packing, please enter even quantities only (2, 4, 6, etc.).\n 200 شیٹس کی پیکنگ! صرف تعداد درج کریں (مثلاً 2، 4، 6 وغیرہ)۔ ");
                 qtyInput.focus();
@@ -2925,8 +2964,7 @@ if (!p && selectedBrand && selectedColor) {
             }
         }
     } else {
-        // For half quantities: check if it's a multiple of 0.5
-        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) { // Account for float precision
+        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) {
             alert(`For this item, please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).`);
             qtyInput.focus();
             return;
@@ -2965,7 +3003,6 @@ if (!p && selectedBrand && selectedColor) {
         selectedBrand: selectedBrand
     }
     
-    // Check if already in cart
     if (cart[cartKey]) {
         const newQty = cart[cartKey].qty + qty
         if (newQty > p.maxQty) {
@@ -2980,12 +3017,10 @@ if (!p && selectedBrand && selectedColor) {
     renderCart()
     updateCartBadge()
     
-    // Show cart on mobile after adding item
     if (window.innerWidth <= 768) {
         openCart();
     }
     
-    // Visual feedback
     const addBtn = document.querySelector(`[onclick="addToCart('${key}')"]`)
     const originalText = addBtn.textContent
     addBtn.textContent = "Added!"
@@ -2995,7 +3030,8 @@ if (!p && selectedBrand && selectedColor) {
         addBtn.textContent = originalText
         addBtn.style.backgroundColor = ""
     }, 1000)
-}// UPDATE CART RENDER FUNCTION FOR BRAND
+}
+	// UPDATE CART RENDER FUNCTION FOR BRAND
 function renderCart(){
     const container = document.getElementById("cart-items")
     container.innerHTML = ""
