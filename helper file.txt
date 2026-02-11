@@ -1,0 +1,10 @@
+my paper webstore works the following the way
+
+i created index.html code file. this is the master file. it has all the info all the coding and everything. most important file is this.
+
+then there is google sheets. it has all the products details. it has two scripts running it. Code.gs and updatestock.gs.
+Code.gs link the index.html file and the google sheets products file.
+the updatestock.gs file accepts the data from offline software and it receives the pushed stock and updates the google sheet stock so that it becomes available or not by changing yes and no autuomatically in the sheet.
+
+
+
