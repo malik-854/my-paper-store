@@ -2894,7 +2894,7 @@ async function addToCart(key){
         return
     }
 
-    // === PRICE VALIDATION - LIVE CHECK (MOVED AFTER p IS FOUND) ===
+    // === PRICE VALIDATION - LIVE CHECK WITH FIX FOR PROBLEMATIC PRODUCTS ===
     try {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:V?key=${API_KEY}&_=${Date.now()}`;
         const response = await fetch(url);
@@ -2909,13 +2909,43 @@ async function addToCart(key){
             // Get product name
             const productName = p.name;
             
-            // Find matching product in fresh data
-            const freshProduct = data.values.find(row => 
-                row[3] === productName && 
-                row[6] == length && 
-                row[7] == width && 
-                row[8] == selectedGsm
-            );
+            // CHECK IF THIS IS A PROBLEMATIC PRODUCT 
+            // (multiple products with same name, size, and GSM but different brands/colors)
+            const isProblematicProduct = window[`map_${key}`] && 
+                Object.keys(window[`map_${key}`]).filter(k => 
+                    k.startsWith(`${selectedSize}_${selectedGsm}`)
+                ).length > 1;
+            
+            let freshProduct;
+            
+            if (isProblematicProduct && selectedBrand) {
+                // For problematic products: Match by Column R (Brand) + Size + GSM
+                freshProduct = data.values.find(row => 
+                    row[17] === selectedBrand &&  // Column R - Unique identifier
+                    row[6] == length && 
+                    row[7] == width && 
+                    row[8] == selectedGsm
+                );
+                console.log("Using brand-specific lookup for problematic product");
+            } else {
+                // For normal products: Use old method
+                freshProduct = data.values.find(row => 
+                    row[3] === productName && 
+                    row[6] == length && 
+                    row[7] == width && 
+                    row[8] == selectedGsm
+                );
+            }
+            
+            // Fallback to old method if brand lookup fails
+            if (!freshProduct && isProblematicProduct) {
+                freshProduct = data.values.find(row => 
+                    row[3] === productName && 
+                    row[6] == length && 
+                    row[7] == width && 
+                    row[8] == selectedGsm
+                );
+            }
             
             if (freshProduct) {
                 const freshPrice = Math.round(parseFloat(freshProduct[12] || 0));
@@ -2924,13 +2954,13 @@ async function addToCart(key){
                 console.log('Fresh price:', freshPrice, 'Current price:', currentPrice);
                 
                 if (freshPrice > 0 && currentPrice > 0 && freshPrice !== currentPrice) {
-    alert(`⚠️ قیمت تبدیل ہو گئی ہے!\n\n` +
-          `اس پروڈکٹ کی نئی قیمت ${freshPrice} روپے ہے۔\n\n` +
-          `تازہ ترین قیمتیں دیکھنے کے لیے پیج کو ریفریش کریں۔`);
-    
-    window.location.reload(); 
-    return;
-}
+                    alert(`⚠️ قیمت تبدیل ہو گئی ہے!\n\n` +
+                          `اس پروڈکٹ کی نئی قیمت ${freshPrice} روپے ہے۔\n\n` +
+                          `تازہ ترین قیمتیں دیکھنے کے لیے پیج کو ریفریش کریں۔`);
+                    
+                    window.location.reload(); 
+                    return;
+                }
             }
         }
     } catch(e) {
@@ -3308,7 +3338,7 @@ async function placeOrder(){
             orderWeight: Math.round(totalWeight)
         };
 
-        fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
+        fetch('https://script.google.com/macros/s/AKfycbzinoq17B81tlIND-XpYNZ74CFS27RCMeZAreKAGqzwRY3HOMMnqD3SKdaQkTxg7euP/exec', {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
