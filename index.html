@@ -1639,7 +1639,8 @@ DISPLAY_SIZE:17,      // Column R
     DISCOUNT_TAG:18,      // ADD THIS - Column S
     NEW_TAG:19,            // This is Column T (index 19)
     HALF_QTY:20,
-    EVEN_ONLY:21            
+    EVEN_ONLY:21,
+	MULTIPLE_1_5:22
 }
 
 // Function to get display size based on category
@@ -1843,7 +1844,7 @@ async function fetchProducts(){
         document.getElementById('loading-indicator').style.display = 'block';
         
         // Try to fetch from Google Sheets
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:V?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:W?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
         
         const response = await fetch(url);
@@ -2027,7 +2028,8 @@ function group(rows){
     discountTag: r[COL.DISCOUNT_TAG] || '',      // ADD THIS
     newTag: r[COL.NEW_TAG] || '',               // Existing line
     halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES',
-    evenOnly: (r[COL.EVEN_ONLY] || '').toUpperCase() === 'YES'  // NEW LINE               
+    evenOnly: (r[COL.EVEN_ONLY] || '').toUpperCase() === 'YES',
+	multiple15: (r[COL.MULTIPLE_1_5] || '').toUpperCase() === 'YES'
         })
     })
     return g
@@ -2160,6 +2162,7 @@ function getColorStyle(colorName) {
 
 // Helper function to get quantity step
 function getQuantityStep(product) {
+    if (product.multiple15) return '1.5';
     if (product.evenOnly) return '2';
     if (product.halfQty) return '0.5';
     return '1';
@@ -2331,13 +2334,18 @@ function renderProducts(groups, isSearch = false){
     </div>
 
     <div class="qty-row">
-        <div class="qty-input">
-            <input type="number" id="qty_${k}" value="${g.variations[0].evenOnly ? '2' : '1'}" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${getQuantityStep(g.variations[0])}">
-        </div>
-        <button class="btn-cart" onclick="addToCart('${k}')">
-            Add to Cart
-        </button>
+    <div class="qty-input">
+        <input type="number" 
+            id="qty_${k}" 
+            value="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1')}" 
+            min="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].halfQty ? '0.5' : '1')}" 
+            max="999" 
+            step="${getQuantityStep(g.variations[0])}">
     </div>
+    <button class="btn-cart" onclick="addToCart('${k}')">
+        Add to Cart
+    </button>
+</div>
 </div>`
             } else {
                 // REGULAR PRODUCTS with GSM filtering
@@ -2969,38 +2977,50 @@ async function addToCart(key){
     }
     // === END PRICE VALIDATION ===
 
-    // ✅ START OF NEW VALIDATION: Check if quantity is valid
-    let qty = parseFloat(rawQty);
-    const allowHalf = p.halfQty === true;
-    const evenOnly = p.evenOnly === true;
+// ✅ START OF NEW VALIDATION: Check if quantity is valid
+let qty = parseFloat(rawQty);
+const allowHalf = p.halfQty === true;
+const evenOnly = p.evenOnly === true;
+const multiple15 = p.multiple15 === true;
 
-    if (isNaN(qty) || qty <= 0) {
-        alert("Please enter a valid quantity");
+if (isNaN(qty) || qty <= 0) {
+    alert("Please enter a valid quantity");
+    return;
+}
+
+// Check for 1.5 Multiples first
+if (multiple15) {
+    if (Math.abs((qty / 1.5) - Math.round(qty / 1.5)) > 0.001) {
+        alert("150 SHEETS Packing, please enter multiples of 1.5 only (1.5, 3, 4.5, etc.).\n150 شیٹس کی پیکنگ! صرف 1.5 کے حساب سے تعداد درج کریں (مثلاً 1.5، 3، 4.5 وغیرہ)۔");
+        qtyInput.focus();
         return;
     }
-
-    if (!allowHalf) {
-        if (Math.abs(qty - Math.round(qty)) > 0.001) {
-            alert(`For this item, please enter a whole number quantity.`);
-            qtyInput.focus();
-            return;
-        }
-        
-        if (evenOnly) {
-            if (qty % 2 !== 0) {
-                alert("200 SHEETS Packing, please enter even quantities only (2, 4, 6, etc.).\n 200 شیٹس کی پیکنگ! صرف تعداد درج کریں (مثلاً 2، 4، 6 وغیرہ)۔ ");
-                qtyInput.focus();
-                return;
-            }
-        }
-    } else {
-        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) {
-            alert(`For this item, please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).`);
-            qtyInput.focus();
-            return;
-        }
+} 
+// Check for Even Only
+else if (evenOnly) {
+    if (qty % 2 !== 0) {
+        alert("200 SHEETS Packing, please enter even quantities only (2, 4, 6, etc.).\n 200 شیٹس کی پیکنگ! صرف تعداد درج کریں (مثلاً 2، 4، 6 وغیرہ)۔ ");
+        qtyInput.focus();
+        return;
     }
-    // ✅ END OF NEW VALIDATION
+}
+// Check for Half Quantity
+else if (allowHalf) {
+    if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) {
+        alert(`For this item, please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).`);
+        qtyInput.focus();
+        return;
+    }
+}
+// Default: Whole Number
+else {
+    if (Math.abs(qty - Math.round(qty)) > 0.001) {
+        alert(`For this item, please enter a whole number quantity.`);
+        qtyInput.focus();
+        return;
+    }
+}
+// ✅ END OF NEW VALIDATION
 
     // VALIDATION: Check if selected brand matches product brand
     if (selectedBrand && p.displaySize && selectedBrand !== p.displaySize) {
