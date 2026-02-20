@@ -1569,7 +1569,7 @@ body {
     <label class="shipping-option-btn" for="shipping-delivery-open">
         <input type="radio" id="shipping-delivery-open" name="shipping" value="open">
         <div>Delivery - Open</div>
-        <span>Min Rs 450</span>
+        <span>Min Rs 350</span>
     </label>
     <label class="shipping-option-btn" for="shipping-delivery-bundle">
         <input type="radio" id="shipping-delivery-bundle" name="shipping" value="bundle">
@@ -2710,70 +2710,59 @@ function updateShipping(method, updateRadio = true){
     }
 }
 function calculateDeliveryCharges(method = 'open'){
-    let totalWeight = 0
+    let totalWeight = 0;
     Object.values(cart).forEach(item => {
-        totalWeight += item.weight * item.qty
-    })
+        // Ensure weight and qty are treated as numbers
+        totalWeight += (Number(item.weight) * Number(item.qty));
+    });
     
-    let deliveryCharges = 0
-    let chargesText = ""
+    let deliveryCharges = 0;
+    let chargesText = "";
     
     if (method === 'open') {
-        // OPEN delivery logic (existing)
-        let baseCharges = Math.max(Math.round(totalWeight * 3), 450) // Changed from 700 to 400
-        
-        // Calculate products total
-        let productsTotal = 0
-        Object.values(cart).forEach(i => {
-            productsTotal += i.price * i.qty
-        })
-        
-        // Calculate current total
-        let currentTotal = productsTotal + baseCharges
-        
-        // Check if current total already ends in 00
-        if (currentTotal % 100 === 0) {
-            deliveryCharges = baseCharges
-            chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`
+        // 1. Calculate the base charge
+        if (totalWeight <= 150) {
+            deliveryCharges = 350; // Flat minimum
         } else {
-            // Calculate how much to add to make it round (ending with 00)
-            let remainder = currentTotal % 100
-            let amountToAdd = 100 - remainder
-            deliveryCharges = baseCharges + amountToAdd
-            chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`
+            // Multiply weight by 3
+            let rawCharge = totalWeight * 2.5;
+            // 2. Round to the nearest 10 (e.g., 453 becomes 450, 456 becomes 460)
+            deliveryCharges = Math.round(rawCharge / 10) * 10;
         }
+        
+        chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`;
         
     } else if (method === 'bundle') {
-        // BUNDLE delivery logic (new)
-        // Step 1: Weight ÷ 70
-        let bundles = totalWeight / 70
+        // BUNDLE logic (70kg per bundle)
+        let bundles = totalWeight / 70;
+        let decimalPart = bundles % 1;
         
-        // Step 2: Round based on remainder rules
-        let decimalPart = bundles % 1
-        
+        // Custom rounding rule: <= 0.5 rounds down, > 0.5 rounds up
         if (decimalPart <= 0.5) {
-            // Round down if remainder ≤ 0.5
-            bundles = Math.floor(bundles)
+            bundles = Math.floor(bundles);
         } else {
-            // Round up if remainder > 0.5
-            bundles = Math.ceil(bundles)
+            bundles = Math.ceil(bundles);
         }
         
-        // Ensure at least 1 bundle
-        bundles = Math.max(1, bundles)
-        
-        // Step 3: Multiply by 250
-        deliveryCharges = bundles * 250
-        
-        // Show calculation details
-        chargesText = `Delivery Charges (Bundle): Rs ${deliveryCharges} (${bundles} bundles × Rs 250)`
+        bundles = Math.max(1, bundles); // Minimum 1 bundle
+        deliveryCharges = bundles * 250;
+        chargesText = `Delivery Charges (Bundle): Rs ${deliveryCharges} (${bundles} bundles × Rs 250)`;
     }
     
-    // Update display
-    document.getElementById("delivery-charges").innerText = chargesText
-    updateCheckoutTotal(deliveryCharges)
-    return deliveryCharges
+    // Update the UI
+    const displayElement = document.getElementById("delivery-charges");
+    if (displayElement) {
+        displayElement.innerText = chargesText;
+    }
+    
+    // Update the grand total in your system
+    if (typeof updateCheckoutTotal === "function") {
+        updateCheckoutTotal(deliveryCharges);
+    }
+    
+    return deliveryCharges;
 }
+
 function updateCheckoutTotal(deliveryCharges){
     let total = 0
     Object.values(cart).forEach(i => {
