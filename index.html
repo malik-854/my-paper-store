@@ -3326,36 +3326,32 @@ async function placeOrder(){
     });
 
     let deliveryCharges = 0;
-    if(shipping === "open" || shipping === "bundle"){
-        if (shipping === "open") {
-            // OPEN delivery logic
-            let baseCharges = Math.max(Math.round(totalWeight * 3), 450);
-            let currentTotalWithBase = total + baseCharges;
-            
-            if (currentTotalWithBase % 100 === 0) {
-                deliveryCharges = baseCharges;
-            } else {
-                let remainder = currentTotalWithBase % 100;
-                let amountToAdd = 100 - remainder;
-                deliveryCharges = baseCharges + amountToAdd;
-            }
-        } else if (shipping === "bundle") {
-            // BUNDLE delivery logic
-            let bundles = totalWeight / 70;
-            let decimalPart = bundles % 1;
-            
-            if (decimalPart <= 0.5) {
-                bundles = Math.floor(bundles);
-            } else {
-                bundles = Math.ceil(bundles);
-            }
-            
-            bundles = Math.max(1, bundles);
-            deliveryCharges = bundles * 250;
+if(shipping === "open" || shipping === "bundle"){
+    if (shipping === "open") {
+        // OPEN delivery logic - MATCHING THE MODAL
+        if (totalWeight <= 150) {
+            deliveryCharges = 350; // Flat minimum
+        } else {
+            let rawCharge = totalWeight * 2.5; // Same multiplier as modal
+            deliveryCharges = Math.round(rawCharge / 10) * 10; // Round to nearest 10
+        }
+    } else if (shipping === "bundle") {
+        // BUNDLE delivery logic (keeping as is)
+        let bundles = totalWeight / 70;
+        let decimalPart = bundles % 1;
+        
+        if (decimalPart <= 0.5) {
+            bundles = Math.floor(bundles);
+        } else {
+            bundles = Math.ceil(bundles);
         }
         
-        total += deliveryCharges;
+        bundles = Math.max(1, bundles);
+        deliveryCharges = bundles * 250;
     }
+    
+    total += deliveryCharges;
+}
 
     // Build orderSummary for email (keep exactly same format as before)
     let orderSummary = "✅ *Order placed through www.hayyatstore.com*\n\n";
