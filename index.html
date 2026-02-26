@@ -2285,69 +2285,95 @@ function renderProducts(groups, isSearch = false){
             // Store category info for this product
             window[`category_${k}`] = cat
             
-            // NEW: Set default brand for Photocopy Paper AND Stickers
-            if (cat === "Photocopy Paper" || cat === "Stickers") {
-                const brands = [...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))]
-                if (brands.length > 0) {
-                    window[`brand_${k}`] = brands[0]
-                }
-            }
-            
-            // NEW: Set default color
-            if (colors.length > 0) {
-                window[`color_${k}`] = colors[0]
-            } else {
-                window[`color_${k}`] = ''
-            }
-
-            // Create product card HTML
-            let productHtml = ''
-            
-            if (cat === "Photocopy Paper" || cat === "Stickers") {
-                // SPECIAL HANDLING for Photocopy Paper & Stickers (show brands + GSM)
-                productHtml = `
+if (cat === "Photocopy Paper" || cat === "Stickers") {
+    // Get unique sizes for this product group
+    const uniqueSizes = [...new Set(g.variations.map(v => v.size))];
+    
+    productHtml = `
 <div class="product-card">
     <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
     <div class="product-info">
         <h3>${g.name}</h3>
         
-        <!-- Photocopy Paper & Stickers: Show brands + GSM -->
-        <div class="variation-grid brand-grid">
-            ${[...new Set(g.variations.map(v => v.displaySize).filter(brand => brand))].map((brand,i) => {
-                return `<button class="variation-btn brand-btn ${i===0?'active':''}" onclick="selectVar('${k}','brand','${brand}',this)">
-    ${brand}
-    ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
-    ${g.variations.find(v => v.displaySize === brand && v.newTag) ? `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
-</button>`;
+        <!-- SIZE SELECTION FOR PHOTOCOPY PAPER -->
+        ${uniqueSizes.length > 1 ? `
+        <div class="variation-grid size-grid">
+            ${uniqueSizes.map((size, i) => {
+                const isActive = i === 0;
+                // Store the first size as default
+                if (isActive) {
+                    window[`size_${k}`] = size;
+                    // Also store brands for this size
+                    const brandsForSize = [...new Set(g.variations.filter(v => v.size === size).map(v => v.displaySize).filter(brand => brand))];
+                    if (brandsForSize.length > 0) {
+                        window[`brand_${k}`] = brandsForSize[0];
+                    }
+                }
+                return `<button class="variation-btn ${isActive ? 'active' : ''}" 
+                    onclick="selectVar('${k}','size','${size}',this)">${size}</button>`;
             }).join("")}
         </div>
-
-        <!-- GSM for Photocopy Paper & Stickers (show all GSMs) -->
-        ${g.variations[0].showGSM ? `
-        <div class="variation-grid gsm-grid">
-            ${allGsms.map((gsmVal,i)=>`<button class="variation-btn ${i===0?'active':''}" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("")}
-        </div>
         ` : ''}
+        
+        <!-- BRAND SELECTION - WILL BE UPDATED DYNAMICALLY -->
+        <div class="variation-grid brand-grid" id="brand-grid-${k}">
+            ${(() => {
+                // Get brands for the default/first size
+                const defaultSize = uniqueSizes[0];
+                const brandsForDefaultSize = [...new Set(g.variations.filter(v => v.size === defaultSize).map(v => v.displaySize).filter(brand => brand))];
+                
+                return brandsForDefaultSize.map((brand, i) => {
+                    // Set default brand
+                    if (i === 0) window[`brand_${k}`] = brand;
+                    return `<button class="variation-btn brand-btn ${i === 0 ? 'active' : ''}" 
+                        onclick="selectVar('${k}','brand','${brand}',this)">
+                        ${brand}
+                        ${g.variations.find(v => v.displaySize === brand && v.discountTag) ? 
+                            `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
+                        ${g.variations.find(v => v.displaySize === brand && v.newTag) ? 
+                            `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
+                    </button>`;
+                }).join("");
+            })()}
+        </div>
+
+        <!-- GSM SELECTION - WILL BE UPDATED DYNAMICALLY -->
+        <div class="variation-grid gsm-grid" id="gsm-grid-${k}">
+            ${(() => {
+                // Get GSMs for default size and brand
+                const defaultSize = uniqueSizes[0];
+                const defaultBrand = window[`brand_${k}`];
+                const gsmsForDefault = [...new Set(g.variations.filter(v => 
+                    v.size === defaultSize && v.displaySize === defaultBrand
+                ).map(v => v.gsm))];
+                
+                return gsmsForDefault.map((gsmVal, i) => {
+                    if (i === 0) window[`gsm_${k}`] = gsmVal;
+                    return `<button class="variation-btn ${i === 0 ? 'active' : ''}" 
+                        onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`;
+                }).join("");
+            })()}
+        </div>
         
         <p class="details" id="info_${k}"></p>
         <div class="price" id="price_${k}"></div>
     </div>
 
     <div class="qty-row">
-    <div class="qty-input">
-        <input type="number" 
-            id="qty_${k}" 
-            value="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1')}" 
-            min="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].halfQty ? '0.5' : '1')}" 
-            max="999" 
-            step="${getQuantityStep(g.variations[0])}">
+        <div class="qty-input">
+            <input type="number" 
+                id="qty_${k}" 
+                value="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1')}" 
+                min="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].halfQty ? '0.5' : '1')}" 
+                max="999" 
+                step="${getQuantityStep(g.variations[0])}">
+        </div>
+        <button class="btn-cart" onclick="addToCart('${k}')">
+            Add to Cart
+        </button>
     </div>
-    <button class="btn-cart" onclick="addToCart('${k}')">
-        Add to Cart
-    </button>
-</div>
 </div>`
-            } else {
+} else {
                 // REGULAR PRODUCTS with GSM filtering
                 productHtml = `
 <div class="product-card">
@@ -2426,14 +2452,23 @@ function selectVar(key, type, val, btn){
     if(type === "size") {
         window[`size_${key}`] = val
         
-        // When size changes, update available GSM options dynamically (only for categories that need filtering)
-        if (shouldFilterGsms) {
+        // For Photocopy Paper, when size changes, we need to update available GSMs
+        // based on the selected size
+        if (category === "Photocopy Paper") {
+            updateAvailableGsmsForPhotocopy(key, val);
+        } else if (shouldFilterGsms) {
             updateAvailableGsms(key, val)
         }
     }
     if(type === "gsm") window[`gsm_${key}`] = val
     if(type === "color") window[`color_${key}`] = val
-    if(type === "brand") window[`brand_${key}`] = val
+    if(type === "brand") {
+    window[`brand_${key}`] = val
+    // When brand changes for Photocopy Paper, update GSM options
+    if (category === "Photocopy Paper") {
+        updateGsmsForPhotocopy(key, window[`size_${key}`], val);
+    }
+}
     
     // Remove active class from all buttons of the same type
     const parent = btn.parentElement
@@ -2443,6 +2478,84 @@ function selectVar(key, type, val, btn){
     updateUI(key)
 }
 
+// New function specifically for Photocopy Paper size changes
+// Updated function for Photocopy Paper size changes - updates both brands and GSMs
+function updateAvailableGsmsForPhotocopy(key, selectedSize) {
+    // Get all variations for this product
+    const variations = window[`map_${key}`];
+    if (!variations) return;
+    
+    // Get unique brands available for the selected size
+    const availableBrands = [...new Set(
+        Object.values(variations)
+            .filter(v => v.size === selectedSize && v.displaySize)
+            .map(v => v.displaySize)
+    )];
+    
+    // Update the brand grid
+    const brandGrid = document.getElementById(`brand-grid-${key}`);
+    if (brandGrid) {
+        brandGrid.innerHTML = '';
+        
+        if (availableBrands.length === 0) {
+            brandGrid.innerHTML = '<button class="variation-btn" disabled>No brands available</button>';
+            window[`brand_${key}`] = '';
+        } else {
+            availableBrands.forEach((brand, index) => {
+                const button = document.createElement('button');
+                button.className = `variation-btn brand-btn ${index === 0 ? 'active' : ''}`;
+                button.textContent = brand;
+                button.onclick = function() { selectVar(key, 'brand', brand, this); };
+                brandGrid.appendChild(button);
+            });
+            
+            // Set default brand to first available
+            window[`brand_${key}`] = availableBrands[0];
+        }
+    }
+    
+    // Now update GSM options based on selected size AND default brand
+    updateGsmsForPhotocopy(key, selectedSize, window[`brand_${key}`]);
+}
+
+// New function to update GSMs when brand changes
+function updateGsmsForPhotocopy(key, selectedSize, selectedBrand) {
+    const variations = window[`map_${key}`];
+    if (!variations) return;
+    
+    // Filter variations that match the selected size AND brand
+    const availableGsms = [...new Set(
+        Object.values(variations)
+            .filter(v => v.size === selectedSize && v.displaySize === selectedBrand)
+            .map(v => v.gsm)
+    )];
+    
+    // Get the GSM grid container
+    const gsmGrid = document.getElementById(`gsm-grid-${key}`);
+    if (!gsmGrid) return;
+    
+    // Clear existing GSM buttons
+    gsmGrid.innerHTML = '';
+    
+    if (availableGsms.length === 0) {
+        gsmGrid.innerHTML = '<button class="variation-btn" disabled>No GSM available</button>';
+        window[`gsm_${key}`] = '';
+    } else {
+        // Create new GSM buttons
+        availableGsms.forEach((gsm, index) => {
+            const button = document.createElement('button');
+            button.className = `variation-btn ${index === 0 ? 'active' : ''}`;
+            button.textContent = gsm;
+            button.onclick = function() { selectVar(key, 'gsm', gsm, this); };
+            gsmGrid.appendChild(button);
+        });
+        
+        // Update selected GSM to first available
+        window[`gsm_${key}`] = availableGsms[0];
+    }
+    
+    updateUI(key);
+}
 // GSM updating function (only for categories that need it)
 function updateAvailableGsms(key, selectedSize) {
     // Get the GSM map for this product
