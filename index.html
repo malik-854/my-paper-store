@@ -2838,7 +2838,7 @@ function calculateDeliveryCharges(method = 'open'){
             deliveryCharges = 350; // Flat minimum
         } else {
             // Multiply weight by 3
-            let rawCharge = totalWeight * 2.5;
+            let rawCharge = totalWeight * 3.5;
             // 2. Round to the nearest 10 (e.g., 453 becomes 450, 456 becomes 460)
             deliveryCharges = Math.round(rawCharge / 10) * 10;
         }
@@ -3332,7 +3332,7 @@ if(shipping === "open" || shipping === "bundle"){
         if (totalWeight <= 150) {
             deliveryCharges = 350; // Flat minimum
         } else {
-            let rawCharge = totalWeight * 2.5; // Same multiplier as modal
+            let rawCharge = totalWeight * 3.5; // Same multiplier as modal
             deliveryCharges = Math.round(rawCharge / 10) * 10; // Round to nearest 10
         }
     } else if (shipping === "bundle") {
