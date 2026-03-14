@@ -1386,6 +1386,46 @@
             }
         }
 
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner-small {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        /* --- HIGHLIGHT FOR PRICE CHANGES --- */
+        @keyframes flashHighlight {
+            0% {
+                background-color: transparent;
+            }
+
+            30% {
+                background-color: rgba(255, 165, 0, 0.3);
+                border-color: orange;
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .highlight-change {
+            animation: flashHighlight 2s ease-out;
+            border: 1px solid orange !important;
+            border-radius: 8px;
+        }
+
         .product-card {
             animation: slideIn 0.3s ease-out;
         }
@@ -1466,6 +1506,24 @@
             border-radius: 8px;
             margin-bottom: 20px;
             flex-grow: 1;
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #ddd;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--primary-dark);
         }
 
         /* Ensure buttons fill width in right column */
@@ -1912,7 +1970,7 @@
     </div>
     <script>
         // Configuration
-        const APP_VERSION = "2026.03.13.03"; // Match Google Sheet X2 to stop reload loop
+        const APP_VERSION = "2026.03.14.01"; // Match Google Sheet X2 to stop reload loop
         const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
         const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
         const SHEET_NAME = "Sheet1"
@@ -2029,6 +2087,84 @@
                     updateCartBadge();
                 }
             } catch (e) { console.warn("Cart load failed", e); }
+        }
+
+        /**
+         * Option A: Auto-Update on Page Load
+         * Compares saved cart items with fresh Google Sheets data.
+         * Updates prices/rates automatically and notifies the user.
+         */
+        function revalidateCart() {
+            if (!cart || Object.keys(cart).length === 0) return { count: 0, keys: [] };
+
+            let changed = false;
+            let changeCount = 0;
+            let changedKeys = [];
+
+            Object.keys(cart).forEach(key => {
+                const item = cart[key];
+                const fresh = window.lunrStore ? window.lunrStore[item.id] : null;
+
+                if (fresh) {
+                    const freshPrice = Math.round(parseFloat(fresh.price || 0));
+                    const freshRate = fresh.rate || item.rate;
+
+                    if (item.price !== freshPrice || item.rate !== freshRate) {
+                        item.price = freshPrice;
+                        item.rate = freshRate;
+                        changed = true;
+                        changeCount++;
+                        changedKeys.push(key);
+                    }
+                }
+            });
+
+            if (changed) {
+                saveCart();
+                renderCart(changedKeys); // Pass keys to highlight
+                showCartUpdateBanner(changeCount);
+            }
+            return { count: changeCount, keys: changedKeys };
+        }
+
+        function showCartUpdateBanner(count) {
+            let banner = document.getElementById('price-change-banner');
+
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'price-change-banner';
+                banner.innerHTML = `
+                    <div class="price-banner-content">
+                        <span class="price-banner-icon">&#x1F6D2;</span>
+                        <div class="price-banner-text">
+                            <strong id="price-banner-title"></strong>
+                            <small id="price-banner-body"></small>
+                            <small id="price-banner-urdu"></small>
+                        </div>
+                    </div>
+                    <button class="price-banner-close" onclick="closePriceBanner()" title="Dismiss">&#10005;</button>
+                `;
+                document.body.prepend(banner);
+            }
+
+            document.getElementById('price-banner-title').innerHTML = `Cart Prices Updated`;
+            document.getElementById('price-banner-body').innerHTML =
+                `${count} item(s) in your cart have been updated to today's rates.`;
+
+            // Urdu line (RTL)
+            document.getElementById('price-banner-urdu').innerHTML =
+                `<span dir="rtl" style="display:block;text-align:right;font-family:'Noto Nastaliq Urdu','Jameel Noori Nastaleeq',serif;font-size:1em;font-weight:700;line-height:1.7;margin-top:5px;border-top:1px solid rgba(255,255,255,0.25);padding-top:4px;">`
+                + `آپ کے کارٹ میں موجود اشیاء کی قیمتیں تازہ ترین ریٹ کے مطابق تبدیل کر دی گئی ہیں۔`
+                + `</span>`;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    banner.classList.add('visible');
+                });
+            });
+
+            clearTimeout(window._priceBannerTimer);
+            window._priceBannerTimer = setTimeout(closePriceBanner, 10000);
         }
 
         // --- VERSION CONTROL ---
@@ -2181,10 +2317,11 @@
                 });
             }
         }
-        async function fetchProducts() {
+        async function fetchProducts(options = {}) {
+            const isQuiet = options.quiet === true;
             try {
                 // Show loading indicator
-                document.getElementById('loading-indicator').style.display = 'block';
+                if (!isQuiet) document.getElementById('loading-indicator').style.display = 'block';
 
                 // Try to fetch from Google Sheets (A1:X to include version cell X2)
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:X?key=${API_KEY}`;
@@ -2218,6 +2355,10 @@
 
                 globalProducts = groupedProducts;
                 buildLunrIndex(groupedProducts);
+                const validation = revalidateCart(); // Sync saved cart with fresh prices
+
+                if (isQuiet) return validation; // Return results for background updates
+
                 renderProducts(groupedProducts);
 
                 // Hide loading, show products
@@ -3112,11 +3253,50 @@
         }
 
         // Checkout Functions
-        function openCheckout() {
+        let lastPriceCheck = 0;
+
+        async function openCheckout() {
             if (Object.keys(cart).length === 0) {
                 alert("Your cart is empty")
                 return
             }
+
+            // --- REAL-TIME PRICE CHECK ---
+            const now = Date.now();
+            let checkResult = { count: 0, keys: [] };
+
+            // Only run verification once every 30 seconds to avoid spamming
+            if (now - lastPriceCheck > 30000) {
+                const checkoutBtn = document.querySelector('.btn-checkout');
+                const originalText = checkoutBtn ? checkoutBtn.innerHTML : 'Proceed to Checkout';
+
+                if (checkoutBtn) {
+                    checkoutBtn.disabled = true;
+                    checkoutBtn.innerHTML = '<span class="spinner-small"></span> Verifying prices...';
+                }
+
+                try {
+                    // Capture the result from the fetchProducts call
+                    checkResult = await fetchProducts({ quiet: true });
+                    lastPriceCheck = now;
+                } catch (e) {
+                    console.warn("Price verification failed", e);
+                } finally {
+                    if (checkoutBtn) {
+                        checkoutBtn.disabled = false;
+                        checkoutBtn.innerHTML = originalText;
+                    }
+                }
+
+                // STOP & REVIEW GATE: If prices changed, do NOT open checkout.
+                // Stay in cart and let user see the changes + highlights.
+                if (checkResult.count > 0) {
+                    openCart(); // Ensure cart is open so they see labels
+                    console.log("Price change detected. Stopping checkout for review.");
+                    return; // EXIT HERE
+                }
+            }
+            // -----------------------------
 
             closeCart()
 
@@ -3241,15 +3421,19 @@
         function generateSummaryText(subtotal, total, totalWeight, deliveryCharges) {
             let summaryHtml = "<h4>Order Summary</h4>"
 
-            summaryHtml += `<div class="summary-line"><span>Subtotal (${Object.keys(cart).length} Items)</span><span>Rs ${subtotal}</span></div>`
+            // Helper for formatting with commas
+            const fmt = (num) => Math.round(num).toLocaleString('en-IN');
 
-            const shippingText = deliveryCharges > 0 ? `Rs ${deliveryCharges}` : `FREE`
+            summaryHtml += `<div class="summary-line"><span>Subtotal (${Object.keys(cart).length} Items)</span><span>Rs. ${fmt(subtotal)}</span></div>`
+
+            const shippingText = deliveryCharges > 0 ? `Rs. ${fmt(deliveryCharges)}` : `FREE`
             summaryHtml += `<div class="summary-line"><span>Shipping</span><span>${shippingText}</span></div>`
 
             summaryHtml += `<div class="summary-line" style="font-size: 0.9em; padding-top: 10px; border-top: 1px dashed #ddd;">
                       <span>Total Weight</span><span>${Math.round(totalWeight)} KG</span></div>`
 
-            summaryHtml += `<div class="summary-total"><span>Total</span><span>Rs ${total}</span></div>`
+            // Clear spacing for Total and Rs.
+            summaryHtml += `<div class="summary-total"><span>Total</span><span>Rs. ${fmt(total)}</span></div>`
 
             summaryHtml += `<div style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; font-size: 0.85em;">`
             summaryHtml += `<p style="margin: 0 0 8px 0; font-weight: 700;">Items in Cart:</p>`
@@ -3257,7 +3441,7 @@
                 const itemTotal = i.price * i.qty
                 summaryHtml += `<div style="margin-bottom: 5px; padding: 5px 0; border-bottom: 1px dashed #f0f0f0;">
                           ${i.name} (${i.size}, ${i.gsm} GSM${i.selectedBrand ? `, ${i.selectedBrand}` : ''}${i.selectedColor ? `, ${i.selectedColor}` : ''})<br>
-                          <small>${i.qty} × Rs ${i.price} = Rs ${itemTotal}</small>
+                          <small>${i.qty} × Rs. ${fmt(i.price)} = Rs. ${fmt(itemTotal)} (Rs. ${fmt(i.rate)}/KG)</small>
                         </div>`
             })
             summaryHtml += `</div>`
@@ -3572,7 +3756,7 @@
             }, 1000)
         }
         // UPDATE CART RENDER FUNCTION FOR BRAND
-        function renderCart() {
+        function renderCart(keysToHighlight = []) {
             const container = document.getElementById("cart-items")
             container.innerHTML = ""
 
@@ -3597,6 +3781,9 @@
                 total += itemTotalPrice
                 totalWeight += itemTotalWeight
 
+                // Check if this item should be highlighted
+                const isHighlighted = keysToHighlight.includes(k);
+
                 // Build specifications line - UPDATED FOR BRAND
                 let specs = `${item.size}, GSM ${item.gsm}`
                 if (item.selectedBrand && item.selectedBrand !== '') {
@@ -3611,7 +3798,7 @@
                 const itemMin = item.multiple15 ? '1.5' : (item.halfQty ? '0.5' : (item.evenOnly ? '2' : '1'));
 
                 container.innerHTML += `
-            <div class="cart-item">
+            <div class="cart-item ${isHighlighted ? 'highlight-change' : ''}">
                 <div class="cart-item-details">
                     <strong>${item.name}</strong><br>
                     <small>${specs}</small><br>
@@ -3841,14 +4028,14 @@
                 let whatsappNumber = ((shipping === "open" || shipping === "bundle") &&
                     document.querySelector('input[name="payment"]:checked').value === "bank")
                     ? "923046470666" : "923036470666";
-
                 const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
-                // 2. OPEN WHATSAPP IMMEDIATELY (Before any 'await' calls to satisfy Safari)
-                window.location.href = whatsappUrl;
+                // 2. OPEN WHATSAPP (Desktop: New Tab | Mobile: Switch App)
+                window.open(whatsappUrl, '_blank');
 
-                // 3. START SAVING IN BACKGROUND (We don't 'await' here so the redirect isn't blocked)
-                saveOrderToGoogleSheets(orderData).catch(err => console.error('Sheet Save Error:', err));
+                // 3. WAIT FOR SAVES TO FINISH (Bulletproof Logic)
+                // This prevents the page reload from killing the save request halfway through.
+                await saveOrderToGoogleSheets(orderData);
 
                 const emailData = {
                     customerName: name,
@@ -3862,23 +4049,19 @@
                     orderWeight: Math.round(totalWeight)
                 };
 
-                fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
+                await fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(emailData)
-                }).catch(err => console.error('Email Backup Error:', err));
+                });
 
-                // 4. UI CLEANUP
+                // 4. UI SUCCESS & REFRESH
+                btn.innerHTML = '<span class="whatsapp-icon">✅</span> Order Saved!';
                 setTimeout(() => {
-                    closeCheckout();
-                    cart = {};
-                    saveCart(); // Clear persisted cart
-                    renderCart();
-                    updateCartBadge();
-                    btn.disabled = false;
-                    btn.innerHTML = 'Place Order via WhatsApp';
-                }, 2000);
+                    localStorage.removeItem('hayyat_cart'); // Clear persisted cart
+                    window.location.reload(); // Hard refresh to latest version
+                }, 2500); // Give user enough time to see the success state
 
             } catch (error) {
                 console.error('Order error:', error);
