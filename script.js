@@ -821,7 +821,7 @@ window.dataLayer = window.dataLayer || [];
                     // Store category info for this product
                     window[`category_${k}`] = cat
 
-                    if (cat === "Photocopy Paper" || cat === "Stickers") {
+                    if (cat === "Copy Paper" || cat === "Stickers") {
                         // Get unique sizes for this product group
                         const uniqueSizes = [...new Set(g.variations.map(v => v.size))];
 
@@ -831,7 +831,7 @@ window.dataLayer = window.dataLayer || [];
     <div class="product-info">
         <h3>${g.name}</h3>
         
-        <!-- SIZE SELECTION FOR PHOTOCOPY PAPER -->
+        <!-- SIZE SELECTION FOR COPY PAPER -->
         ${uniqueSizes.length > 1 ? `
         <div class="variation-grid size-grid">
             ${uniqueSizes.map((size, i) => {
@@ -913,7 +913,7 @@ window.dataLayer = window.dataLayer || [];
                         // REGULAR PRODUCTS with GSM filtering
                         productHtml = `
 <div class="product-card">
-    ${cat !== "Photocopy Paper" && cat !== "Stickers" ? `
+    ${cat !== "Copy Paper" && cat !== "Stickers" ? `
         ${g.variations.some(v => v.discountTag) ? `<div class="product-badge badge-discounted">${g.variations.find(v => v.discountTag).discountTag}</div>` : ''}
         ${g.variations.some(v => v.newTag) ? `<div class="product-badge badge-new">${g.variations.find(v => v.newTag).newTag}</div>` : ''}
     ` : ''}
@@ -983,14 +983,14 @@ window.dataLayer = window.dataLayer || [];
             const category = window[`category_${key}`]
 
             // Check if this category needs GSM filtering
-            const shouldFilterGsms = !["Photocopy Paper", "Stickers", "A4 Paper", "White Sticker"].includes(category)
+            const shouldFilterGsms = !["Copy Paper", "Stickers", "A4 Paper", "White Sticker"].includes(category)
 
             if (type === "size") {
                 window[`size_${key}`] = val
 
                 // For Photocopy Paper, when size changes, we need to update available GSMs
                 // based on the selected size
-                if (category === "Photocopy Paper") {
+                if (category === "Copy Paper") {
                     updateAvailableGsmsForPhotocopy(key, val);
                 } else if (shouldFilterGsms) {
                     updateAvailableGsms(key, val)
@@ -1001,7 +1001,7 @@ window.dataLayer = window.dataLayer || [];
             if (type === "brand") {
                 window[`brand_${key}`] = val
                 // When brand changes for Photocopy Paper, update GSM options
-                if (category === "Photocopy Paper") {
+                if (category === "Copy Paper") {
                     updateGsmsForPhotocopy(key, window[`size_${key}`], val);
                 }
             }
