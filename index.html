@@ -23,62 +23,21 @@
 <body>
 
     <!-- Add this RIGHT AFTER <body> tag -->
-    <div id="groupBanner" style="
-    background: linear-gradient(135deg, #ff8400, #ff8400);
-    color: white;
-    padding: 10px 0;
-    position: relative;
-">
-        <div style="
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 15px;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 15px;
-        text-align: center;
-    ">
+    <div id="groupBanner" class="group-banner">
+        <div class="group-banner-container">
             <!-- Logo and Text Container -->
-            <div
-                style="display: flex; align-items: center; gap: 15px; flex: 1; min-width: 250px; justify-content: center;">
+            <div class="group-banner-info">
                 <!-- YOUR LOGGO HERE -->
-                <img src="https://i.postimg.cc/7LX0nR3S/Hayyat-Luxury-Apartments-Logo.png" alt="Hayyat Group Logo"
-                    style="
-                    width: 45px;
-                    height: 45px;
-                    object-fit: contain;
-                    border-radius: 50%;
-                    background: white;
-                    padding: 3px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                 ">
+                <img src="https://i.postimg.cc/7LX0nR3S/Hayyat-Luxury-Apartments-Logo.png" alt="Hayyat Group Logo" class="group-logo">
 
                 <div>
-                    <div style="font-weight: bold; font-size: 1.05em; line-height: 1.2;">
-                        A Hayyat Group Company
-                    </div>
-                    <div style="font-size: 0.8em; opacity: 0.9; line-height: 1.3;">
-                        Trusted business solutions since 1990
-                    </div>
+                    <div class="group-title">A Hayyat Group Company</div>
+                    <div class="group-subtitle">Trusted business solutions since 1990</div>
                 </div>
             </div>
 
             <!-- Visit Button -->
-            <a href="https://hayyatgroup.com" target="_blank" style="
-                color: white;
-                text-decoration: none;
-                background: rgba(255, 255, 255, 0.15);
-                padding: 8px 15px;
-                border-radius: 4px;
-                font-size: 0.9em;
-                transition: all 0.3s;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                white-space: nowrap;
-                flex-shrink: 0;
-           " onmouseover="this.style.background='rgba(255, 255, 255, 0.25)'; this.style.transform='translateY(-1px)'"
-                onmouseout="this.style.background='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(0)'">
+            <a href="https://hayyatgroup.com" target="_blank" class="group-visit-btn">
                 Visit HayyatGroup.com
             </a>
         </div>
@@ -124,10 +83,9 @@
         </p>
     </div>
 
-    <!-- Floating Cart Button -->
-    <button id="view-cart-btn" onclick="toggleCart()" style="display: none;">
+    <!-- Sleek Floating Cart Pill -->
+    <button id="view-cart-btn" class="cart-pill" onclick="toggleCart()" style="display: none;">
         <span class="cart-icon">🛒</span>
-        <span class="cart-text">View Cart</span>
         <span id="cart-count-badge" class="cart-count">0</span>
     </button>
 
