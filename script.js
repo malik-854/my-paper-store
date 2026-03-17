@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.03.17.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.03.17.02"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -819,6 +819,11 @@ function renderProducts(groups, isSearch = false) {
             window[`map_${k}`] = map
             window[`size_${k}`] = sizes[0]
             window[`gsm_${k}`] = allGsms[0] // Set to first GSM
+            window[`color_${k}`] = colors[0] || '' // Initialize first color
+            
+            // Get first available brand for initial selection
+            const brands = [...new Set(g.variations.map(v => v.displaySize).filter(b => b))]
+            window[`brand_${k}`] = brands[0] || ''
 
             // Store category info for this product
             window[`category_${k}`] = cat
