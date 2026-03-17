@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Products - Hayyat Paper Store | Premium Paper & Brands</title>
+    <meta name="description"
+        content="Explore the full range of premium paper products at Hayyat Paper Store. From Woodfree Offset to Art Cards and Sticker Paper, featuring top global brands like IK Offset, Pindo, and Double A.">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .product-hero {
+            background: linear-gradient(rgba(0, 76, 153, 0.8), rgba(0, 51, 102, 0.9)), url('https://images.unsplash.com/photo-1586075010923-2dd45e944d67?auto=format&fit=crop&q=80&w=1920') center/cover;
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .product-hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .product-page-container {
+            max-width: 1000px;
+            margin: -40px auto 60px;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-intro-text {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 50px;
+            line-height: 1.6;
+        }
+
+        .product-grid-detailed {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+        }
+
+        .product-item-box {
+            border: 1px solid #eee;
+            padding: 25px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-item-box:hover {
+            border-color: var(--secondary);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transform: translateY(-3px);
+        }
+
+        .product-item-box h3 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .product-item-box p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .brand-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .brand-pill {
+            font-size: 0.75rem;
+            background: #f0f7ff;
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid #d0e3f7;
+        }
+
+        .back-to-home {
+            display: block;
+            text-align: center;
+            margin-top: 50px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .back-to-home:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .product-hero h1 {
+                font-size: 2.2rem;
+            }
+
+            .product-page-container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="product-hero">
+        <div class="header-content">
+            <h1>Our Product Portfolio</h1>
+            <p>Sourcing Excellence from Global Paper Manufacturers</p>
+        </div>
+    </header>
+
+    <main class="product-page-container">
+        <p class="product-intro-text">
+            At Hayyat Paper Store, we represent the world's most trusted paper brands. Our portfolio is curated to meet
+            the high standards of Pakistan's printing and packaging industries, ensuring consistency, reliability, and
+            superior finish for every project.
+        </p>
+
+        <div class="product-grid-detailed">
+            <!-- Woodfree -->
+            <div class="product-item-box">
+                <h3>Woodfree Offset Paper</h3>
+                <p>Premium Woodfree Offset Paper available in various weights (50–160 gr/m2). Ideal for books,
+                    stationery, and professional publishing.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">IK Offset (Indah Kiat)</span>
+                    <span class="brand-pill">BOHUI Offset</span>
+                    <span class="brand-pill">PaperOne</span>
+                </div>
+            </div>
+
+            <!-- Art Paper -->
+            <div class="product-item-box">
+                <h3>Art Paper & Matte Paper</h3>
+                <p>High-quality coated papers for vibrant, sharp imagery. Perfect for luxury catalogues, magazines, and
+                    annual reports.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">KINNARI (Gloss/Matte)</span>
+                    <span class="brand-pill">NEVIA</span>
+                    <span class="brand-pill">GOLDEN SUN</span>
+                </div>
+            </div>
+
+            <!-- Art Card -->
+            <div class="product-item-box">
+                <h3>Art Card</h3>
+                <p>Durable, high-substance cardstock for premium packaging, greeting cards, and covers requiring a
+                    superior tactile feel.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">PINDO Art Card</span>
+                    <span class="brand-pill">NIMBOSTAR</span>
+                    <span class="brand-pill">IP SUN (APP)</span>
+                </div>
+            </div>
+
+            <!-- Box Board -->
+            <div class="product-item-box">
+                <h3>Box Board (Duplex)</h3>
+                <p>Versatile Duplex Board (210–350 gr/m2) specifically engineered for pharmaceutical, food, and
+                    high-volume retail packaging.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">POLO</span>
+                    <span class="brand-pill">SOLDIER</span>
+                    <span class="brand-pill">TOP RIDER</span>
+                </div>
+            </div>
+
+            <!-- Bleach Board -->
+            <div class="product-item-box">
+                <h3>Bleach Board (FBB)</h3>
+                <p>High-whiteness Folding Box Board (FBB GC1) for luxury packaging that demands exceptional print finish
+                    and structural strength.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">NINGBO FOLD</span>
+                    <span class="brand-pill">SilverPak</span>
+                    <span class="brand-pill">Local Bleach</span>
+                </div>
+            </div>
+
+            <!-- Copy Paper -->
+            <div class="product-item-box">
+                <h3>Copy Paper (Office Solutions)</h3>
+                <p>Premium A4 Copy Paper featuring our flagship "Perfect Paper," optimized for jam-free performance in
+                    high-speed laser printers.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">PERFECT PAPER</span>
+                    <span class="brand-pill">DOUBLE A</span>
+                    <span class="brand-pill">IK PPC</span>
+                    <span class="brand-pill">BLC COPYMATE</span>
+                </div>
+            </div>
+
+            <!-- Carbonless -->
+            <div class="product-item-box">
+                <h3>Carbonless Paper (NCR)</h3>
+                <p>Advanced NCR paper for clear, smudge-free multi-part forms. The industry standard for invoices and
+                    professional documentation.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">IMPRESSION 2000</span>
+                    <span class="brand-pill">Hayyat IMPRESSION</span>
+                    <span class="brand-pill">Green Star</span>
+                </div>
+            </div>
+
+            <!-- Sticker Paper -->
+            <div class="product-item-box">
+                <h3>Sticker & Adhesive Paper</h3>
+                <p>Specialized self-adhesive stocks in various finishes (gloss, matte, transparent). Designed for
+                    industrial and retail labeling.</p>
+                <div class="brand-pills">
+                    <span class="brand-pill">BONTEC</span>
+                    <span class="brand-pill">SABUN (KENTEC)</span>
+                    <span class="brand-pill">LINTEC</span>
+                    <span class="brand-pill">NEWMAX</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-to-home">← Back to Webstore</a>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-links-row">
+                <a href="product.html" class="footer-link">Products</a>
+                <span class="footer-divider">|</span>
+                <a href="https://youtube.com/shorts/rv6gqwF_-Lg?si=AgTEQ2RGs6Aaqkdf" class="footer-link"
+                    target="_blank">How to Order</a>
+                <span class="footer-divider">|</span>
+                <a href="https://whatsapp.com/channel/0029Vb7Zi9ZGE56cYQFOPf0O" class="footer-link"
+                    target="_blank">Latest Updates</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Hayyat Paper Store</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
