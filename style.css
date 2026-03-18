@@ -789,18 +789,69 @@
             border-color: #28a745;
         }
 
-        .brand-grid .variation-btn.active {
-            background-color: #0056b3; /* Medium Blue */
-            border-color: #0056b3;
+        /* --- COMPARISON BOX (BASIC) --- */
+        .comparison-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff8e1;
+            border: 1px dashed #ffc107;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .comparison-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #856404;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .alt-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .alt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: white;
+            border-radius: 4px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            border: 1px solid #eee;
+            transition: all 0.2s;
+        }
+
+        .alt-item:hover {
+            border-color: var(--accent);
+            background: #f0f7ff;
+        }
+
+        .alt-price {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        @media (max-width: 480px) {
+            .alt-item {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
         }
 
         /* --- ACTION ROW --- */
         .qty-row {
-            display: flex;
-            gap: 8px;
             margin-top: auto;
             padding-top: 15px;
             border-top: 1px solid #f3f4f6;
+            display: flex;
+            gap: 8px;
         }
 
         .qty-input {
@@ -836,8 +887,29 @@
             background-color: var(--primary);
         }
 
-        /* --- CART BUTTON (FLOATING) --- */
-        /* Removed old floating cart styles */
+        .btn-cart:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* --- BLINK HIGHLIGHT (REWORKED FOR MAXIMUM VISIBILITY) --- */
+        @keyframes blink-orange {
+            0% { background-color: #ffffff; }
+            20% { background-color: #ff9800; } /* Strong Orange */
+            40% { background-color: #ffffff; }
+            60% { background-color: #ff9800; }
+            80% { background-color: #ffffff; }
+            100% { background-color: #ff9800; }
+        }
+
+        .product-card.blink-highlight {
+            animation: blink-orange 1s ease-in-out !important;
+            border: 3px solid #ff9800 !important;
+            box-shadow: 0 0 25px rgba(255, 152, 0, 0.8) !important;
+            transition: none !important; /* Disable smooth transitions to make it "pop" */
+            z-index: 9999 !important;
+        }
 
         /* --- CART CONTAINER (MOBILE-FIRST) --- */
         #cart-container {
