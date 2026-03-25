@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.03.23.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.03.25.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -32,8 +32,11 @@ const COL = {
     NEW_TAG: 19,            // This is Column T (index 19)
     HALF_QTY: 20,
     EVEN_ONLY: 21,
-    MULTIPLE_1_5: 22
+    MULTIPLE_1_5: 22,
+    STOCK: 5,               // Column F
+    MIN_STOCK: 24           // Column Y
 }
+
 
 // Function to get display size based on category
 function getDisplaySize(category, actualSize) {
@@ -154,10 +157,24 @@ function revalidateCart() {
         if (fresh) {
             const freshPrice = Math.round(parseFloat(fresh.price || 0));
             const freshRate = fresh.rate || item.rate;
+            const freshMaxQty = fresh.maxQty || 999;
 
-            if (item.price !== freshPrice || item.rate !== freshRate) {
+            let priceChanged = item.price !== freshPrice || item.rate !== freshRate;
+            let qtyReduced = false;
+
+            // Update prices/rates
+            if (priceChanged) {
                 item.price = freshPrice;
                 item.rate = freshRate;
+            }
+
+            // Update/Cap quantity based on fresh stock
+            if (item.qty > freshMaxQty) {
+                item.qty = freshMaxQty;
+                qtyReduced = true;
+            }
+
+            if (priceChanged || qtyReduced) {
                 changed = true;
                 changeCount++;
                 changedKeys.push(key);
@@ -193,9 +210,9 @@ function showCartUpdateBanner(count) {
         document.body.prepend(banner);
     }
 
-    document.getElementById('price-banner-title').innerHTML = `Cart Prices Updated`;
+    document.getElementById('price-banner-title').innerHTML = `Cart Items Updated`;
     document.getElementById('price-banner-body').innerHTML =
-        `${count} item(s) in your cart have been updated to today's rates.`;
+        `${count} item(s) in your cart have been updated due to price or stock changes.`;
 
     // Urdu line (RTL)
     document.getElementById('price-banner-urdu').innerHTML =
@@ -370,7 +387,7 @@ async function fetchProducts(options = {}) {
         if (!isQuiet) document.getElementById('loading-indicator').style.display = 'block';
 
         // Try to fetch from Google Sheets (A1:X to include version cell X2)
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:X?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:Y?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
 
         const response = await fetch(url);
@@ -565,8 +582,18 @@ function group(rows) {
             newTag: r[COL.NEW_TAG] || '',               // Existing line
             halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES',
             evenOnly: (r[COL.EVEN_ONLY] || '').toUpperCase() === 'YES',
-            multiple15: (r[COL.MULTIPLE_1_5] || '').toUpperCase() === 'YES'
-        })
+            multiple15: (r[COL.MULTIPLE_1_5] || '').toUpperCase() === 'YES',
+            stock: parseInt(r[COL.STOCK] || 0),
+            minStock: parseInt(r[COL.MIN_STOCK] || 0)
+        });
+
+        // Calculate dynamic Max Qty based on stock vs reserved limit
+        const lastItem = g[cat].items[g[cat].items.length - 1];
+        const stockLimit = Math.max(0, lastItem.stock - lastItem.minStock);
+        const originalMax = parseInt(r[COL.MAX] || 9999);
+        lastItem.stockLimit = stockLimit;
+        lastItem.originalMax = originalMax;
+        lastItem.maxQty = Math.min(stockLimit, originalMax);
     })
     return g
 }
@@ -1253,10 +1280,8 @@ function updateUI(key, isUserInteraction = false) {
         if (img && p.image) img.src = p.image
 
         const qtyInput = document.getElementById(`qty_${key}`)
-        if (qtyInput) {
-            qtyInput.max = p.maxQty
-            if (parseInt(qtyInput.value) > p.maxQty) qtyInput.value = p.maxQty
-        }
+        // We no longer set qtyInput.max or cap the value here,
+        // so the user can type freely. Validation happens on Add to Cart.
 
         // --- DYNAMIC SAVINGS LOGIC (With Exclusions) ---
         const cat = window[`category_${key}`]
@@ -1540,7 +1565,9 @@ function removeFromCart(cartKey) {
 async function addToCart(key) {
 
     const qtyInput = document.getElementById(`qty_${key}`)
+    if (!qtyInput) return;
     let rawQty = qtyInput.value;
+    let qty = parseFloat(rawQty);
 
     // Get selected values
     const selectedSize = window[`size_${key}`]
@@ -1620,7 +1647,7 @@ async function addToCart(key) {
     // === PRICE VALIDATION - LIVE CHECK WITH FIX FOR PROBLEMATIC PRODUCTS ===
     try {
         // Fetch A1:X to also check the Version cell (X2) during cart-add
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:X?key=${API_KEY}&_=${Date.now()}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:Y?key=${API_KEY}&_=${Date.now()}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -1681,7 +1708,39 @@ async function addToCart(key) {
                 const freshPrice = Math.round(parseFloat(freshProduct[12] || 0));
                 const currentPrice = p.price;
 
-                console.log('Fresh price:', freshPrice, 'Current price:', currentPrice);
+                const freshStock = parseInt(freshProduct[COL.STOCK] || 0);
+                const freshMinStock = parseInt(freshProduct[COL.MIN_STOCK] || 10);
+                const freshMaxLimit = parseInt(freshProduct[COL.MAX] || 9999);
+                const liveMaxQty = Math.min(Math.max(0, freshStock - freshMinStock), freshMaxLimit);
+
+                console.log('Fresh price:', freshPrice, 'Current price:', currentPrice, 'Live Max Qty:', liveMaxQty);
+
+                // --- STOCK VALIDATION FIRST ---
+                if (liveMaxQty === 0) {
+                    alert("⚠️ ATTENTION: PRODUCT IS NO LONGER AVAILABLE ⚠️");
+                    location.reload(); // Refresh to hideunavailable product as per user preference
+                    return;
+                }
+
+                if (qty > liveMaxQty) {
+                    if (liveMaxQty === freshMaxLimit) {
+                        alert(`ایک آرڈر میں زیادہ سے زیادہ ${liveMaxQty} پیکٹ کی اجازت ہے۔`); // Urdu for Max Order Limit
+                    } else {
+                        alert(`معذرت! اس وقت صرف ${liveMaxQty} پیکٹ دستیاب ہیں۔`); // Urdu for Low Stock
+                    }
+                    qtyInput.value = liveMaxQty;
+                    p.maxQty = liveMaxQty;
+                    p.stockLimit = Math.max(0, freshStock - freshMinStock); // Keep track of reason
+                    p.originalMax = freshMaxLimit;
+                    // Update all variations of this product in memory
+                    Object.values(window[`map_${key}`] || {}).forEach(v => {
+                        if (v.id === p.id) v.maxQty = liveMaxQty;
+                    });
+                    updateUI(key);
+                    return; // Stop adding to cart so user can confirm new qty
+                }
+
+                // --- PRICE VALIDATION ---
 
                 if (freshPrice > 0 && currentPrice > 0 && freshPrice !== currentPrice) {
                     // ✅ FEATURE 9: Smooth price update — no page reload, cart is preserved
@@ -1730,7 +1789,6 @@ async function addToCart(key) {
     // === END PRICE VALIDATION ===
 
     // ✅ START OF NEW VALIDATION: Check if quantity is valid
-    let qty = parseFloat(rawQty);
     const allowHalf = p.halfQty === true;
     const evenOnly = p.evenOnly === true;
     const multiple15 = p.multiple15 === true;
@@ -1789,7 +1847,11 @@ async function addToCart(key) {
     if (qty > p.maxQty) {
         qty = p.maxQty
         qtyInput.value = qty
-        alert(`Maximum allowed quantity is ${p.maxQty}`)
+        if (p.maxQty === p.originalMax) {
+            alert(`ایک آرڈر میں زیادہ سے زیادہ ${p.maxQty} پیکٹ کی اجازت ہے۔`)
+        } else {
+            alert(`معذرت! اس وقت صرف ${p.maxQty} پیکٹ دستیاب ہیں۔`)
+        }
         return
     }
 
@@ -1808,7 +1870,11 @@ async function addToCart(key) {
     if (cart[cartKey]) {
         const newQty = cart[cartKey].qty + qty
         if (newQty > p.maxQty) {
-            alert(`Maximum total quantity for this item is ${p.maxQty}. You already have ${cart[cartKey].qty} in cart.`)
+            if (p.maxQty === p.originalMax) {
+                alert(`ایک آرڈر میں زیادہ سے زیادہ ${p.maxQty} پیکٹ کی اجازت ہے۔ آپ کے کارٹ میں پہلے سے ${cart[cartKey].qty} موجود ہیں۔`)
+            } else {
+                alert(`معذرت! اس وقت صرف ${p.maxQty} پیکٹ دستیاب ہیں۔ آپ کے کارٹ میں پہلے سے ${cart[cartKey].qty} موجود ہیں۔`)
+            }
             return
         }
         cart[cartKey].qty = newQty
@@ -2424,7 +2490,11 @@ function updateCartQty(cartKey, newQtyRaw) {
 
     // Max-quantity guard
     if (qty > item.maxQty) {
-        alert(`Maximum allowed quantity for this item is ${item.maxQty}.`);
+        if (item.maxQty === item.originalMax) {
+            alert(`ایک آرڈر میں زیادہ سے زیادہ ${item.maxQty} پیکٹ کی اجازت ہے۔`);
+        } else {
+            alert(`معذرت! اس وقت صرف ${item.maxQty} پیکٹ دستیاب ہیں۔`);
+        }
         renderCart();
         return;
     }
