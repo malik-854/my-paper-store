@@ -85,15 +85,48 @@ body.kiosk-mode {
 
 /* --- KIOSK CART PILL --- */
 .kiosk-cart-pill {
+    position: fixed !important;
+    top: 25px !important;
+    left: 25px !important;
+    bottom: auto !important;
+    right: auto !important;
     width: auto !important;
-    height: 70px !important;
+    height: 80px !important;
     padding: 0 30px !important;
-    border-radius: 35px !important;
+    border-radius: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: var(--secondary) !important;
+    z-index: 10000 !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+    gap: 12px !important;
+}
+
+.kiosk-cart-pill .cart-icon {
+    font-size: 1.8rem !important;
+}
+
+.kiosk-cart-pill .cart-count {
+    background: white !important;
+    color: var(--secondary) !important;
+    border-radius: 50% !important;
+    height: 35px !important;
+    min-width: 35px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    padding: 0 5px !important;
 }
 
 .kiosk-cart-pill .cart-text {
-    font-size: 1.2rem;
-    margin-left: 10px;
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    margin-left: 5px !important;
+    color: white !important;
 }
 
 /* --- KIOSK MODALS --- */
