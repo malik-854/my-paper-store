@@ -219,8 +219,12 @@ body.kiosk-mode {
     .kiosk-auth-overlay,
     #cart-container,
     .kiosk-header,
-    #view-cart-btn {
+    #view-cart-btn,
+    .kiosk-cart-pill,
+    .cart-pill {
         display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
     }
 
     #print-section {
