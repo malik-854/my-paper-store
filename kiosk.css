@@ -16,7 +16,8 @@ body.kiosk-mode {
 
 /* --- LARGE PRODUCT CARDS --- */
 .kiosk-mode .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); /* Bigger cards */
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    /* Bigger cards */
     gap: 20px;
     padding: 20px;
     background: transparent;
@@ -36,7 +37,8 @@ body.kiosk-mode {
 }
 
 .kiosk-mode .product-card img {
-    height: 250px; /* Larger images */
+    height: 250px;
+    /* Larger images */
 }
 
 /* --- GIANT TOUCH BUTTONS --- */
@@ -46,7 +48,8 @@ body.kiosk-mode {
     font-size: 1.1rem;
     border-radius: 12px;
     margin: 4px;
-    flex: 1 1 40%; /* Make buttons fill more space */
+    flex: 1 1 40%;
+    /* Make buttons fill more space */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -84,7 +87,7 @@ body.kiosk-mode {
 }
 
 /* --- KIOSK CART PILL --- */
-.kiosk-cart-pill {
+#view-cart-btn.kiosk-cart-pill {
     position: fixed !important;
     top: 25px !important;
     left: 25px !important;
@@ -104,11 +107,11 @@ body.kiosk-mode {
     gap: 12px !important;
 }
 
-.kiosk-cart-pill .cart-icon {
+#view-cart-btn.kiosk-cart-pill .cart-icon {
     font-size: 1.8rem !important;
 }
 
-.kiosk-cart-pill .cart-count {
+#view-cart-btn.kiosk-cart-pill .cart-count {
     background: white !important;
     color: var(--secondary) !important;
     border-radius: 50% !important;
@@ -122,7 +125,7 @@ body.kiosk-mode {
     padding: 0 5px !important;
 }
 
-.kiosk-cart-pill .cart-text {
+#view-cart-btn.kiosk-cart-pill .cart-text {
     font-size: 1.4rem !important;
     font-weight: 700 !important;
     margin-left: 5px !important;
@@ -183,8 +186,10 @@ body.kiosk-mode {
 /* MOBILE KIOSK (Portrait Tablets) */
 @media (max-width: 768px) {
     .kiosk-mode .product-grid {
-        grid-template-columns: 1fr; /* Single column for clarity */
+        grid-template-columns: 1fr;
+        /* Single column for clarity */
     }
+
     .kiosk-checkout-grid {
         grid-template-columns: 1fr !important;
     }
@@ -192,22 +197,32 @@ body.kiosk-mode {
 
 /* --- PRINTING (A5 Receipt) --- */
 @media print {
-    @page { 
+    @page {
         size: A5;
-        margin: 0; /* Remove default browser margins */
+        margin: 0;
+        /* Remove default browser margins */
     }
-    
+
     /* COMPLETE HIDE of everything except receipt */
-    html, body {
+    html,
+    body {
         height: auto !important;
         overflow: visible !important;
         background: white !important;
     }
 
-    #header, #product-list, #footer, .cart-overlay, .kiosk-modal, .kiosk-auth-overlay, #cart-container, .kiosk-header, #view-cart-btn {
+    #header,
+    #product-list,
+    #footer,
+    .cart-overlay,
+    .kiosk-modal,
+    .kiosk-auth-overlay,
+    #cart-container,
+    .kiosk-header,
+    #view-cart-btn {
         display: none !important;
     }
-    
+
     #print-section {
         display: block !important;
         position: relative !important;
@@ -241,7 +256,8 @@ body.kiosk-mode {
     left: 0;
     width: 100%;
     height: 100%;
-    background: #f3f4f6; /* Solid light gray background to hide store */
+    background: #f3f4f6;
+    /* Solid light gray background to hide store */
     z-index: 100000 !important;
     display: none;
     align-items: center;
@@ -249,7 +265,8 @@ body.kiosk-mode {
 }
 
 #address-modal {
-    display: none !important; /* Disabling as requested */
+    display: none !important;
+    /* Disabling as requested */
 }
 
 #print-section {
