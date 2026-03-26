@@ -1,0 +1,304 @@
+/* kiosk.css - Optimized for large touch screens */
+
+:root {
+    --kiosk-btn-height: 60px;
+    --kiosk-font-header: 1.5rem;
+    --kiosk-font-body: 1.1rem;
+}
+
+body.kiosk-mode {
+    background-color: #f3f4f6;
+    font-size: var(--kiosk-font-body);
+}
+
+/* Kiosk Specific UI Fixes */
+/* Reverted to online store behavior for delivery address */
+
+/* --- LARGE PRODUCT CARDS --- */
+.kiosk-mode .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); /* Bigger cards */
+    gap: 20px;
+    padding: 20px;
+    background: transparent;
+    border: none;
+}
+
+.kiosk-mode .product-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 30px;
+}
+
+.kiosk-mode .product-card h3 {
+    font-size: 1.3rem;
+    min-height: auto;
+    margin-bottom: 15px;
+}
+
+.kiosk-mode .product-card img {
+    height: 250px; /* Larger images */
+}
+
+/* --- GIANT TOUCH BUTTONS --- */
+.kiosk-mode .variation-btn {
+    min-height: var(--kiosk-btn-height);
+    padding: 15px 25px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    margin: 4px;
+    flex: 1 1 40%; /* Make buttons fill more space */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kiosk-mode .variation-grid {
+    gap: 10px;
+}
+
+/* --- TOUCH-READY QUANTITY SELECTOR --- */
+.kiosk-mode .qty-row {
+    background: #f9fafb;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    margin-top: 20px;
+}
+
+.kiosk-mode .qty-input {
+    width: 80px;
+    text-align: center;
+}
+
+.kiosk-mode .qty-row input {
+    font-size: 1.5rem;
+    height: 50px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.kiosk-mode .btn-cart {
+    height: 70px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+}
+
+/* --- KIOSK CART PILL --- */
+.kiosk-cart-pill {
+    position: fixed !important;
+    top: 25px !important;
+    left: 25px !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: auto !important;
+    height: 80px !important;
+    padding: 0 30px !important;
+    border-radius: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: var(--secondary) !important;
+    z-index: 10000 !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+    gap: 12px !important;
+}
+
+.kiosk-cart-pill .cart-icon {
+    font-size: 1.8rem !important;
+}
+
+.kiosk-cart-pill .cart-count {
+    background: white !important;
+    color: var(--secondary) !important;
+    border-radius: 50% !important;
+    height: 35px !important;
+    min-width: 35px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    padding: 0 5px !important;
+}
+
+.kiosk-cart-pill .cart-text {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    margin-left: 5px !important;
+    color: white !important;
+}
+
+/* --- KIOSK MODALS --- */
+.kiosk-modal-content {
+    width: 90% !important;
+    max-width: 1000px !important;
+    border-radius: 24px !important;
+    padding: 40px !important;
+}
+
+.kiosk-input {
+    height: 70px !important;
+    font-size: 1.3rem !important;
+    padding: 0 25px !important;
+    border-radius: 12px !important;
+}
+
+.kiosk-options {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+.kiosk-options .shipping-option-btn,
+.kiosk-options .payment-option-btn {
+    height: 80px !important;
+    padding: 15px 25px !important;
+    font-size: 1.2rem !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.kiosk-options .shipping-option-btn span,
+.kiosk-options .payment-option-btn span {
+    font-size: 1rem !important;
+    opacity: 0.8;
+}
+
+.kiosk-place-order-btn {
+    height: 90px;
+    font-size: 1.5rem;
+    width: 100%;
+}
+
+.kiosk-cancel-btn {
+    border: 2px solid #e5e7eb !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    color: #4b5563 !important;
+}
+
+/* MOBILE KIOSK (Portrait Tablets) */
+@media (max-width: 768px) {
+    .kiosk-mode .product-grid {
+        grid-template-columns: 1fr; /* Single column for clarity */
+    }
+    .kiosk-checkout-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* --- PRINTING (A5 Receipt) --- */
+@media print {
+    @page { 
+        size: A5;
+        margin: 0; /* Remove default browser margins */
+    }
+    
+    /* COMPLETE HIDE of everything except receipt */
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+    }
+
+    #header, #product-list, #footer, .cart-overlay, .kiosk-modal, .kiosk-auth-overlay, #cart-container, .kiosk-header, #view-cart-btn {
+        display: none !important;
+    }
+    
+    #print-section {
+        display: block !important;
+        position: relative !important;
+        visibility: visible !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: black !important;
+        background: white !important;
+        overflow: visible !important;
+    }
+
+    .invoice-box {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    #print-section * {
+        visibility: visible !important;
+    }
+}
+
+.print-only {
+    display: none;
+}
+
+/* Modal Layering Fix */
+.kiosk-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f3f4f6; /* Solid light gray background to hide store */
+    z-index: 100000 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+#address-modal {
+    display: none !important; /* Disabling as requested */
+}
+
+#print-section {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 0;
+}
+
+.invoice-box {
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    border: 3px solid #2c3e50;
+    width: 100%;
+}
+
+.items-table tr:nth-child(even) {
+    background: #f8f9fa !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.product-cell {
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.price-summary {
+    background: #2c3e50 !important;
+    color: white !important;
+    padding: 15px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.grand-total {
+    color: #f1c40f !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.order-id {
+    background: #ff8400 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.customer-section {
+    border-left: 5px solid #2c3e50 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
