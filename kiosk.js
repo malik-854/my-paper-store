@@ -93,7 +93,8 @@ window.printReceipt = function () {
     const fullHtml = `<html><head><meta charset="utf-8"></head><body style="margin:0;padding:2mm;">${receiptHtml}</body></html>`;
 
     // Attempt RawBT Intent (Silent)
-    window.location.href = "intent:#Intent;action=ru.a402d.rawbtprinter.action.PRINT;S.html=" + encodeURIComponent(fullHtml) + ";end";
+    // CRITICAL: We need the package name so Android knows to launch RawBT
+    window.location.href = "intent:#Intent;action=ru.a402d.rawbtprinter.action.PRINT;S.html=" + encodeURIComponent(fullHtml) + ";package=ru.a402d.rawbtprinter;end";
     
     // Safety Fallback (If RawBT isn't installed or Intent fails)
     setTimeout(() => {
