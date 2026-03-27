@@ -89,24 +89,49 @@ window.placeOrder = async function () {
 // Function triggered by manual print button (Reliable on Android)
 window.printReceipt = function () {
     const receiptHtml = document.getElementById('print-section').innerHTML;
-    // Basic structure for RawBT handler
-    const fullHtml = `<html><head><meta charset="utf-8"></head><body style="margin:0;padding:2mm;">${receiptHtml}</body></html>`;
+    
+    // Add specific styling for the 80mm Thermal Printer (Speed-X)
+    const fullHtml = `
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body { width: 80mm; margin: 0; padding: 2mm; font-family: sans-serif; font-size: 11px; color: #000; }
+            table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+            th, td { font-size: 10px; padding: 4px 0; border-bottom: 0.5pt solid #eee; text-align: left; }
+            .invoice-box { width: 100%; }
+            .total-row td { border-top: 1pt solid #000; border-bottom: none; font-weight: bold; }
+            h2, p { margin: 2px 0; }
+        </style>
+    </head>
+    <body class="invoice-box">${receiptHtml}</body>
+    </html>`;
 
-    // 1. THE GOLD STANDARD: Fully Kiosk Browser API (Instant & Silent)
-    if (typeof fully !== 'undefined') {
-        console.log("Using Fully Kiosk Direct Print API");
-        fully.printHtml(fullHtml);
-        return;
-    }
+    // 1. Try Fully Kiosk Browser API (if JS Interface is enabled)
+    try {
+        if (typeof fully !== 'undefined' && fully.printHtml) {
+            console.log("Printing via Fully Kiosk API");
+            fully.printHtml(fullHtml);
+            return;
+        }
+    } catch (e) {}
 
-    // 2. RELIABLE RawBT (Bridges directly to the app)
-    // This protocol is often more reliable than 'intent:' in modern browsers
-    window.location.href = "rawbt:base64," + btoa(unescape(encodeURIComponent(fullHtml)));
+    // 2. Official RawBT Intent (The most complete version)
+    // S.ru.a402d.rawbtprinter.extra.HTML is the correct key for HTML data
+    const intentUrl = "intent:#Intent;" + 
+        "action=ru.a402d.rawbtprinter.action.PRINT;" + 
+        "S.ru.a402d.rawbtprinter.extra.HTML=" + encodeURIComponent(fullHtml) + ";" + 
+        "S.ru.a402d.rawbtprinter.extra.MIME_TYPE=text/html;" + 
+        "package=ru.a402d.rawbtprinter;" + 
+        "end;";
+    
+    console.log("Printing via RawBT Intent");
+    window.location.href = intentUrl;
 
-    // 3. Fallback (If all else fails)
+    // 3. Last resort fallback
     setTimeout(() => {
         if (!document.hidden) {
-            console.log("Silent methods failed, opening standard print dialog");
+            console.log("Falling back to standard window.print()");
             window.print();
         }
     }, 2000);
@@ -116,13 +141,13 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
     document.getElementById('print-name').innerText = n;
     document.getElementById('print-phone').innerText = p || 'N/A';
     document.getElementById('print-order-id').innerText = id;
-    
+
     const shippingMap = { 'self': 'Self Pickup', 'open': 'Delivery - Open', 'bundle': 'Delivery - Bundle' };
     const paymentMap = { 'shop': 'Pay at Shop', 'bank': 'Bank Transfer' };
-    
+
     const shipEl = document.getElementById('print-shipping');
     if (shipEl) shipEl.innerText = shippingMap[shippingMethod] || shippingMethod || 'N/A';
-    
+
     const payEl = document.getElementById('print-payment');
     if (payEl) payEl.innerText = paymentMap[paymentMethod] || paymentMethod || 'N/A';
 
@@ -152,7 +177,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
             </tr>`;
         }).join('');
     }
-    
+
     // Calculate Delivery Charges
     let deliveryFee = 0;
     if (shippingMethod !== 'self') {
@@ -163,7 +188,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
 
     const subEl = document.getElementById('print-subtotal');
     if (subEl) subEl.innerText = `Rs ${itemTotal}`;
-    
+
     const delRow = document.getElementById('print-delivery-row');
     const delVal = document.getElementById('print-delivery-charges');
     if (deliveryFee > 0) {
