@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.03.25.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.03.27.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1675,29 +1675,62 @@ async function addToCart(key) {
 
             let freshProduct;
 
-            if (isProblematicProduct && selectedBrand) {
-                // For problematic products: Match by Column R (Brand) + Size + GSM
-                freshProduct = productRows.find(row =>
-                    row[17] === selectedBrand &&  // Column R - Unique identifier
-                    row[6] == length &&
-                    row[7] == width &&
-                    row[8] == selectedGsm
-                );
-                console.log("Using brand-specific lookup for problematic product");
+            if (isProblematicProduct) {
+                // For problematic products: Match by unique combination
+                // We use a TWO-PASS search: 
+                // 1. First look for the row where this is the PRIMARY color (listed first)
+                // 2. Fallback to any row that contains this color
+                const findMatch = (primaryOnly) => productRows.find(row => {
+                    const rowName = (row[3] || '').trim().toLowerCase();
+                    const targetName = productName.trim().toLowerCase();
+                    const rowBrand = (row[17] || '').trim().toLowerCase();
+                    const targetBrand = selectedBrand.trim().toLowerCase();
+                    const rowColorString = (row[16] || '').trim().toLowerCase();
+                    const targetColor = selectedColor.trim().toLowerCase();
+                    const rowColors = rowColorString.split(',').map(c => c.trim().toLowerCase());
+                    
+                    const nameMatch = rowName === targetName;
+                    const sizeMatch = row[6] == length && row[7] == width;
+                    const gsmMatch = row[8] == selectedGsm;
+                    
+                    if (!nameMatch || !sizeMatch || !gsmMatch) return false;
+
+                    const brandMatch = !targetBrand || rowBrand === targetBrand;
+                    
+                    let colorMatch = false;
+                    if (!targetColor) {
+                        colorMatch = true;
+                    } else if (primaryOnly) {
+                        // Check if it's the FIRST color in the list (The designated row for this color)
+                        colorMatch = rowColors[0] === targetColor;
+                    } else {
+                        // Just check if it exists in the list
+                        colorMatch = rowColors.includes(targetColor);
+                    }
+
+                    if (targetBrand && targetColor) return brandMatch && colorMatch;
+                    if (targetBrand) return brandMatch;
+                    if (targetColor) return colorMatch;
+                    
+                    return true;
+                });
+
+                freshProduct = findMatch(true) || findMatch(false);
+                console.log("Using primary-color lookup for product:", productName);
             } else {
-                // For normal products: Use old method
+                // For normal products: Use standard lookup
                 freshProduct = productRows.find(row =>
-                    row[3] === productName &&
+                    (row[3] || '').trim().toLowerCase() === productName.trim().toLowerCase() &&
                     row[6] == length &&
                     row[7] == width &&
                     row[8] == selectedGsm
                 );
             }
 
-            // Fallback to old method if brand lookup fails
-            if (!freshProduct && isProblematicProduct) {
+            // Final fallback to Name + Size + GSM if specific search fails
+            if (!freshProduct) {
                 freshProduct = productRows.find(row =>
-                    row[3] === productName &&
+                    (row[3] || '').trim().toLowerCase() === productName.trim().toLowerCase() &&
                     row[6] == length &&
                     row[7] == width &&
                     row[8] == selectedGsm
@@ -1713,12 +1746,13 @@ async function addToCart(key) {
                 const freshMaxLimit = parseInt(freshProduct[COL.MAX] || 9999);
                 const liveMaxQty = Math.min(Math.max(0, freshStock - freshMinStock), freshMaxLimit);
 
-                console.log('Fresh price:', freshPrice, 'Current price:', currentPrice, 'Live Max Qty:', liveMaxQty);
+                console.log('Validation results for:', productName, 'Live Max Qty:', liveMaxQty);
 
                 // --- STOCK VALIDATION FIRST ---
                 if (liveMaxQty === 0) {
                     alert("⚠️ ATTENTION: PRODUCT IS NO LONGER AVAILABLE ⚠️");
-                    location.reload(); // Refresh to hideunavailable product as per user preference
+                    // Update UI to Disable button
+                    updateUI(key);
                     return;
                 }
 
