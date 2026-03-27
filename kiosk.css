@@ -195,57 +195,87 @@ body.kiosk-mode {
     }
 }
 
-/* --- PRINTING (A5 Receipt) --- */
+/* --- THERMAL RECEIPT PRINTING (80mm) --- */
 @media print {
     @page {
-        size: A5;
+        size: 80mm auto; /* Thermal tape width */
         margin: 0;
-        /* Remove default browser margins */
     }
 
-    /* COMPLETE HIDE of everything except receipt */
-    html,
-    body {
-        height: auto !important;
-        overflow: visible !important;
-        background: white !important;
-    }
-
-    #header,
-    #product-list,
-    #footer,
-    .cart-overlay,
-    .kiosk-modal,
-    .kiosk-auth-overlay,
-    #cart-container,
-    .kiosk-header,
-    #view-cart-btn,
-    .kiosk-cart-pill,
-    .cart-pill {
-        display: none !important;
-        opacity: 0 !important;
+    /* Hide absolutely everything but the print section */
+    body * {
         visibility: hidden !important;
     }
 
-    #print-section {
-        display: block !important;
-        position: relative !important;
+    #print-section, #print-section * {
         visibility: visible !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        color: black !important;
+    }
+
+    #print-section {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm !important;
+        padding: 0;
+        margin: 0;
+        display: block !important;
         background: white !important;
-        overflow: visible !important;
+        color: black !important;
     }
 
     .invoice-box {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+        border: none !important; /* No borders on tape */
+        border-top: 1px dashed #000 !important; /* Simple dividers */
+        width: 100% !important;
+        padding: 4mm !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
     }
 
-    #print-section * {
-        visibility: visible !important;
+    .price-summary {
+        background: white !important;
+        color: black !important;
+        border-top: 2px solid black !important;
+        padding: 2mm 0 !important;
+    }
+    
+    .price-summary .summary-row {
+        border-bottom: 1px dashed #ccc !important;
+    }
+
+    .summary-value, .summary-label {
+        color: black !important;
+    }
+
+    .order-id {
+        background: white !important;
+        color: black !important;
+        border: 1px solid black !important;
+        padding: 1mm 3mm !important;
+    }
+
+    /* Force B&W for images/logos if any */
+    img {
+        filter: grayscale(100%);
+    }
+
+    /* Optimized table for 80mm */
+    .items-table {
+        font-size: 10px !important; /* Smaller text for narrow roll */
+        width: 100% !important;
+    }
+    
+    .items-table th {
+        background: #eee !important;
+        color: black !important;
+        border-bottom: 1px solid black !important;
+        padding: 2px !important;
+    }
+
+    .items-table td {
+        padding: 4px 2px !important;
+        border-bottom: 0.5px solid #eee !important;
+        word-break: break-word; /* Allow product name wrapping */
     }
 }
 
