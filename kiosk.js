@@ -73,21 +73,28 @@ window.placeOrder = async function () {
             method: 'POST', mode: 'no-cors', body: JSON.stringify({ customerName: name, orderSummary: "Kiosk Order", orderTotal: total })
         });
 
-        // 4. SUCCESS & PRINT
+        // 4. SUCCESS & PRINT (SILENT via RawBT for Android Tablet)
         prepareReceipt(name, phone, orderId, shipping, payment, address, total);
         document.getElementById('checkout-modal').classList.remove('active');
         const sm = document.getElementById('success-modal');
         if (sm) { sm.style.display = 'flex'; document.getElementById('success-order-id').innerText = orderId; }
 
         localStorage.removeItem('hayyat_cart');
-        setTimeout(() => window.print(), 1000);
+        
+        // Trigger RawBT Silent Printing after 1 second
+        setTimeout(() => {
+            const receiptHtml = document.getElementById('print-section').innerHTML;
+            // Wrap in basic HTML structure for RawBT
+            const fullHtml = `<html><head><meta charset="utf-8"></head><body style="margin:0;padding:2mm;">${receiptHtml}</body></html>`;
+            window.location.href = "intent:#Intent;action=ru.a402d.rawbtprinter.action.PRINT;S.html=" + encodeURIComponent(fullHtml) + ";end";
+        }, 1000);
     } catch (e) {
         alert("Success! Order recorded."); // Fallback
         if (btn) { btn.disabled = false; btn.innerHTML = "Finish & Print"; }
     }
 };
 
-function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, totalAmount) {
+function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTotal) {
     document.getElementById('print-name').innerText = n;
     document.getElementById('print-phone').innerText = p || 'N/A';
     document.getElementById('print-order-id').innerText = id;
@@ -103,7 +110,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, totalA
 
     const addressRow = document.getElementById('print-address-row');
     const addressEl = document.getElementById('print-address');
-    if (address && address.trim() !== "") {
+    if ((shippingMethod === 'open' || shippingMethod === 'bundle') && address && address.trim() !== "") {
         if (addressRow) addressRow.style.display = 'block';
         if (addressEl) addressEl.innerText = address;
     } else {
@@ -116,22 +123,40 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, totalA
             const specs = [];
             if (i.size) specs.push(i.size);
             if (i.gsm) specs.push(`${i.gsm} GSM`);
+            if (i.selectedColor) specs.push(i.selectedColor);
             const specStr = specs.length > 0 ? `<div style="font-size:10px; opacity:0.8; margin-top:2px;">${specs.join(' | ')}</div>` : '';
             return `<tr>
                 <td style="padding-top:8px; padding-bottom:8px;"><strong>${i.name}</strong>${specStr}</td>
-                <td>${i.qty}</td>
-                <td>Rs ${i.price}</td>
-                <td>${i.rate ? `Rs ${i.rate}` : '-'}</td>
-                <td><strong>Rs ${i.price * i.qty}</strong></td>
+                <td style="text-align:center;">${i.qty}</td>
+                <td style="text-align:center;">${i.price}</td>
+                <td style="text-align:center;">${i.rate || '-'}</td>
+                <td style="text-align:right;"><strong>${i.price * i.qty}</strong></td>
             </tr>`;
         }).join('');
     }
     
+    // Calculate Delivery Charges
+    let deliveryFee = 0;
+    if (shippingMethod !== 'self') {
+        if (typeof calculateDeliveryCharges === 'function') {
+            deliveryFee = calculateDeliveryCharges(shippingMethod);
+        }
+    }
+
     const subEl = document.getElementById('print-subtotal');
-    if (subEl) subEl.innerText = `Rs ${totalAmount}`;
+    if (subEl) subEl.innerText = `Rs ${itemTotal}`;
     
+    const delRow = document.getElementById('print-delivery-row');
+    const delVal = document.getElementById('print-delivery-charges');
+    if (deliveryFee > 0) {
+        if (delRow) delRow.style.display = 'flex';
+        if (delVal) delVal.innerText = `Rs ${deliveryFee}`;
+    } else {
+        if (delRow) delRow.style.display = 'none';
+    }
+
     const totalEl = document.getElementById('print-total-amount');
-    if (totalEl) totalEl.innerText = `Rs ${totalAmount}`;
+    if (totalEl) totalEl.innerText = `Rs ${itemTotal + deliveryFee}`;
 }
 
 // 4. AUTH & UI
