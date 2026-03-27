@@ -80,7 +80,14 @@ window.placeOrder = async function () {
         if (sm) { sm.style.display = 'flex'; document.getElementById('success-order-id').innerText = orderId; }
 
         localStorage.removeItem('hayyat_cart');
-        setTimeout(() => window.print(), 1000);
+
+        setTimeout(() => {
+            if (typeof fully !== 'undefined') {
+                fully.print(); // Fully Kiosk Silent Print
+            } else {
+                window.print(); // Fallback for standard browsers
+            }
+        }, 1000);
     } catch (e) {
         alert("Success! Order recorded."); // Fallback
         if (btn) { btn.disabled = false; btn.innerHTML = "Finish & Print"; }
@@ -117,7 +124,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
             if (i.size) specs.push(i.size);
             if (i.gsm) specs.push(`${i.gsm} GSM`);
             if (i.selectedColor) specs.push(i.selectedColor);
-            const specStr = specs.length > 0 ? `<div style="font-size:10px; opacity:0.8; margin-top:2px;">${specs.join(' | ')}</div>` : '';
+            const specStr = specs.length > 0 ? `<div style="font-size:11px; font-weight:700; color:#000; margin-top:2px;">${specs.join(' | ')}</div>` : '';
             return `<tr>
                 <td style="padding-top:8px; padding-bottom:8px;"><strong>${i.name}</strong>${specStr}</td>
                 <td style="text-align:center;">${i.qty}</td>
