@@ -198,7 +198,7 @@ body.kiosk-mode {
 /* --- THERMAL RECEIPT PRINTING (3-inch / 80mm roll) --- */
 @media print {
     @page {
-        size: 80mm auto; /* 3-inch / 80mm thermal roll */
+        size: 80mm auto;
         margin: 0 !important;
     }
 
@@ -211,19 +211,21 @@ body.kiosk-mode {
         visibility: visible !important;
     }
 
-    body {
+    html, body {
         margin: 0 !important;
         padding: 0 !important;
+        width: 80mm !important;
+        overflow-x: hidden !important;
     }
 
     #print-section {
         position: absolute;
         left: 0;
         top: 0;
-        width: 100% !important;
-        max-width: 79mm !important; 
-        padding: 0 1mm !important; /* Slight padding inside to prevent edge cutoff */
-        margin: 0 !important;
+        width: 78mm !important; /* Force exact physical width */
+        min-width: 78mm !important;
+        padding: 0 !important;
+        margin: 0 1mm !important;
         display: block !important;
         background: white !important;
         color: black !important;
