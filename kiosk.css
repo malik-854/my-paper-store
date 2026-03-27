@@ -195,11 +195,11 @@ body.kiosk-mode {
     }
 }
 
-/* --- THERMAL RECEIPT PRINTING (80mm) --- */
+/* --- THERMAL RECEIPT PRINTING (3-inch / 76mm roll) --- */
 @media print {
     @page {
-        size: 80mm auto; /* Thermal tape width */
-        margin: 0;
+        size: 76mm auto; /* 3-inch thermal roll */
+        margin: 2mm;
     }
 
     /* Hide absolutely everything but the print section */
@@ -215,67 +215,131 @@ body.kiosk-mode {
         position: absolute;
         left: 0;
         top: 0;
-        width: 80mm !important;
+        width: 72mm !important; /* 76mm - 2mm margins each side */
         padding: 0;
         margin: 0;
         display: block !important;
         background: white !important;
         color: black !important;
+        font-size: 13px !important;
     }
 
     .invoice-box {
-        border: none !important; /* No borders on tape */
-        border-top: 1px dashed #000 !important; /* Simple dividers */
+        border: none !important;
         width: 100% !important;
-        padding: 4mm !important;
+        padding: 1mm 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
     }
 
+    /* ===== FIX: Force white background on Order ID ===== */
+    .order-id {
+        background: white !important;
+        color: black !important;
+        border: 2px solid black !important;
+        border-radius: 4px !important;
+        padding: 2px 8px !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
+        display: inline-block !important;
+    }
+
+    /* ===== FIX: Force white background on price summary (Grand Total area) ===== */
     .price-summary {
         background: white !important;
         color: black !important;
         border-top: 2px solid black !important;
-        padding: 2mm 0 !important;
-    }
-    
-    .price-summary .summary-row {
-        border-bottom: 1px dashed #ccc !important;
+        border-bottom: 2px solid black !important;
+        padding: 3px 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
-    .summary-value, .summary-label {
+    .price-summary .summary-row {
+        border-bottom: 1px dashed #999 !important;
+        padding: 2px 0 !important;
+    }
+
+    /* Grand total row - make it bigger and bold */
+    .price-summary .summary-row:last-child {
+        border-bottom: none !important;
+    }
+
+    .summary-value,
+    .summary-label {
+        color: black !important;
+        font-size: 13px !important;
+    }
+
+    /* Grand Total - larger text */
+    #print-total-amount,
+    .price-summary .summary-row:last-child .summary-label,
+    .price-summary .summary-row:last-child .summary-value {
+        font-size: 16px !important;
+        font-weight: 900 !important;
         color: black !important;
     }
 
-    .order-id {
+    /* Customer info section - remove colored border */
+    .customer-section {
+        border-left: 3px solid black !important;
+        background: white !important;
+        padding: 3px 6px !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Table - use full width with larger font */
+    .items-table {
+        font-size: 12px !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .items-table th {
         background: white !important;
         color: black !important;
-        border: 1px solid black !important;
-        padding: 1mm 3mm !important;
-    }
-
-    /* Force B&W for images/logos if any */
-    img {
-        filter: grayscale(100%);
-    }
-
-    /* Optimized table for 80mm */
-    .items-table {
-        font-size: 10px !important; /* Smaller text for narrow roll */
-        width: 100% !important;
-    }
-    
-    .items-table th {
-        background: #eee !important;
-        color: black !important;
-        border-bottom: 1px solid black !important;
-        padding: 2px !important;
+        border-top: 2px solid black !important;
+        border-bottom: 2px solid black !important;
+        padding: 3px 2px !important;
+        font-size: 11px !important;
+        font-weight: 900 !important;
+        text-transform: uppercase !important;
     }
 
     .items-table td {
-        padding: 4px 2px !important;
-        border-bottom: 0.5px solid #eee !important;
-        word-break: break-word; /* Allow product name wrapping */
+        padding: 5px 2px !important;
+        border-bottom: 1px dashed #aaa !important;
+        font-size: 12px !important;
+        word-break: break-word;
+    }
+
+    /* Section headers like ORDER ITEMS */
+    #print-section h3 {
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        margin: 4px 0 !important;
+        border-bottom: 1px solid black;
+        padding-bottom: 2px;
+    }
+
+    /* ESTIMATE ONLY heading */
+    #print-section h1 {
+        font-size: 16px !important;
+        font-weight: 900 !important;
+        letter-spacing: 2px !important;
+    }
+
+    /* Info labels */
+    .info-label {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: black !important;
+    }
+
+    .info-value {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: black !important;
     }
 }
 
@@ -327,29 +391,30 @@ body.kiosk-mode {
     color: #2c3e50;
 }
 
+/* Screen styles for price-summary, order-id etc (dark theme for screen only) */
 .price-summary {
-    background: #2c3e50 !important;
-    color: white !important;
+    background: #2c3e50;
+    color: white;
     padding: 15px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
 
 .grand-total {
-    color: #f1c40f !important;
+    color: #f1c40f;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
 
 .order-id {
-    background: #ff8400 !important;
-    color: white !important;
+    background: #ff8400;
+    color: white;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
 
 .customer-section {
-    border-left: 5px solid #2c3e50 !important;
+    border-left: 5px solid #2c3e50;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
