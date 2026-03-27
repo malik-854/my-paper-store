@@ -92,17 +92,24 @@ window.printReceipt = function () {
     // Basic structure for RawBT handler
     const fullHtml = `<html><head><meta charset="utf-8"></head><body style="margin:0;padding:2mm;">${receiptHtml}</body></html>`;
 
-    // Attempt RawBT Intent (Silent)
-    // CRITICAL: We need the package name so Android knows to launch RawBT
-    window.location.href = "intent:#Intent;action=ru.a402d.rawbtprinter.action.PRINT;S.html=" + encodeURIComponent(fullHtml) + ";package=ru.a402d.rawbtprinter;end";
-    
-    // Safety Fallback (If RawBT isn't installed or Intent fails)
+    // 1. THE GOLD STANDARD: Fully Kiosk Browser API (Instant & Silent)
+    if (typeof fully !== 'undefined') {
+        console.log("Using Fully Kiosk Direct Print API");
+        fully.printHtml(fullHtml);
+        return;
+    }
+
+    // 2. RELIABLE RawBT (Bridges directly to the app)
+    // This protocol is often more reliable than 'intent:' in modern browsers
+    window.location.href = "rawbt:base64," + btoa(unescape(encodeURIComponent(fullHtml)));
+
+    // 3. Fallback (If all else fails)
     setTimeout(() => {
         if (!document.hidden) {
-            console.log("RawBT Intent didn't trigger, falling back to window.print()");
+            console.log("Silent methods failed, opening standard print dialog");
             window.print();
         }
-    }, 1500);
+    }, 2000);
 }
 
 function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTotal) {
