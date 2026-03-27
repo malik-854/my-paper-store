@@ -73,26 +73,36 @@ window.placeOrder = async function () {
             method: 'POST', mode: 'no-cors', body: JSON.stringify({ customerName: name, orderSummary: "Kiosk Order", orderTotal: total })
         });
 
-        // 4. SUCCESS & PRINT (SILENT via RawBT for Android Tablet)
+        // 4. SUCCESS & SHOW MODAL
         prepareReceipt(name, phone, orderId, shipping, payment, address, total);
         document.getElementById('checkout-modal').classList.remove('active');
         const sm = document.getElementById('success-modal');
         if (sm) { sm.style.display = 'flex'; document.getElementById('success-order-id').innerText = orderId; }
 
         localStorage.removeItem('hayyat_cart');
-        
-        // Trigger RawBT Silent Printing after 1 second
-        setTimeout(() => {
-            const receiptHtml = document.getElementById('print-section').innerHTML;
-            // Wrap in basic HTML structure for RawBT
-            const fullHtml = `<html><head><meta charset="utf-8"></head><body style="margin:0;padding:2mm;">${receiptHtml}</body></html>`;
-            window.location.href = "intent:#Intent;action=ru.a402d.rawbtprinter.action.PRINT;S.html=" + encodeURIComponent(fullHtml) + ";end";
-        }, 1000);
     } catch (e) {
         alert("Success! Order recorded."); // Fallback
         if (btn) { btn.disabled = false; btn.innerHTML = "Finish & Print"; }
     }
 };
+
+// Function triggered by manual print button (Reliable on Android)
+window.printReceipt = function () {
+    const receiptHtml = document.getElementById('print-section').innerHTML;
+    // Basic structure for RawBT handler
+    const fullHtml = `<html><head><meta charset="utf-8"></head><body style="margin:0;padding:2mm;">${receiptHtml}</body></html>`;
+
+    // Attempt RawBT Intent (Silent)
+    window.location.href = "intent:#Intent;action=ru.a402d.rawbtprinter.action.PRINT;S.html=" + encodeURIComponent(fullHtml) + ";end";
+    
+    // Safety Fallback (If RawBT isn't installed or Intent fails)
+    setTimeout(() => {
+        if (!document.hidden) {
+            console.log("RawBT Intent didn't trigger, falling back to window.print()");
+            window.print();
+        }
+    }, 1500);
+}
 
 function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTotal) {
     document.getElementById('print-name').innerText = n;
