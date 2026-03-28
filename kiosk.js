@@ -42,17 +42,52 @@ window.placeOrder = async function () {
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
     const payment = document.querySelector('input[name="payment"]:checked').value;
 
-    const orderItems = Object.values(cart).map(i => ({
-        name: i.name, specs: `${i.size} | ${i.gsm} GSM`, qty: i.qty, price: i.price, total: i.price * i.qty
-    }));
-    const total = orderItems.reduce((sum, i) => sum + i.total, 0);
+    // Calculate Totals and Weight
+    let totalWeight = 0;
+    Object.values(cart).forEach(item => { totalWeight += (item.weight * item.qty); });
 
+    const orderItems = Object.values(cart).map(i => ({
+        name: i.name,
+        specs: `${i.size} | ${i.gsm} GSM${i.selectedBrand ? ' | ' + i.selectedBrand : ''}${i.selectedColor ? ' | ' + i.selectedColor : ''}`,
+        qty: i.qty,
+        price: i.price,
+        rate: i.rate, // CRITICAL: Fix for N/A in invoice
+        weight: i.weight,
+        total: i.price * i.qty
+    }));
+
+    let subtotalValue = orderItems.reduce((sum, i) => sum + i.total, 0);
+    let deliveryCharges = 0;
+
+    // DELIVERY CALCULATION (Same logic as script.js)
+    if (shipping === "open" || shipping === "bundle") {
+        if (shipping === "open") {
+            let baseCharges = Math.max(Math.round(totalWeight * 3.5), 450);
+            let currentTotalWithBase = subtotalValue + baseCharges;
+            if (currentTotalWithBase % 100 === 0) {
+                deliveryCharges = baseCharges;
+            } else {
+                let remainder = currentTotalWithBase % 100;
+                let amountToAdd = 100 - remainder;
+                deliveryCharges = baseCharges + amountToAdd;
+            }
+        } else if (shipping === "bundle") {
+            let bundles = totalWeight / 70;
+            let decimalPart = bundles % 1;
+            bundles = (decimalPart <= 0.5) ? Math.floor(bundles) : Math.ceil(bundles);
+            bundles = Math.max(1, bundles);
+            deliveryCharges = bundles * 250;
+        }
+    }
+
+    const totalCalculated = subtotalValue + deliveryCharges;
     const invoiceLink = `https://www.hayyatstore.com/order.html?id=${orderId}`;
 
     const orderData = {
         orderId, invoiceLink, customerName: name, customerPhone: phone,
         shippingMethod: shipping, paymentMethod: payment, deliveryAddress: address,
-        orderItems, totalAmount: total, deliveryCharges: 0
+        orderItems, totalAmount: totalCalculated, deliveryCharges: deliveryCharges,
+        totalWeight: Math.round(totalWeight), subtotal: subtotalValue
     };
 
     try {
@@ -73,14 +108,11 @@ window.placeOrder = async function () {
         orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n";
 
         const formatNumber = (num) => Math.round(num).toLocaleString('en-IN');
-        let subtotal = total;
-        let deliveryCharges = 0; // Kiosk pickup implies 0 delivery mostly
-        let totalWeight = Object.values(cart).reduce((sum, item) => sum + (item.weight * item.qty), 0);
-
+        
         orderSummary += "*Order Summary:*\n";
-        orderSummary += `Subtotal: Rs ${formatNumber(subtotal)}\n`;
+        orderSummary += `Subtotal: Rs ${formatNumber(subtotalValue)}\n`;
         if (deliveryCharges > 0) orderSummary += `Delivery: Rs ${formatNumber(deliveryCharges)}\n`;
-        orderSummary += `*GRAND TOTAL: Rs ${formatNumber(total)}*\n`;
+        orderSummary += `*GRAND TOTAL: Rs ${formatNumber(totalCalculated)}*\n`;
         orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`;
 
         orderSummary += "*Customer Details:*\n";
@@ -131,7 +163,7 @@ window.placeOrder = async function () {
             paymentMethod: payment === "bank" ? "Bank Transfer" : "Pay at Shop",
             deliveryAddress: address || 'Not applicable',
             orderSummary: orderSummary,
-            orderTotal: total,
+            orderTotal: totalCalculated,
             orderWeight: Math.round(totalWeight)
         };
 
