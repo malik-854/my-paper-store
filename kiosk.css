@@ -14,14 +14,36 @@ body.kiosk-mode {
 /* Kiosk Specific UI Fixes */
 /* Reverted to online store behavior for delivery address */
 
-/* --- LARGE PRODUCT CARDS --- */
+/* --- LARGE CATEGORY/PRODUCT CARDS (4 COLUMNS) --- */
 .kiosk-mode .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    /* Bigger cards */
+    grid-template-columns: repeat(4, 1fr) !important;
     gap: 20px;
     padding: 20px;
     background: transparent;
     border: none;
+    max-width: 95% !important; /* Allow it to span wider */
+}
+
+/* Square Category Tiles */
+.kiosk-mode .category-header {
+    height: 180px !important;
+    font-size: 1.6rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    padding: 15px;
+    border-radius: 16px !important;
+}
+
+.kiosk-mode .category-section {
+    border-radius: 16px !important;
+}
+
+/* Fix product cards inside focus mode */
+.kiosk-mode .category-section.focused .category-products {
+    grid-template-columns: repeat(4, 1fr) !important;
 }
 
 .kiosk-mode .product-card {
@@ -101,7 +123,7 @@ body.kiosk-mode {
     align-items: center !important;
     justify-content: center !important;
     background-color: var(--secondary) !important;
-    z-index: 10000 !important;
+    z-index: 90 !important; /* Keep behind modals (100000) and cart (99999) */
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
     border: none !important;
     gap: 12px !important;
@@ -195,14 +217,13 @@ body.kiosk-mode {
     }
 }
 
-/* --- THERMAL RECEIPT PRINTING (3-inch / 80mm roll) --- */
+/* --- A5 RECEIPT PRINTING (LaserJet B&W) --- */
 @media print {
     @page {
-        size: 80mm auto;
-        margin: 0 !important;
+        size: A5 portrait;
+        margin: 15mm 10mm;
     }
 
-    /* Hide absolutely everything but the print section */
     body * {
         visibility: hidden !important;
     }
@@ -214,142 +235,134 @@ body.kiosk-mode {
     html, body {
         margin: 0 !important;
         padding: 0 !important;
-        width: 80mm !important;
-        overflow-x: hidden !important;
+        width: 100% !important;
+        overflow: visible !important;
+        background: white !important;
     }
 
     #print-section {
         position: absolute;
         left: 0;
         top: 0;
-        width: 78mm !important; /* Force exact physical width */
-        min-width: 78mm !important;
-        padding: 0 !important;
-        margin: 0 1mm !important;
+        width: 100% !important;
         display: block !important;
         background: white !important;
         color: black !important;
         font-size: 14px !important;
-        box-sizing: border-box !important;
+        padding: 10px !important;
     }
 
     .invoice-box {
-        border: none !important;
+        border: 2px solid black !important;
         width: 100% !important;
-        padding: 1mm 0 !important;
-        border-radius: 0 !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
         box-shadow: none !important;
     }
 
-    /* ===== FIX: Force white background on Order ID ===== */
+    /* Clean B&W Styling for A5 */
     .order-id {
         background: white !important;
         color: black !important;
         border: 2px solid black !important;
-        border-radius: 4px !important;
-        padding: 2px 8px !important;
-        font-size: 12px !important;
-        font-weight: 900 !important;
+        border-radius: 6px !important;
+        padding: 4px 12px !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
         display: inline-block !important;
     }
 
-    /* ===== FIX: Force white background on price summary (Grand Total area) ===== */
     .price-summary {
         background: white !important;
         color: black !important;
         border-top: 2px solid black !important;
-        border-bottom: 2px solid black !important;
-        padding: 3px 0 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        padding: 10px 0 !important;
     }
 
     .price-summary .summary-row {
-        border-bottom: 1px dashed #999 !important;
-        padding: 2px 0 !important;
+        border-bottom: 1px dashed #666 !important;
+        padding: 6px 0 !important;
     }
 
-    /* Grand total row - make it bigger and bold */
     .price-summary .summary-row:last-child {
         border-bottom: none !important;
+        border-top: 2px solid black !important;
+        margin-top: 5px !important;
+        padding-top: 10px !important;
     }
 
-    .summary-value,
-    .summary-label {
+    .summary-value, .summary-label {
         color: black !important;
-        font-size: 13px !important;
+        font-size: 15px !important;
     }
 
-    /* Grand Total - larger text */
     #print-total-amount,
     .price-summary .summary-row:last-child .summary-label,
     .price-summary .summary-row:last-child .summary-value {
-        font-size: 16px !important;
-        font-weight: 900 !important;
+        font-size: 20px !important;
+        font-weight: bold !important;
         color: black !important;
     }
 
-    /* Customer info section - remove colored border */
     .customer-section {
-        border-left: 3px solid black !important;
-        background: white !important;
-        padding: 3px 6px !important;
-        margin-bottom: 4px !important;
+        border-left: 4px solid black !important;
+        background: #f9f9f9 !important;
+        padding: 10px 15px !important;
+        margin-bottom: 15px !important;
     }
 
-    /* Table - use full width with larger font */
     .items-table {
-        font-size: 12px !important;
+        font-size: 14px !important;
         width: 100% !important;
         border-collapse: collapse !important;
+        margin-bottom: 15px !important;
     }
 
     .items-table th {
-        background: white !important;
+        background: transparent !important;
         color: black !important;
         border-top: 2px solid black !important;
         border-bottom: 2px solid black !important;
-        padding: 3px 2px !important;
-        font-size: 11px !important;
-        font-weight: 900 !important;
+        padding: 8px 4px !important;
+        font-size: 13px !important;
+        font-weight: bold !important;
         text-transform: uppercase !important;
     }
 
     .items-table td {
-        padding: 5px 2px !important;
-        border-bottom: 1px dashed #aaa !important;
-        font-size: 12px !important;
-        font-weight: 700 !important;    /* Bold so numbers print dark */
+        padding: 10px 4px !important;
+        border-bottom: 1px solid #ddd !important;
+        font-size: 14px !important;
+        font-weight: normal !important; /* No need for bold on laser */
         color: black !important;
-        word-break: break-word;
+        word-break: normal;
     }
 
-    /* Section headers like ORDER ITEMS */
     #print-section h3 {
-        font-size: 13px !important;
-        font-weight: 900 !important;
-        margin: 4px 0 !important;
-        border-bottom: 1px solid black;
-        padding-bottom: 2px;
-    }
-
-    /* ESTIMATE ONLY heading */
-    #print-section h1 {
         font-size: 16px !important;
-        font-weight: 900 !important;
-        letter-spacing: 2px !important;
+        font-weight: bold !important;
+        margin: 10px 0 !important;
+        border-bottom: 1px solid black;
+        padding-bottom: 4px;
+        color: black !important;
     }
 
-    /* Info labels */
-    .info-label {
-        font-size: 10px !important;
-        font-weight: 700 !important;
+    #print-section h1 {
+        font-size: 22px !important;
+        font-weight: bold !important;
+        letter-spacing: 2px !important;
         color: black !important;
+    }
+
+    .info-label {
+        font-size: 11px !important;
+        font-weight: bold !important;
+        color: #333 !important;
     }
 
     .info-value {
-        font-size: 13px !important;
-        font-weight: 700 !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
         color: black !important;
     }
 }
