@@ -68,9 +68,75 @@ window.placeOrder = async function () {
             fetch(waUrl, { mode: 'no-cors' }); // Silent ping to phone
         }
 
-        // 3. EMAIL WEBHOOK
+        // 3. EMAIL WEBHOOK (Formatted perfectly for AutoHotkey via Google Script)
+        let orderSummary = "✅ *Order placed through hayyat shop kiosk*\n\n";
+        orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n";
+
+        const formatNumber = (num) => Math.round(num).toLocaleString('en-IN');
+        let subtotal = total;
+        let deliveryCharges = 0; // Kiosk pickup implies 0 delivery mostly
+        let totalWeight = Object.values(cart).reduce((sum, item) => sum + (item.weight * item.qty), 0);
+
+        orderSummary += "*Order Summary:*\n";
+        orderSummary += `Subtotal: Rs ${formatNumber(subtotal)}\n`;
+        if (deliveryCharges > 0) orderSummary += `Delivery: Rs ${formatNumber(deliveryCharges)}\n`;
+        orderSummary += `*GRAND TOTAL: Rs ${formatNumber(total)}*\n`;
+        orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`;
+
+        orderSummary += "*Customer Details:*\n";
+        orderSummary += `👤 Name: ${name}\n`;
+        orderSummary += `📱 Phone: ${phone || "Not provided"}\n`;
+        const email = document.getElementById("cust-email") ? document.getElementById("cust-email").value : '';
+        if (email) orderSummary += `📧 Email: ${email}\n`;
+        orderSummary += `🚚 Shipping: ${shipping === "self" ? "Self Pickup" : shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"}\n`;
+        orderSummary += `💰 Payment: ${payment === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`;
+
+        if (shipping !== "self" && address) {
+            orderSummary += `📍 Address: ${address}\n`;
+            orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${formatNumber(deliveryCharges)}\n`;
+        }
+
+        orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`;
+
+        let itemIndex = 1;
+        for (const key in cart) {
+            const item = cart[key];
+            const itemTotal = item.price * item.qty;
+            const itemWeight = item.weight * item.qty;
+
+            orderSummary += `${itemIndex}. *${item.name}*\n`;
+
+            let specs = [];
+            if (item.size) specs.push(`Size: ${item.size}`);
+            if (item.gsm) specs.push(`GSM: ${item.gsm}`);
+            if (item.selectedBrand) specs.push(`Brand: ${item.selectedBrand}`);
+            if (item.selectedColor) specs.push(`Color: ${item.selectedColor}`);
+
+            if (specs.length > 0) {
+                orderSummary += `   ${specs.join(' | ')}\n`;
+            }
+
+            orderSummary += `   Qty: ${item.qty} packs × Rs ${formatNumber(item.price)} = Rs ${formatNumber(itemTotal)}\n`;
+            orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${item.rate}/KG\n\n`;
+            itemIndex++;
+        }
+
+        orderSummary += `⏳ _Please confirm availability and provide payment details._`;
+
+        const emailData = {
+            customerName: name,
+            customerPhone: phone || 'Not provided',
+            customerEmail: email || 'Not provided',
+            shippingMethod: shipping === "self" ? "Self Pickup" : (shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"),
+            paymentMethod: payment === "bank" ? "Bank Transfer" : "Pay at Shop",
+            deliveryAddress: address || 'Not applicable',
+            orderSummary: orderSummary,
+            orderTotal: total,
+            orderWeight: Math.round(totalWeight)
+        };
+
         await fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
-            method: 'POST', mode: 'no-cors', body: JSON.stringify({ customerName: name, orderSummary: "Kiosk Order", orderTotal: total })
+            method: 'POST', mode: 'no-cors', body: JSON.stringify(emailData)
         });
 
         // 4. SUCCESS & PRINT
@@ -98,13 +164,13 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
     document.getElementById('print-name').innerText = n;
     document.getElementById('print-phone').innerText = p || 'N/A';
     document.getElementById('print-order-id').innerText = id;
-    
+
     const shippingMap = { 'self': 'Self Pickup', 'open': 'Delivery - Open', 'bundle': 'Delivery - Bundle' };
     const paymentMap = { 'shop': 'Pay at Shop', 'bank': 'Bank Transfer' };
-    
+
     const shipEl = document.getElementById('print-shipping');
     if (shipEl) shipEl.innerText = shippingMap[shippingMethod] || shippingMethod || 'N/A';
-    
+
     const payEl = document.getElementById('print-payment');
     if (payEl) payEl.innerText = paymentMap[paymentMethod] || paymentMethod || 'N/A';
 
@@ -134,7 +200,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
             </tr>`;
         }).join('');
     }
-    
+
     // Calculate Delivery Charges
     let deliveryFee = 0;
     if (shippingMethod !== 'self') {
@@ -145,7 +211,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, itemTo
 
     const subEl = document.getElementById('print-subtotal');
     if (subEl) subEl.innerText = `Rs ${itemTotal}`;
-    
+
     const delRow = document.getElementById('print-delivery-row');
     const delVal = document.getElementById('print-delivery-charges');
     if (deliveryFee > 0) {
