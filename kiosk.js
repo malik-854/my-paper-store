@@ -172,7 +172,7 @@ window.placeOrder = async function () {
         });
 
         // 4. SUCCESS & PRINT
-        prepareReceipt(name, phone, orderId, shipping, payment, address, total);
+        prepareReceipt(name, phone, orderId, shipping, payment, address, totalCalculated);
         document.getElementById('checkout-modal').classList.remove('active');
         const sm = document.getElementById('success-modal');
         if (sm) { sm.style.display = 'flex'; document.getElementById('success-order-id').innerText = orderId; }
@@ -187,7 +187,7 @@ window.placeOrder = async function () {
             }
         }, 1000);
     } catch (e) {
-        alert("Success! Order recorded."); // Fallback
+        console.error('Order preparation error:', e);
         if (btn) { btn.disabled = false; btn.innerHTML = "Finish & Print"; }
     }
 };
