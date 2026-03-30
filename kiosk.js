@@ -4,7 +4,7 @@
 
 // 1. SETTINGS & URLS
 const scriptUrl = 'https://script.google.com/macros/s/AKfycbysHbzMzacuCiZp16PJO5Gnx8kN2asM2Te4yDavvSdXRUN2jfUwRvc-LCjRvKPGXbsG/exec';
-const macroDroidUrl = 'https://trigger.macrodroid.com/35d41fb9-cf8f-4641-bc47-921e9e297c10/order';
+const macroDroidUrl = 'https://trigger.macrodroid.com/5f8b53ed-bdb1-4979-8f48-81059ecfd195/order';
 
 // 2. IDLE AUTO-REFRESH (60 Seconds)
 let idleTimer;
