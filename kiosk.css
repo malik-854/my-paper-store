@@ -227,8 +227,17 @@ body.kiosk-mode {
     }
 
     /* CLEAN PRINT: Hide everything except the receipt */
-    body>*:not(#print-section) {
+    body > *:not(#print-section) {
         display: none !important;
+    }
+
+    /* Explicitly hide fixed-position elements (bypassed by body rule in all browsers) */
+    #view-cart-btn,
+    .cart-pill,
+    .kiosk-cart-pill,
+    #cart-container {
+        display: none !important;
+        visibility: hidden !important;
     }
 
     #print-section {
