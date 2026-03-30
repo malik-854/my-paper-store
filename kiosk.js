@@ -85,7 +85,7 @@ window.placeOrder = async function () {
 
         // 2. TRIGGER WHATSAPP (Via Shop Phone - MACRODROID)
         if (phone) {
-            const msg = `✅ *Kiosk Order Received*\n-------------------------\nCustomer: ${name}\nOrder ID: ${invoiceLink}\n\n💰 *Please show this message at the counter to proceed.*`;
+            const msg = `✅ *Kiosk Order Received*\n-------------------------\nCustomer: ${name}\nOrder Link: ${invoiceLink}\n\nOrder Id: ${orderId}\n💰 *Please show this message at the counter to proceed.*`;
             const waUrl = `${macroDroidUrl}?phone=92${phone.startsWith('0') ? phone.substring(1) : phone}&msg=${encodeURIComponent(msg)}`;
             fetch(waUrl, { mode: 'no-cors' }); // Silent ping to phone
         }
