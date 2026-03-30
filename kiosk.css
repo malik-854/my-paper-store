@@ -21,7 +21,8 @@ body.kiosk-mode {
     padding: 20px;
     background: transparent;
     border: none;
-    max-width: 95% !important; /* Allow it to span wider */
+    max-width: 95% !important;
+    /* Allow it to span wider */
 }
 
 /* Square Category Tiles */
@@ -123,7 +124,8 @@ body.kiosk-mode {
     align-items: center !important;
     justify-content: center !important;
     background-color: var(--secondary) !important;
-    z-index: 90 !important; /* Keep behind modals (100000) and cart (99999) */
+    z-index: 90 !important;
+    /* Keep behind modals (100000) and cart (99999) */
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
     border: none !important;
     gap: 12px !important;
@@ -224,18 +226,26 @@ body.kiosk-mode {
         margin: 15mm 10mm;
     }
 
-    body * {
-        visibility: hidden !important;
+    /* CLEAN PRINT: Hide everything except the receipt */
+    body>*:not(#print-section) {
+        display: none !important;
     }
 
-    #print-section, #print-section * {
+    #print-section {
+        display: block !important;
+        position: relative !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
         visibility: visible !important;
     }
 
-    html, body {
+    html,
+    body {
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
+        height: auto !important;
         overflow: visible !important;
         background: white !important;
     }
@@ -291,7 +301,8 @@ body.kiosk-mode {
         padding-top: 10px !important;
     }
 
-    .summary-value, .summary-label {
+    .summary-value,
+    .summary-label {
         color: black !important;
         font-size: 15px !important;
     }
@@ -333,7 +344,8 @@ body.kiosk-mode {
         padding: 10px 4px !important;
         border-bottom: 1px solid #ddd !important;
         font-size: 14px !important;
-        font-weight: normal !important; /* No need for bold on laser */
+        font-weight: normal !important;
+        /* No need for bold on laser */
         color: black !important;
         word-break: normal;
     }
