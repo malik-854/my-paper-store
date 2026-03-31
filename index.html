@@ -1,248 +1,222 @@
-/**
- * kiosk.js - Kiosk-specific logic for Hayyat Webstore
- */
+<!DOCTYPE html>
+<html lang="en">
 
-// 1. SETTINGS & URLS
-const scriptUrl = 'https://script.google.com/macros/s/AKfycbysHbzMzacuCiZp16PJO5Gnx8kN2asM2Te4yDavvSdXRUN2jfUwRvc-LCjRvKPGXbsG/exec';
-const macroDroidUrl = 'https://trigger.macrodroid.com/5f8b53ed-bdb1-4979-8f48-81059ecfd195/order';
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hayyat Paper Store</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H2V1WJFV61"></script>
+    
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    
 
-// 2. IDLE AUTO-REFRESH (60 Seconds)
-let idleTimer;
-function startIdleTimer() {
-    function reset() {
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(() => {
-            localStorage.removeItem('hayyat_cart');
-            window.location.reload();
-        }, 60000);
-    }
-    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(e => document.addEventListener(e, reset, true));
-    reset();
-}
-startIdleTimer();
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Playfair+Display:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lunr/lunr.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
 
-// 3. OVERRIDE MAIN SCRIPT
-window.openCheckout = async function () {
-    if (Object.keys(cart).length === 0) return alert("Your cart is empty");
-    if (typeof fetchProducts === 'function') await fetchProducts({ quiet: true });
-    if (typeof closeCart === 'function') closeCart();
-    const m = document.getElementById("checkout-modal");
-    if (m) { m.classList.add("active"); document.body.style.overflow = "hidden"; }
-    if (typeof updateShipping === 'function') updateShipping('self', true);
-};
+<body>
 
-window.placeOrder = async function () {
-    const btn = document.querySelector('.whatsapp-btn');
-    if (btn) { btn.innerHTML = '⏳ Saving...', btn.disabled = true; }
+    <!-- Add this RIGHT AFTER <body> tag -->
+    <div id="groupBanner" class="group-banner">
+        <div class="group-banner-container">
+            <!-- Logo and Text Container -->
+            <div class="group-banner-info">
+                <!-- YOUR LOGGO HERE -->
+                <img src="https://i.postimg.cc/7LX0nR3S/Hayyat-Luxury-Apartments-Logo.png" alt="Hayyat Group Logo" class="group-logo">
 
-    const orderId = `HAYYAT-KIOSK-${Date.now()}`;
-    const name = document.getElementById("cust-name").value || "Kiosk Guest";
-    const phone = document.getElementById("cust-phone").value || "";
-    const address = document.getElementById("delivery-address").value;
-    const shipping = document.querySelector('input[name="shipping"]:checked').value;
-    const payment = document.querySelector('input[name="payment"]:checked').value;
+                <div>
+                    <div class="group-title">A Hayyat Group Company</div>
+                    <div class="group-subtitle">Trusted business solutions since 1990</div>
+                </div>
+            </div>
 
-    // Calculate Totals and Weight
-    let totalWeight = 0;
-    Object.values(cart).forEach(item => { totalWeight += (item.weight * item.qty); });
+            <!-- Visit Button -->
+            <a href="https://hayyatgroup.com" target="_blank" class="group-visit-btn">
+                Visit HayyatGroup.com
+            </a>
+        </div>
 
-    const orderItems = Object.values(cart).map(i => ({
-        name: i.name,
-        specs: `${i.size} | ${i.gsm} GSM${i.selectedBrand ? ' | ' + i.selectedBrand : ''}${i.selectedColor ? ' | ' + i.selectedColor : ''}`,
-        qty: i.qty,
-        price: i.price,
-        rate: i.rate, // CRITICAL: Fix for N/A in invoice
-        weight: i.weight,
-        total: i.price * i.qty
-    }));
-
-    let subtotalValue = orderItems.reduce((sum, i) => sum + i.total, 0);
-    let deliveryCharges = 0;
-
-    // DELIVERY CALCULATION (UNIFIED: 350 min, no nearest-100 rounding)
-    if (shipping === "open") {
-        deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 3.5);
-    } else if (shipping === "bundle") {
-        let bundles = Math.round(totalWeight / 70) || 1;
-        deliveryCharges = bundles * 250;
-    }
-
-    const totalCalculated = subtotalValue + deliveryCharges;
-    const invoiceLink = `https://www.hayyatstore.com/order.html?id=${orderId}`;
-
-    const orderData = {
-        orderId, invoiceLink, customerName: name, customerPhone: phone,
-        shippingMethod: shipping, paymentMethod: payment, deliveryAddress: address,
-        orderItems, totalAmount: totalCalculated, deliveryCharges: deliveryCharges,
-        totalWeight: Math.round(totalWeight), subtotal: subtotalValue
-    };
-
-    try {
-        // 1. SAVE TO GOOGLE SHEET
-        await fetch(scriptUrl, {
-            method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: 'createOrder', order: orderData })
-        });
-
-        // 2. TRIGGER WHATSAPP (Via Shop Phone - MACRODROID)
-        if (phone) {
-            const msg = `✅ *Kiosk Order Received*\n-------------------------\nCustomer: ${name}\nOrder Link: ${invoiceLink}\n\nOrder Id: ${orderId}\n💰 *Please show this message at the counter to proceed.*\n\nآپ اپنی اگلی خریداری کے لیے ہماری ویب سائٹ www.hayyatstore.com استعمال کر سکتے ہیں۔ ویب سائٹ پر آپ نہ صرف تازہ ترین ریٹس (Rates) چیک کر سکتے ہیں، بلکہ اپنا آرڈر بھی دے سکتے ہیں۔ اس طرح آپ کا آرڈر تیزی سے پراسیس ہوگا اور آپ کو دکان پر انتظار بھی نہیں کرنا پڑے گا۔`;
-            const waUrl = `${macroDroidUrl}?phone=92${phone.startsWith('0') ? phone.substring(1) : phone}&msg=${encodeURIComponent(msg)}`;
-            fetch(waUrl, { mode: 'no-cors' }); // Silent ping to phone
-        }
-
-        // 3. EMAIL WEBHOOK (Formatted perfectly for AutoHotkey via Google Script)
-        let orderSummary = "✅ *Order placed through hayyat shop kiosk*\n\n";
-        orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n";
-
-        const formatNumber = (num) => Math.round(num).toLocaleString('en-IN');
+        <!-- Mobile CSS -->
         
-        orderSummary += "*Order Summary:*\n";
-        orderSummary += `Subtotal: Rs ${formatNumber(subtotalValue)}\n`;
-        if (deliveryCharges > 0) orderSummary += `Delivery: Rs ${formatNumber(deliveryCharges)}\n`;
-        orderSummary += `*GRAND TOTAL: Rs ${formatNumber(totalCalculated)}*\n`;
-        orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`;
+    </div>
 
-        orderSummary += "*Customer Details:*\n";
-        orderSummary += `👤 Name: ${name}\n`;
-        orderSummary += `📱 Phone: ${phone || "Not provided"}\n`;
-        const email = document.getElementById("cust-email") ? document.getElementById("cust-email").value : '';
-        if (email) orderSummary += `📧 Email: ${email}\n`;
-        orderSummary += `🚚 Shipping: ${shipping === "self" ? "Self Pickup" : shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"}\n`;
-        orderSummary += `💰 Payment: ${payment === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`;
 
-        if (shipping !== "self" && address) {
-            orderSummary += `📍 Address: ${address}\n`;
-            orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${formatNumber(deliveryCharges)}\n`;
-        }
+    <div class="header">
+        <div class="header-content">
+            <h1 class="highlight-bg">Hayyat Paper Store</h1>
+            <p>Your Partner in Premium Paper Solutions.</p>
+            <!-- ANNOUNCEMENT BAR -->
+            <div class="announcement-container">
+                <div class="announcement-wrapper">
+                    <div class="announcement-track" id="announcement-track">
+                        <!-- Announcements will load here -->
+                    </div>
+                </div>
+            </div>
 
-        orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`;
+            <div class="search-container">
+                <input type="text" id="search-input" onkeyup="searchProducts(this.value)"
+                    placeholder="Search by paper name, size, brand or GSM...">
+            </div>
+        </div>
+    </div>
 
-        let itemIndex = 1;
-        for (const key in cart) {
-            const item = cart[key];
-            const itemTotal = item.price * item.qty;
-            const itemWeight = item.weight * item.qty;
+    <!-- Loading Indicator -->
+    <div id="loading-indicator" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading products...</p>
+    </div>
 
-            orderSummary += `${itemIndex}. *${item.name}*\n`;
+    <!-- Product Grid -->
+    <div id="product-list" class="product-grid" style="display: none;"></div>
 
-            let specs = [];
-            if (item.size) specs.push(`Size: ${item.size}`);
-            if (item.gsm) specs.push(`GSM: ${item.gsm}`);
-            if (item.selectedBrand) specs.push(`Brand: ${item.selectedBrand}`);
-            if (item.selectedColor) specs.push(`Color: ${item.selectedColor}`);
+    <!-- Fallback Data Notification -->
+    <div id="fallback-notice"
+        style="display: none; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px; text-align: center;">
+        <p style="margin: 0; color: #856404;">⚠️ Using sample products. Real data will load when connection is restored.
+        </p>
+    </div>
 
-            if (specs.length > 0) {
-                orderSummary += `   ${specs.join(' | ')}\n`;
-            }
+    <!-- Sleek Floating Cart Pill -->
+    <button id="view-cart-btn" class="cart-pill" onclick="toggleCart()" style="display: none;">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count-badge" class="cart-count">0</span>
+    </button>
 
-            orderSummary += `   Qty: ${item.qty} packs × Rs ${formatNumber(item.price)} = Rs ${formatNumber(itemTotal)}\n`;
-            orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${item.rate}/KG\n\n`;
-            itemIndex++;
-        }
+    <!-- Cart Sidebar -->
+    <div id="cart-container">
+        <div class="cart-header">
+            <h3>Your Shopping Cart</h3>
+            <button id="cart-close-btn" onclick="closeCart()">✕</button>
+        </div>
 
-        orderSummary += `⏳ _Please confirm availability and provide payment details._`;
+        <div class="cart-content">
+            <div id="cart-items"></div>
+        </div>
 
-        const emailData = {
-            customerName: name,
-            customerPhone: phone || 'Not provided',
-            customerEmail: email || 'Not provided',
-            shippingMethod: shipping === "self" ? "Self Pickup" : (shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"),
-            paymentMethod: payment === "bank" ? "Bank Transfer" : "Pay at Shop",
-            deliveryAddress: address || 'Not applicable',
-            orderSummary: orderSummary,
-            orderTotal: totalCalculated,
-            orderWeight: Math.round(totalWeight)
-        };
+        <div class="cart-footer">
+            <div class="cart-total" id="cart-total">Total: Rs 0</div>
+            <button onclick="openCheckout()" class="checkout-btn">Proceed to Checkout</button>
+        </div>
+    </div>
 
-        await fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
-            method: 'POST', mode: 'no-cors', body: JSON.stringify(emailData)
-        });
+    <!-- Checkout Modal -->
+    <div id="checkout-modal">
+        <div>
+            <div class="checkout-header">
+                <h3>Checkout Details</h3>
+                <button class="checkout-close-btn" onclick="closeCheckout()">✕</button>
+            </div>
 
-        // 4. SUCCESS & PRINT
-        prepareReceipt(name, phone, orderId, shipping, payment, address, subtotalValue, deliveryCharges);
-        document.getElementById('checkout-modal').classList.remove('active');
-        const sm = document.getElementById('success-modal');
-        if (sm) { sm.style.display = 'flex'; document.getElementById('success-order-id').innerText = orderId; }
+            <!-- TWO-COLUMN CONTAINER -->
+            <div class="checkout-two-column">
 
-        localStorage.removeItem('hayyat_cart');
+                <!-- LEFT COLUMN: Customer Inputs -->
+                <div class="checkout-left">
+                    <div class="input-group">
+                        <label for="cust-name">Full Name *</label>
+                        <input id="cust-name" placeholder="Enter your full name" required>
+                    </div>
 
-        setTimeout(() => {
-            if (typeof fully !== 'undefined') {
-                fully.print(); // Fully Kiosk Silent Print
-            } else {
-                window.print(); // Fallback for standard browsers
-            }
-        }, 1000);
-    } catch (e) {
-        console.error('Order preparation error:', e);
-        if (btn) { btn.disabled = false; btn.innerHTML = "Finish & Print"; }
-    }
-};
+                    <div class="input-group">
+                        <label for="cust-phone">Phone Number *</label>
+                        <input id="cust-phone" placeholder="Enter your phone number" required>
+                    </div>
 
-function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtotal, deliveryFee) {
-    document.getElementById('print-name').innerText = n;
-    document.getElementById('print-phone').innerText = p || 'N/A';
-    document.getElementById('print-order-id').innerText = id;
+                    <div class="input-group">
+                        <label for="cust-email">Email Address (Optional)</label>
+                        <input id="cust-email" placeholder="Enter your email" type="email">
+                    </div>
 
-    const shippingMap = { 'self': 'Self Pickup', 'open': 'Delivery - Open', 'bundle': 'Delivery - Bundle' };
-    const paymentMap = { 'shop': 'Pay at Shop', 'bank': 'Bank Transfer' };
+                    <h3 style="margin-bottom:15px;">Shipping Method</h3>
+                    <div class="shipping-options">
+                        <label class="shipping-option-btn active" for="shipping-self">
+                            <input type="radio" id="shipping-self" name="shipping" value="self" checked>
+                            <div>Self Pickup</div>
+                            <span>FREE</span>
+                        </label>
+                        <label class="shipping-option-btn" for="shipping-delivery-open">
+                            <input type="radio" id="shipping-delivery-open" name="shipping" value="open">
+                            <div>Delivery - Open</div>
+                            <span>Min Rs 350</span>
+                        </label>
+                        <label class="shipping-option-btn" for="shipping-delivery-bundle">
+                            <input type="radio" id="shipping-delivery-bundle" name="shipping" value="bundle">
+                            <div>Delivery - Bundle</div>
+                            <span>Only for Adda</span>
+                        </label>
+                    </div>
 
-    const shipEl = document.getElementById('print-shipping');
-    if (shipEl) shipEl.innerText = shippingMap[shippingMethod] || shippingMethod || 'N/A';
+                    <h3 style="margin-bottom:15px; margin-top:25px;">Payment Method</h3>
+                    <div class="payment-options">
+                        <label class="payment-option-btn active" for="pay-shop">
+                            <input type="radio" id="pay-shop" name="payment" value="shop" checked>
+                            <div>Pay at Shop</div>
+                            <span>Pay when collecting</span>
+                        </label>
+                        <label class="payment-option-btn" for="pay-bank">
+                            <input type="radio" id="pay-bank" name="payment" value="bank">
+                            <div>Bank Transfer</div>
+                            <span>Details via WhatsApp</span>
+                        </label>
+                    </div>
 
-    const payEl = document.getElementById('print-payment');
-    if (payEl) payEl.innerText = paymentMap[paymentMethod] || paymentMethod || 'N/A';
+                    <div id="delivery-address-container" style="display:none; margin-top:20px;">
+                        <div class="input-group">
+                            <label for="delivery-address">Delivery Address *</label>
+                            <textarea id="delivery-address" placeholder="Enter full delivery address"
+                                rows="3"></textarea>
+                        </div>
+                        <p id="delivery-charges" style="font-size: 0.9em; color: #dc3545; margin-top: 5px;"></p>
+                    </div>
+                </div> <!-- END LEFT COLUMN -->
 
-    const addressRow = document.getElementById('print-address-row');
-    const addressEl = document.getElementById('print-address');
-    if ((shippingMethod === 'open' || shippingMethod === 'bundle') && address && address.trim() !== "") {
-        if (addressRow) addressRow.style.display = 'block';
-        if (addressEl) addressEl.innerText = address;
-    } else {
-        if (addressRow) addressRow.style.display = 'none';
-    }
+                <!-- RIGHT COLUMN: Order Summary & Buttons -->
+                <div class="checkout-right">
+                    <div id="checkout-summary-box">
+                        <h4>Order Summary</h4>
+                        <div class="summary-line"><span>Subtotal</span><span>Rs 0</span></div>
+                        <div class="summary-line"><span>Shipping</span><span>Rs 0</span></div>
+                        <div class="summary-total"><span>Total</span><span>Rs 0</span></div>
+                    </div>
 
-    const body = document.getElementById('print-items-body');
-    if (body) {
-        body.innerHTML = Object.values(cart).map(i => {
-            const specs = [];
-            if (i.size) specs.push(i.size);
-            if (i.gsm) specs.push(`${i.gsm} GSM`);
-            if (i.selectedColor) specs.push(i.selectedColor);
-            const specStr = specs.length > 0 ? `<div style="font-size:11px; font-weight:700; color:#000; margin-top:2px;">${specs.join(' | ')}</div>` : '';
-            return `<tr>
-                <td style="padding-top:8px; padding-bottom:8px;"><strong>${i.name}</strong>${specStr}</td>
-                <td style="text-align:center;">${i.qty}</td>
-                <td style="text-align:center;">${i.price}</td>
-                <td style="text-align:center;">${i.rate || '-'}</td>
-                <td style="text-align:right;"><strong>${i.price * i.qty}</strong></td>
-            </tr>`;
-        }).join('');
-    }
+                    <button onclick="placeOrder()" class="whatsapp-btn">
+                        <span class="whatsapp-icon">📱</span> Place Order via WhatsApp
+                    </button>
 
-    const subEl = document.getElementById('print-subtotal');
-    if (subEl) subEl.innerText = `Rs ${subtotal}`;
+                    <button onclick="closeCheckout()" class="modal-btn-close">
+                        Cancel Order
+                    </button>
+                </div> <!-- END RIGHT COLUMN -->
 
-    const delRow = document.getElementById('print-delivery-row');
-    const delVal = document.getElementById('print-delivery-charges');
-    if (deliveryFee > 0) {
-        if (delRow) delRow.style.display = 'flex';
-        if (delVal) delVal.innerText = `Rs ${deliveryFee}`;
-    } else {
-        if (delRow) delRow.style.display = 'none';
-    }
+            </div> <!-- END checkout-two-column -->
 
-    const totalEl = document.getElementById('print-total-amount');
-    if (totalEl) totalEl.innerText = `Rs ${subtotal + deliveryFee}`;
-}
+        </div>
+    </div>
+    
+    <!-- Simple Premium Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-links-row">
+                <a href="product.html" class="footer-link">Products</a>
+                <span class="footer-divider">|</span>
+                <a href="https://youtube.com/shorts/rv6gqwF_-Lg?si=AgTEQ2RGs6Aaqkdf" class="footer-link" target="_blank">How to Order</a>
+                <span class="footer-divider">|</span>
+                <a href="https://whatsapp.com/channel/0029Vb7Zi9ZGE56cYQFOPf0O" class="footer-link" target="_blank">Latest Updates</a>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Hayyat Paper Store</p>
+            </div>
+        </div>
+    </footer>
 
-// 4. AUTH & UI
-document.addEventListener('DOMContentLoaded', () => {
-    const auth = localStorage.getItem("HAYYAT_KIOSK_AUTHORIZED") || window.location.search.includes('HAYYAT_STORE_2026');
-    if (auth) {
-        localStorage.setItem("HAYYAT_KIOSK_AUTHORIZED", "true");
-        document.getElementById('kiosk-auth-overlay').style.display = 'none';
-    } else {
-        document.getElementById('kiosk-auth-overlay').style.display = 'flex';
-    }
-});
+</body>
+
+
+</html>
