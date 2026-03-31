@@ -85,7 +85,7 @@ window.placeOrder = async function () {
 
         // 2. TRIGGER WHATSAPP (Via Shop Phone - MACRODROID)
         if (phone) {
-            const msg = `✅ *Kiosk Order Received*\n-------------------------\nCustomer: ${name}\nOrder Link: ${invoiceLink}\n\nOrder Id: ${orderId}\n💰 *Please show this message at the counter to proceed.*`;
+            const msg = `✅ *Kiosk Order Received*\n-------------------------\nCustomer: ${name}\nOrder Link: ${invoiceLink}\n\nOrder Id: ${orderId}\n💰 *Please show this message at the counter to proceed.*\n\nآپ اپنی اگلی خریداری کے لیے ہماری ویب سائٹ www.hayyatstore.com استعمال کر سکتے ہیں۔ ویب سائٹ پر آپ نہ صرف تازہ ترین ریٹس (Rates) چیک کر سکتے ہیں، بلکہ اپنا آرڈر بھی دے سکتے ہیں۔ اس طرح آپ کا آرڈر تیزی سے پراسیس ہوگا اور آپ کو دکان پر انتظار بھی نہیں کرنا پڑے گا۔`;
             const waUrl = `${macroDroidUrl}?phone=92${phone.startsWith('0') ? phone.substring(1) : phone}&msg=${encodeURIComponent(msg)}`;
             fetch(waUrl, { mode: 'no-cors' }); // Silent ping to phone
         }
