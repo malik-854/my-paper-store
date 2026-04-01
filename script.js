@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.03.30.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.01.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -139,12 +139,17 @@ function loadCart() {
 }
 
 /**
- * Option A: Auto-Update on Page Load
+ * Auto-Update on Page Load
  * Compares saved cart items with fresh Google Sheets data.
- * Updates prices/rates automatically and notifies the user.
+ * Matches by name + size + GSM + brand + color (NOT by item.id)
+ * to avoid wrong-price bugs when Sheet rows are reordered or IDs are missing/duplicated.
  */
 function revalidateCart() {
     if (!cart || Object.keys(cart).length === 0) return { count: 0, keys: [] };
+    if (!window.lunrStore) return { count: 0, keys: [] };
+
+    // Build a lookup list from all fresh products in the store
+    const freshProducts = Object.values(window.lunrStore);
 
     let changed = false;
     let changeCount = 0;
@@ -152,39 +157,64 @@ function revalidateCart() {
 
     Object.keys(cart).forEach(key => {
         const item = cart[key];
-        const fresh = window.lunrStore ? window.lunrStore[item.id] : null;
 
-        if (fresh) {
-            const freshPrice = Math.round(parseFloat(fresh.price || 0));
-            const freshRate = fresh.rate || item.rate;
-            const freshMaxQty = fresh.maxQty || 999;
+        // --- SAFE MATCH: name + size + GSM + brand + color ---
+        const itemName  = (item.name         || '').trim().toLowerCase();
+        const itemSize  = (item.size         || '').trim().toLowerCase();
+        const itemGsm   = String(item.gsm    || '').trim().toLowerCase();
+        const itemBrand = (item.selectedBrand|| item.displaySize || '').trim().toLowerCase();
+        const itemColor = (item.selectedColor|| item.color       || '').trim().toLowerCase();
 
-            let priceChanged = item.price !== freshPrice || item.rate !== freshRate;
-            let qtyReduced = false;
+        const fresh = freshProducts.find(fp => {
+            const nameMatch  = (fp.name || '').trim().toLowerCase()  === itemName;
+            const sizeMatch  = (fp.size || '').trim().toLowerCase()  === itemSize;
+            const gsmMatch   = String(fp.gsm || '').trim().toLowerCase() === itemGsm;
 
-            // Update prices/rates
-            if (priceChanged) {
-                item.price = freshPrice;
-                item.rate = freshRate;
-            }
+            if (!nameMatch || !sizeMatch || !gsmMatch) return false;
 
-            // Update/Cap quantity based on fresh stock
-            if (item.qty > freshMaxQty) {
-                item.qty = freshMaxQty;
-                qtyReduced = true;
-            }
+            // Brand match: only enforce if cart item has a brand selected
+            const fpBrand = (fp.displaySize || '').trim().toLowerCase();
+            if (itemBrand && fpBrand && fpBrand !== itemBrand) return false;
 
-            if (priceChanged || qtyReduced) {
-                changed = true;
-                changeCount++;
-                changedKeys.push(key);
-            }
+            // Color match: only enforce if cart item has a color selected
+            const fpColor = (fp.color || '').trim().toLowerCase();
+            if (itemColor && fpColor && fpColor !== itemColor) return false;
+
+            return true;
+        });
+
+        if (!fresh) {
+            console.warn(`revalidateCart: no fresh match found for cart item "${item.name}" (${item.size}, ${item.gsm} GSM). Skipping price update.`);
+            return; // Skip — don't touch this item's price
+        }
+
+        const freshPrice  = Math.round(parseFloat(fresh.price || 0));
+        const freshRate   = fresh.rate   || item.rate;
+        const freshMaxQty = fresh.maxQty || 999;
+
+        let priceChanged = item.price !== freshPrice || item.rate !== freshRate;
+        let qtyReduced   = false;
+
+        if (priceChanged) {
+            item.price = freshPrice;
+            item.rate  = freshRate;
+        }
+
+        if (item.qty > freshMaxQty) {
+            item.qty   = freshMaxQty;
+            qtyReduced = true;
+        }
+
+        if (priceChanged || qtyReduced) {
+            changed = true;
+            changeCount++;
+            changedKeys.push(key);
         }
     });
 
     if (changed) {
         saveCart();
-        renderCart(changedKeys); // Pass keys to highlight
+        renderCart(changedKeys);
         showCartUpdateBanner(changeCount);
     }
     return { count: changeCount, keys: changedKeys };
