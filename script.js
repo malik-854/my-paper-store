@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.01.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.03.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -159,16 +159,16 @@ function revalidateCart() {
         const item = cart[key];
 
         // --- SAFE MATCH: name + size + GSM + brand + color ---
-        const itemName  = (item.name         || '').trim().toLowerCase();
-        const itemSize  = (item.size         || '').trim().toLowerCase();
-        const itemGsm   = String(item.gsm    || '').trim().toLowerCase();
-        const itemBrand = (item.selectedBrand|| item.displaySize || '').trim().toLowerCase();
-        const itemColor = (item.selectedColor|| item.color       || '').trim().toLowerCase();
+        const itemName = (item.name || '').trim().toLowerCase();
+        const itemSize = (item.size || '').trim().toLowerCase();
+        const itemGsm = String(item.gsm || '').trim().toLowerCase();
+        const itemBrand = (item.selectedBrand || item.displaySize || '').trim().toLowerCase();
+        const itemColor = (item.selectedColor || item.color || '').trim().toLowerCase();
 
         const fresh = freshProducts.find(fp => {
-            const nameMatch  = (fp.name || '').trim().toLowerCase()  === itemName;
-            const sizeMatch  = (fp.size || '').trim().toLowerCase()  === itemSize;
-            const gsmMatch   = String(fp.gsm || '').trim().toLowerCase() === itemGsm;
+            const nameMatch = (fp.name || '').trim().toLowerCase() === itemName;
+            const sizeMatch = (fp.size || '').trim().toLowerCase() === itemSize;
+            const gsmMatch = String(fp.gsm || '').trim().toLowerCase() === itemGsm;
 
             if (!nameMatch || !sizeMatch || !gsmMatch) return false;
 
@@ -188,20 +188,20 @@ function revalidateCart() {
             return; // Skip — don't touch this item's price
         }
 
-        const freshPrice  = Math.round(parseFloat(fresh.price || 0));
-        const freshRate   = fresh.rate   || item.rate;
+        const freshPrice = Math.round(parseFloat(fresh.price || 0));
+        const freshRate = fresh.rate || item.rate;
         const freshMaxQty = fresh.maxQty || 999;
 
         let priceChanged = item.price !== freshPrice || item.rate !== freshRate;
-        let qtyReduced   = false;
+        let qtyReduced = false;
 
         if (priceChanged) {
             item.price = freshPrice;
-            item.rate  = freshRate;
+            item.rate = freshRate;
         }
 
         if (item.qty > freshMaxQty) {
-            item.qty   = freshMaxQty;
+            item.qty = freshMaxQty;
             qtyReduced = true;
         }
 
@@ -1500,8 +1500,8 @@ function calculateDeliveryCharges(method = 'open') {
         if (totalWeight <= 150) {
             deliveryCharges = 350; // Flat minimum
         } else {
-            // Simple Weight * 3.5 (No rounding to 10 or 100)
-            deliveryCharges = Math.round(totalWeight * 3.5);
+            // Simple Weight * 4.5 (No rounding to 10 or 100)
+            deliveryCharges = Math.round(totalWeight * 4.5);
         }
 
         chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`;
@@ -2124,9 +2124,9 @@ async function placeOrder() {
     let deliveryCharges = 0;
     if (shipping === "open" || shipping === "bundle") {
         if (shipping === "open") {
-            // UNIFIED: Case 1: <= 150kg is 350. Case 2: > 150kg is Weight * 3.5
+            // UNIFIED: Case 1: <= 150kg is 350. Case 2: > 150kg is Weight * 4.5
             // Removed the complex nearest-100 rounding that caused 468/400 errors
-            deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 3.5);
+            deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 4.5);
         } else if (shipping === "bundle") {
             // BUNDLE delivery logic
             let bundles = totalWeight / 70;
