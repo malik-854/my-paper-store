@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.03.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.06.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -34,7 +34,10 @@ const COL = {
     EVEN_ONLY: 21,
     MULTIPLE_1_5: 22,
     STOCK: 5,               // Column F
-    MIN_STOCK: 24           // Column Y
+    MIN_STOCK: 24,           // Column Y
+    ERP_CODE: 27,            // Column AB
+    ERP_DESC: 28,            // Column AC
+    PACKING_TYPE: 29         // Column AD
 }
 
 
@@ -416,8 +419,8 @@ async function fetchProducts(options = {}) {
         // Show loading indicator
         if (!isQuiet) document.getElementById('loading-indicator').style.display = 'block';
 
-        // Try to fetch from Google Sheets (A1:X to include version cell X2)
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:Y?key=${API_KEY}`;
+        // Try to fetch from Google Sheets (A1:AD to include version cell X2, ERP columns and Packing Type)
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:AD?key=${API_KEY}`;
         console.log('Fetching from URL:', url);
 
         const response = await fetch(url);
@@ -610,6 +613,9 @@ function group(rows) {
             isStickerOnly: cat === "Stickers",  // NEW: Flag for stickers category
             discountTag: r[COL.DISCOUNT_TAG] || '',      // ADD THIS
             newTag: r[COL.NEW_TAG] || '',               // Existing line
+            erpCode: r[COL.ERP_CODE] || '',             // Column AB
+            erpDesc: r[COL.ERP_DESC] || '',             // Column AC
+            packingType: r[COL.PACKING_TYPE] || 'Weight', // Column AD
             halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES',
             evenOnly: (r[COL.EVEN_ONLY] || '').toUpperCase() === 'YES',
             multiple15: (r[COL.MULTIPLE_1_5] || '').toUpperCase() === 'YES',
@@ -1674,8 +1680,8 @@ async function addToCart(key) {
 
     // === PRICE VALIDATION - LIVE CHECK WITH FIX FOR PROBLEMATIC PRODUCTS ===
     try {
-        // Fetch A1:X to also check the Version cell (X2) during cart-add
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:Y?key=${API_KEY}&_=${Date.now()}`;
+        // Fetch A1:AD to also check the Version cell (X2), ERP columns and Packing Type during cart-add
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:AD?key=${API_KEY}&_=${Date.now()}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -2145,55 +2151,49 @@ async function placeOrder() {
         total += deliveryCharges;
     }
 
-    // Build orderSummary for email (keep exactly same format as before)
-    let orderSummary = "✅ *Order placed through www.hayyatstore.com*\n\n";
-    orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n";
+    // Build orderSummary for email (New Structured Format for ERP)
+    let orderSummary = "ORDER_DATA_START\n";
+    orderSummary += "---CUSTOMER_INFO---\n";
+    orderSummary += `Name: ${name}\n`;
+    orderSummary += `Phone: ${phone}\n`;
 
-    // ORDER SUMMARY AT THE TOP
-    const subtotal = total - deliveryCharges;
-    orderSummary += "*Order Summary:*\n";
-    orderSummary += `Subtotal: Rs ${formatNumber(subtotal)}\n`;
-    if (deliveryCharges > 0) orderSummary += `Delivery: Rs ${formatNumber(deliveryCharges)}\n`;
-    orderSummary += `*GRAND TOTAL: Rs ${formatNumber(total)}*\n`;
-    orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`;
+    const nowTime = new Date();
+    const formattedDate = `${String(nowTime.getDate()).padStart(2, '0')}/${String(nowTime.getMonth() + 1).padStart(2, '0')}/${nowTime.getFullYear()} ${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}`;
+    orderSummary += `OrderTime: ${formattedDate}\n\n`;
 
-    // CUSTOMER DETAILS
-    orderSummary += "*Customer Details:*\n";
-    orderSummary += `👤 Name: ${name}\n`;
-    orderSummary += `📱 Phone: ${phone}\n`;
-    if (email) orderSummary += `📧 Email: ${email}\n`;
-    orderSummary += `🚚 Shipping: ${shipping === "self" ? "Self Pickup" : shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"}\n`;
-    orderSummary += `💰 Payment: ${document.querySelector('input[name="payment"]:checked').value === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`;
+    orderSummary += "---ORDER_MASTER---\n";
+    orderSummary += "OrderNo: SQ-AUTO\n";
+    orderSummary += "Location: mansion\n";
+    orderSummary += `OrderID: ${orderId}\n`;
     if (shipping === "open" || shipping === "bundle") {
-        orderSummary += `📍 Address: ${address}\n`;
-        orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${formatNumber(deliveryCharges)}\n`;
+        orderSummary += `DeliveryAddress: ${address || 'Not provided'}\n`;
+        orderSummary += `DeliveryCharges: ${deliveryCharges || 0}\n`;
     }
-    orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`;
+    orderSummary += "\n";
 
-    // ORDER ITEMS WITH FORMATTED PRICES
+    orderSummary += "---ORDER_ITEMS---\n";
     Object.values(cart).forEach((i, index) => {
         const itemTotal = i.price * i.qty;
-        const itemWeight = i.weight * i.qty;
-        const formattedPrice = formatNumber(i.price);
-        const formattedItemTotal = formatNumber(itemTotal);
+        const itemWeight = (i.weight || 0) * i.qty;
+        const stockAfter = (i.stock || 0) - i.qty;
 
-        orderSummary += `${index + 1}. *${i.name}*\n`;
+        // Dynamic ERP formatting logic based on packing type
+        const packingId = i.packingType || "Weight";
+        const itemRate = (packingId === "Quantity") ? i.price : i.rate;
 
-        // Build specifications line
-        let specs = `Size: ${i.size} | GSM: ${i.gsm}`;
-        if (i.selectedBrand && i.selectedBrand !== '') {
-            specs += ` | Brand: ${i.selectedBrand}`;
-        }
-        if (i.selectedColor && i.selectedColor !== '') {
-            specs += ` | Color: ${i.selectedColor}`;
-        }
-        orderSummary += `   ${specs}\n`;
-
-        orderSummary += `   Qty: ${i.qty} packs × Rs ${formattedPrice} = Rs ${formattedItemTotal}\n`;
-        orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${i.rate}/KG\n\n`;
+        orderSummary += `[ITEM_${index + 1}]\n`;
+        orderSummary += `ProductExp: ${i.erpCode || ''}\n`;
+        orderSummary += `ProdDesc: ${i.erpDesc || ''}\n`;
+        orderSummary += `PackingID: ${packingId}\n`;
+        orderSummary += `Qty: ${i.qty}\n`;
+        orderSummary += `ItemWeight: ${itemWeight.toFixed(2)}\n`;
+        orderSummary += `ItemRate: ${itemRate}\n`;
+        orderSummary += `ItemSubtotal: ${itemTotal}\n`;
+        orderSummary += `ValueRs: ${i.sheets || ''}\n`;
+        orderSummary += `StockAfter: ${stockAfter}\n`;
+        orderSummary += `[ITEM_END]\n\n`;
     });
-
-    orderSummary += `⏳ _Please confirm availability and provide payment details._`;
+    orderSummary += "ORDER_DATA_END";
 
     // Prepare order data for Google Sheets
     const orderData = {
