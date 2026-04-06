@@ -90,57 +90,51 @@ window.placeOrder = async function () {
             fetch(waUrl, { mode: 'no-cors' }); // Silent ping to phone
         }
 
-        // 3. EMAIL WEBHOOK (Formatted perfectly for AutoHotkey via Google Script)
-        let orderSummary = "✅ *Order placed through hayyat shop kiosk*\n\n";
-        orderSummary += "📄 *NEW PAPER ORDER REQUEST* 📄\n\n";
-
-        const formatNumber = (num) => Math.round(num).toLocaleString('en-IN');
-        
-        orderSummary += "*Order Summary:*\n";
-        orderSummary += `Subtotal: Rs ${formatNumber(subtotalValue)}\n`;
-        if (deliveryCharges > 0) orderSummary += `Delivery: Rs ${formatNumber(deliveryCharges)}\n`;
-        orderSummary += `*GRAND TOTAL: Rs ${formatNumber(totalCalculated)}*\n`;
-        orderSummary += `Total Weight: ${Math.round(totalWeight)} KG\n\n`;
-
-        orderSummary += "*Customer Details:*\n";
-        orderSummary += `👤 Name: ${name}\n`;
-        orderSummary += `📱 Phone: ${phone || "Not provided"}\n`;
+        // 3. EMAIL WEBHOOK (New Structured Format for ERP)
+        let orderSummary = "ORDER_DATA_START\n";
+        orderSummary += "---CUSTOMER_INFO---\n";
+        orderSummary += `Name: ${name}\n`;
+        orderSummary += `Phone: ${phone || "Not provided"}\n`;
         const email = document.getElementById("cust-email") ? document.getElementById("cust-email").value : '';
-        if (email) orderSummary += `📧 Email: ${email}\n`;
-        orderSummary += `🚚 Shipping: ${shipping === "self" ? "Self Pickup" : shipping === "open" ? "Delivery - Open" : "Delivery - Bundle"}\n`;
-        orderSummary += `💰 Payment: ${payment === "bank" ? "Bank Transfer" : "Pay at Shop"}\n`;
+        
+        const nowTime = new Date();
+        const formattedDate = `${String(nowTime.getDate()).padStart(2, '0')}/${String(nowTime.getMonth() + 1).padStart(2, '0')}/${nowTime.getFullYear()} ${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}`;
+        orderSummary += `OrderTime: ${formattedDate}\n\n`;
 
-        if (shipping !== "self" && address) {
-            orderSummary += `📍 Address: ${address}\n`;
-            orderSummary += `💰 Delivery Charges (${shipping === "open" ? "Open" : "Bundle"}): Rs ${formatNumber(deliveryCharges)}\n`;
+        orderSummary += "---ORDER_MASTER---\n";
+        orderSummary += "OrderNo: SQ-AUTO\n";
+        orderSummary += "Location: mansion\n";
+        orderSummary += `OrderID: ${orderId}\n`;
+        if (shipping === "open" || shipping === "bundle") {
+            orderSummary += `DeliveryAddress: ${address || 'Not provided'}\n`;
+            orderSummary += `DeliveryCharges: ${deliveryCharges || 0}\n`;
         }
+        orderSummary += "\n";
 
-        orderSummary += `\n*Order Items (${Object.keys(cart).length} types):*\n`;
+        orderSummary += "---ORDER_ITEMS---\n";
 
-        let itemIndex = 1;
-        for (const key in cart) {
-            const item = cart[key];
-            const itemTotal = item.price * item.qty;
-            const itemWeight = item.weight * item.qty;
+        Object.values(cart).forEach((i, index) => {
+            const itemTotal = i.price * i.qty;
+            const itemWeight = (i.weight || 0) * i.qty;
+            const stockAfter = (i.stock || 0) - i.qty;
 
-            orderSummary += `${itemIndex}. *${item.name}*\n`;
+            // Dynamic ERP formatting logic based on packing type
+            const packingId = i.packingType || "Weight";
+            const itemRate = (packingId === "Quantity") ? i.price : i.rate;
 
-            let specs = [];
-            if (item.size) specs.push(`Size: ${item.size}`);
-            if (item.gsm) specs.push(`GSM: ${item.gsm}`);
-            if (item.selectedBrand) specs.push(`Brand: ${item.selectedBrand}`);
-            if (item.selectedColor) specs.push(`Color: ${item.selectedColor}`);
-
-            if (specs.length > 0) {
-                orderSummary += `   ${specs.join(' | ')}\n`;
-            }
-
-            orderSummary += `   Qty: ${item.qty} packs × Rs ${formatNumber(item.price)} = Rs ${formatNumber(itemTotal)}\n`;
-            orderSummary += `   Weight: ${Math.round(itemWeight)} KG @ Rs ${item.rate}/KG\n\n`;
-            itemIndex++;
-        }
-
-        orderSummary += `⏳ _Please confirm availability and provide payment details._`;
+            orderSummary += `[ITEM_${index + 1}]\n`;
+            orderSummary += `ProductExp: ${i.erpCode || ''}\n`;
+            orderSummary += `ProdDesc: ${i.erpDesc || ''}\n`;
+            orderSummary += `PackingID: ${packingId}\n`;
+            orderSummary += `Qty: ${i.qty}\n`;
+            orderSummary += `ItemWeight: ${itemWeight.toFixed(2)}\n`;
+            orderSummary += `ItemRate: ${itemRate}\n`;
+            orderSummary += `ItemSubtotal: ${itemTotal}\n`;
+            orderSummary += `ValueRs: ${i.sheets || ''}\n`;
+            orderSummary += `StockAfter: ${stockAfter}\n`;
+            orderSummary += `[ITEM_END]\n\n`;
+        });
+        orderSummary += "ORDER_DATA_END";
 
         const emailData = {
             customerName: name,
