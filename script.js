@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.06.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.06.02"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -202,6 +202,12 @@ function revalidateCart() {
             item.price = freshPrice;
             item.rate = freshRate;
         }
+
+        // --- ERP SYNC (FIX FOR EMPTY FIELDS IN EMAILS) ---
+        item.erpCode = fresh.erpCode || '';
+        item.erpDesc = fresh.erpDesc || '';
+        item.packingType = fresh.packingType || 'Weight';
+        item.sheets = fresh.sheets || ''; // Added for ValueRs
 
         if (item.qty > freshMaxQty) {
             item.qty = freshMaxQty;
