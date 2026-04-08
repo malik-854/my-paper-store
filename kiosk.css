@@ -463,3 +463,107 @@ body.kiosk-mode {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
 }
+
+/* --- BUILT-IN KIOSK KEYBOARD --- */
+.kiosk-keyboard {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 200000;
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.keyboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.keyboard-header span {
+    font-weight: 800;
+    color: #111827;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.kbd-close {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 30px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.keyboard-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.kbd-key {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #1f2937;
+    height: 70px;
+    min-width: 65px;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 0 #d1d5db;
+    transition: all 0.05s;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.kbd-key:active {
+    transform: translateY(2px);
+    box-shadow: 0 0px 0 #d1d5db;
+    background: #f3f4f6;
+}
+
+.kbd-key.wide { min-width: 120px; background: #f9fafb; }
+.kbd-key.extra-wide { min-width: 400px; }
+.kbd-key.backspace { background: #fee2e2; color: #dc2626; }
+.kbd-key.shift { background: #e0e7ff; color: #4338ca; }
+.kbd-key.shift.active { background: #4338ca; color: white; }
+
+/* Numeric Mode Special Layout */
+.keyboard-grid.numeric {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 350px;
+}
+.keyboard-grid.numeric .kbd-key {
+    width: 100px;
+    height: 100px;
+    font-size: 2rem;
+}
