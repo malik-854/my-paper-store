@@ -304,22 +304,14 @@
         </div>
     </div>
 
-    <div id="kiosk-keyboard" class="kiosk-keyboard" style="display: none;">
-        <div class="keyboard-header">
-            <span id="keyboard-title">Keyboard</span>
-            <button onclick="hideKeyboard()" class="kbd-close">Done</button>
-        </div>
-        <div id="keyboard-keys" class="keyboard-grid"></div>
-    </div>
-
     <!-- Script Loads -->
     <script>
         // KIOSK SECURITY: FORCE CLEAR CART ON EVERY LOAD
         localStorage.removeItem('hayyat_cart');
         console.log("Kiosk: Cart cleared from storage.");
     </script>
-    <script src="script.js?v=2026.04.08.04"></script>
-    <script src="kiosk.js?v=2026.04.08.04"></script>
+    <script src="script.js?v=2026.03.31.01"></script>
+    <script src="kiosk.js"></script>
 </body>
 
 </html>
