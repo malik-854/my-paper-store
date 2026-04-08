@@ -273,6 +273,12 @@ function showKeyboard(mode) {
     grid.className = 'keyboard-grid ' + mode;
     kbd.style.display = 'block';
 
+    // PUSH CONTENT UP: Add padding to the container so we can scroll the bottom fields up
+    const checkoutModal = document.querySelector('.kiosk-modal-content');
+    const body = document.body;
+    if (checkoutModal) checkoutModal.classList.add('keyboard-open-padding');
+    body.classList.add('keyboard-open-padding');
+
     if (mode === 'numeric') {
         title.innerText = "Numeric Keypad";
         const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'CLR', '0', '⌫'];
@@ -280,7 +286,7 @@ function showKeyboard(mode) {
             const btn = document.createElement('button');
             btn.className = 'kbd-key';
             btn.innerText = k;
-            if (k === 'CLR') btn.onclick = () => { if(currentInput) currentInput.value = ''; };
+            if (k === 'CLR') btn.onclick = () => { if(currentInput) currentInput.value = ''; currentInput.dispatchEvent(new Event('input')); };
             else if (k === '⌫') btn.onclick = handleBackspace;
             else btn.onclick = () => handleKeyPress(k);
             grid.appendChild(btn);
@@ -318,21 +324,38 @@ function showKeyboard(mode) {
             grid.appendChild(rowDiv);
         });
     }
+
+    // SMART SCROLL: Move the input field to the very top of the screen so it's not hidden
+    if (currentInput) {
+        setTimeout(() => {
+            // center: true ensures it goes to the top/center area
+            currentInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+    }
 }
 
 function handleKeyPress(key) {
     if (!currentInput) return;
     currentInput.value += key;
     currentInput.dispatchEvent(new Event('input')); // Trigger any listeners
+    currentInput.dispatchEvent(new Event('change'));
 }
 
 function handleBackspace() {
     if (!currentInput) return;
     currentInput.value = currentInput.value.slice(0, -1);
     currentInput.dispatchEvent(new Event('input'));
+    currentInput.dispatchEvent(new Event('change'));
 }
 
 function hideKeyboard() {
     document.getElementById('kiosk-keyboard').style.display = 'none';
+    
+    // REMOVE PADDING
+    const checkoutModal = document.querySelector('.kiosk-modal-content');
+    const body = document.body;
+    if (checkoutModal) checkoutModal.classList.remove('keyboard-open-padding');
+    body.classList.remove('keyboard-open-padding');
+    
     currentInput = null;
 }
