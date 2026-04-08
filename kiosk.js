@@ -211,4 +211,128 @@ document.addEventListener('DOMContentLoaded', () => {
         const overlay = document.getElementById('kiosk-auth-overlay');
         if (overlay) overlay.style.display = 'flex';
     }
+
+    // Initialize Virtual Keyboard
+    initVirtualKeyboard();
 });
+
+// --- VIRTUAL KEYBOARD SYSTEM ---
+let currentInput = null;
+let isShift = false;
+
+function initVirtualKeyboard() {
+    // GLOBAL LISTENER: This handles all inputs even if they are added later (like products)
+    document.body.addEventListener('mousedown', (e) => {
+        const el = e.target;
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            // Check if we should ignore this input (allow some standard inputs if needed)
+            if (el.type === 'radio' || el.type === 'checkbox') return;
+
+            // Prevent the default Windows keyboard
+            el.setAttribute('readonly', 'true');
+            
+            // Allow the field to be focused but don't let Windows take over
+            e.preventDefault();
+            currentInput = el;
+
+            // Determine mode: numeric for Phone or Quantity
+            let mode = 'qwerty';
+            if (el.type === 'number' || el.id === 'cust-phone' || el.id.startsWith('qty_')) {
+                mode = 'numeric';
+            }
+
+            showKeyboard(mode);
+
+            // Scroll for visibility
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    });
+
+    // Also handle touch for tablets
+    document.body.addEventListener('touchstart', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            // Trigger the same logic as mousedown
+            const mousedownEvent = new MouseEvent('mousedown', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            e.target.dispatchEvent(mousedownEvent);
+        }
+    }, { passive: false });
+}
+
+function showKeyboard(mode) {
+    const kbd = document.getElementById('kiosk-keyboard');
+    const grid = document.getElementById('keyboard-keys');
+    const title = document.getElementById('keyboard-title');
+    
+    grid.innerHTML = '';
+    grid.className = 'keyboard-grid ' + mode;
+    kbd.style.display = 'block';
+
+    if (mode === 'numeric') {
+        title.innerText = "Numeric Keypad";
+        const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'CLR', '0', '⌫'];
+        keys.forEach(k => {
+            const btn = document.createElement('button');
+            btn.className = 'kbd-key';
+            btn.innerText = k;
+            if (k === 'CLR') btn.onclick = () => { if(currentInput) currentInput.value = ''; };
+            else if (k === '⌫') btn.onclick = handleBackspace;
+            else btn.onclick = () => handleKeyPress(k);
+            grid.appendChild(btn);
+        });
+    } else {
+        title.innerText = "Alphanumeric Keyboard";
+        const rows = [
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '⌫'],
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+            ['⇧', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '@', '.'],
+            ['SPACE']
+        ];
+
+        rows.forEach(row => {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'keyboard-row';
+            row.forEach(k => {
+                const btn = document.createElement('button');
+                btn.className = 'kbd-key';
+                if (k === 'SPACE') { btn.innerText = 'SPACE'; btn.classList.add('extra-wide'); }
+                else if (k === '⌫') { btn.innerText = 'Backspace'; btn.classList.add('wide', 'backspace'); }
+                else if (k === '⇧') { btn.innerText = 'Shift'; btn.classList.add('wide', 'shift'); if(isShift) btn.classList.add('active'); }
+                else { btn.innerText = isShift ? k.toUpperCase() : k; }
+
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    if (k === 'SPACE') handleKeyPress(' ');
+                    else if (k === '⌫') handleBackspace();
+                    else if (k === '⇧') { isShift = !isShift; showKeyboard('qwerty'); }
+                    else { handleKeyPress(btn.innerText); if(isShift) { isShift = false; showKeyboard('qwerty'); } }
+                };
+                rowDiv.appendChild(btn);
+            });
+            grid.appendChild(rowDiv);
+        });
+    }
+}
+
+function handleKeyPress(key) {
+    if (!currentInput) return;
+    currentInput.value += key;
+    currentInput.dispatchEvent(new Event('input')); // Trigger any listeners
+}
+
+function handleBackspace() {
+    if (!currentInput) return;
+    currentInput.value = currentInput.value.slice(0, -1);
+    currentInput.dispatchEvent(new Event('input'));
+}
+
+function hideKeyboard() {
+    document.getElementById('kiosk-keyboard').style.display = 'none';
+    currentInput = null;
+}
