@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.08.04"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.06.02"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -127,14 +127,12 @@ let usingFallbackData = false;
 
 // --- CART PERSISTENCE ---
 function saveCart() {
-    const key = window.CART_KEY || 'hayyat_cart';
-    localStorage.setItem(key, JSON.stringify(cart));
+    localStorage.setItem('hayyat_cart', JSON.stringify(cart));
 }
 
 function loadCart() {
     try {
-        const key = window.CART_KEY || 'hayyat_cart';
-        const saved = localStorage.getItem(key);
+        const saved = localStorage.getItem('hayyat_cart');
         if (saved) {
             cart = JSON.parse(saved);
             renderCart();
