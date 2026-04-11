@@ -61,7 +61,7 @@ window.placeOrder = async function () {
 
     // DELIVERY CALCULATION (UNIFIED: 350 min, no nearest-100 rounding)
     if (shipping === "open") {
-        deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 4.5);
+        deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 3.5);
     } else if (shipping === "bundle") {
         let bundles = Math.round(totalWeight / 70) || 1;
         deliveryCharges = bundles * 250;
