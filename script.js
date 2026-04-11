@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.06.02"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.11.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1512,8 +1512,8 @@ function calculateDeliveryCharges(method = 'open') {
         if (totalWeight <= 150) {
             deliveryCharges = 350; // Flat minimum
         } else {
-            // Simple Weight * 4.5 (No rounding to 10 or 100)
-            deliveryCharges = Math.round(totalWeight * 4.5);
+            // Simple Weight * 3.5 (No rounding to 10 or 100)
+            deliveryCharges = Math.round(totalWeight * 3.5);
         }
 
         chargesText = `Delivery Charges (Open): Rs ${deliveryCharges}`;
@@ -2136,9 +2136,9 @@ async function placeOrder() {
     let deliveryCharges = 0;
     if (shipping === "open" || shipping === "bundle") {
         if (shipping === "open") {
-            // UNIFIED: Case 1: <= 150kg is 350. Case 2: > 150kg is Weight * 4.5
+            // UNIFIED: Case 1: <= 150kg is 350. Case 2: > 150kg is Weight * 3.5
             // Removed the complex nearest-100 rounding that caused 468/400 errors
-            deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 4.5);
+            deliveryCharges = (totalWeight <= 150) ? 350 : Math.round(totalWeight * 3.5);
         } else if (shipping === "bundle") {
             // BUNDLE delivery logic
             let bundles = totalWeight / 70;
