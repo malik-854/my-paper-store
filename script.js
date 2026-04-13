@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.11.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.13.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1227,6 +1227,10 @@ function jumpToAlt(targetKey, size, gsm) {
     // 2. Scroll into view and flash orange (Background flash)
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     card.classList.add('blink-highlight');
+
+    // Set suggestion flag for this product
+    window['suggested_' + targetKey] = true;
+
     setTimeout(() => card.classList.remove('blink-highlight'), 3000);
 
     // 3. Select Size (Using Case-Insensitive Matching)
@@ -1938,7 +1942,8 @@ async function addToCart(key) {
         ...p,
         qty,
         selectedColor: selectedColor,
-        selectedBrand: selectedBrand
+        selectedBrand: selectedBrand,
+        isSuggested: window['suggested_' + key] || false
     }
 
     if (cart[cartKey]) {
@@ -2197,6 +2202,9 @@ async function placeOrder() {
         orderSummary += `ItemSubtotal: ${itemTotal}\n`;
         orderSummary += `ValueRs: ${i.sheets || ''}\n`;
         orderSummary += `StockAfter: ${stockAfter}\n`;
+        if (i.isSuggested) {
+            orderSummary += `SuggestTag: (Suggest)\n`;
+        }
         orderSummary += `[ITEM_END]\n\n`;
     });
     orderSummary += "ORDER_DATA_END";
@@ -2254,7 +2262,7 @@ async function placeOrder() {
             orderWeight: Math.round(totalWeight)
         };
 
-        await fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
+        await fetch('https://script.google.com/macros/s/AKfycbzqQWaupJvBJiFdbIJfhWaYoJYqqqGdLf4402bBRzyvdKGdM-gD1N3u9gQ7s8bDvSvG/exec', {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
