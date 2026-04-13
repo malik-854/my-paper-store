@@ -96,7 +96,7 @@ window.placeOrder = async function () {
         orderSummary += `Name: ${name}\n`;
         orderSummary += `Phone: ${phone || "Not provided"}\n`;
         const email = document.getElementById("cust-email") ? document.getElementById("cust-email").value : '';
-        
+
         const nowTime = new Date();
         const formattedDate = `${String(nowTime.getDate()).padStart(2, '0')}/${String(nowTime.getMonth() + 1).padStart(2, '0')}/${nowTime.getFullYear()} ${String(nowTime.getHours()).padStart(2, '0')}:${String(nowTime.getMinutes()).padStart(2, '0')}`;
         orderSummary += `OrderTime: ${formattedDate}\n\n`;
@@ -132,6 +132,9 @@ window.placeOrder = async function () {
             orderSummary += `ItemSubtotal: ${itemTotal}\n`;
             orderSummary += `ValueRs: ${i.sheets || ''}\n`;
             orderSummary += `StockAfter: ${stockAfter}\n`;
+            if (i.isSuggested) {
+                orderSummary += `SuggestTag: (Suggest)\n`;
+            }
             orderSummary += `[ITEM_END]\n\n`;
         });
         orderSummary += "ORDER_DATA_END";
@@ -148,7 +151,7 @@ window.placeOrder = async function () {
             orderWeight: Math.round(totalWeight)
         };
 
-        await fetch('https://script.google.com/macros/s/AKfycbw-h33gLXwPGRdnlURFncIhf3W8AS55ikyJN8Db4IZaydA4BwXxyG4gkSghUlluOznFWg/exec', {
+        await fetch('https://script.google.com/macros/s/AKfycbzqQWaupJvBJiFdbIJfhWaYoJYqqqGdLf4402bBRzyvdKGdM-gD1N3u9gQ7s8bDvSvG/exec', {
             method: 'POST', mode: 'no-cors', body: JSON.stringify(emailData)
         });
 
