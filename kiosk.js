@@ -205,6 +205,8 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtot
             const specs = [];
             if (i.size) specs.push(i.size);
             if (i.gsm) specs.push(`${i.gsm} GSM`);
+            if (i.displaySize) specs.push(i.displaySize);
+            else if (i.selectedBrand) specs.push(i.selectedBrand);
             if (i.selectedColor) specs.push(i.selectedColor);
             const specStr = specs.length > 0 ? `<div style="font-size:11px; font-weight:700; color:#000; margin-top:2px;">${specs.join(' | ')}</div>` : '';
             return `<tr>
