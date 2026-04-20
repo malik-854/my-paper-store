@@ -181,6 +181,12 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtot
     document.getElementById('print-phone').innerText = p || 'N/A';
     document.getElementById('print-order-id').innerText = id;
 
+    const _now = new Date();
+    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const _dateStr = `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
+    const dateEl = document.getElementById('print-date');
+    if (dateEl) dateEl.innerText = _dateStr;
+
     const shippingMap = { 'self': 'Self Pickup', 'open': 'Delivery - Open', 'bundle': 'Delivery - Bundle' };
     const paymentMap = { 'shop': 'Pay at Shop', 'bank': 'Bank Transfer' };
 
