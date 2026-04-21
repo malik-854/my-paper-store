@@ -103,8 +103,8 @@
     <div class="header">
         <div class="header-content">
             <h1 class="highlight-bg">Hayyat Paper Store</h1>
-            <p>Your Partner in Premium Paper Solutions.</p>
-            <!-- ANNOUNCEMENT BAR -->
+            
+            <!-- ANNOUNCEMENT BAR (MOVED UP) -->
             <div class="announcement-container">
                 <div class="announcement-wrapper">
                     <div class="announcement-track" id="announcement-track">
@@ -113,9 +113,19 @@
                 </div>
             </div>
 
+            <!-- SEARCH BAR (MOVED UP) -->
             <div class="search-container">
                 <input type="text" id="search-input" onkeyup="searchProducts(this.value)"
                     placeholder="Search by paper name, size, brand or GSM...">
+            </div>
+
+            <!-- CART BAR (MOVED INTO HEADER) -->
+            <div class="cart-bar-container">
+                <button id="view-cart-btn" class="cart-pill" onclick="toggleCart()" style="display: none;">
+                    <span class="cart-icon">🛒</span>
+                    <span class="cart-text">View Shopping Cart</span>
+                    <span id="cart-count-badge" class="cart-count">0</span>
+                </button>
             </div>
         </div>
     </div>
@@ -135,12 +145,6 @@
         <p style="margin: 0; color: #856404;">⚠️ Using sample products. Real data will load when connection is restored.
         </p>
     </div>
-
-    <!-- Sleek Floating Cart Pill -->
-    <button id="view-cart-btn" class="cart-pill" onclick="toggleCart()" style="display: none;">
-        <span class="cart-icon">🛒</span>
-        <span id="cart-count-badge" class="cart-count">0</span>
-    </button>
 
     <!-- Cart Sidebar -->
     <div id="cart-container">
