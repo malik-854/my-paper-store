@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.21.03"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.22.01"; // Updated for header restructure and cart animation
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1606,6 +1606,63 @@ function removeFromCart(cartKey) {
     updateCartBadge()
     saveCart() // Persist to local storage
 }
+
+/**
+ * FEATURE: Beautiful Trailing Animation
+ * Animates a product image clone from the product card to the cart icon.
+ */
+function animateToCart(sourceImg, targetEl) {
+    const clone = sourceImg.cloneNode(true);
+    const sourceRect = sourceImg.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+
+    // Initial state
+    clone.classList.add('flying-product');
+    clone.style.width = sourceRect.width + 'px';
+    clone.style.height = sourceRect.height + 'px';
+    clone.style.top = sourceRect.top + 'px';
+    clone.style.left = sourceRect.left + 'px';
+    
+    document.body.appendChild(clone);
+
+    // Trailing particles logic
+    const particleInterval = setInterval(() => {
+        const rect = clone.getBoundingClientRect();
+        createParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }, 50);
+
+    // Animate to target
+    requestAnimationFrame(() => {
+        clone.style.width = '40px';
+        clone.style.height = '40px';
+        clone.style.top = (targetRect.top + targetRect.height / 2 - 20) + 'px';
+        clone.style.left = (targetRect.left + targetRect.width / 2 - 20) + 'px';
+        clone.style.opacity = '0.5';
+        clone.style.transform = 'rotate(360deg)';
+    });
+
+    // Cleanup
+    setTimeout(() => {
+        clearInterval(particleInterval);
+        clone.remove();
+        
+        // Bump animation on cart button
+        targetEl.classList.remove('cart-bump');
+        void targetEl.offsetWidth; // Trigger reflow
+        targetEl.classList.add('cart-bump');
+    }, 800);
+}
+
+function createParticle(x, y) {
+    const p = document.createElement('div');
+    p.className = 'cart-particle';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary') || '#28a745';
+    document.body.appendChild(p);
+    
+    setTimeout(() => p.remove(), 600);
+}
 // ===== END CHECKOUT FUNCTIONS =====
 
 // ADD TO CART FUNCTION - UPDATED FOR BRAND
@@ -1963,6 +2020,18 @@ async function addToCart(key) {
     } else {
         cart[cartKey] = cartItem
     }
+
+    // ✅ Trending Flying Animation
+    try {
+        const productCard = document.querySelector(`.product-card img[src*="${p.image.split('/').pop()}"]`) || 
+                          document.querySelector(`[onclick="addToCart('${key}')"]`).closest('.product-card');
+        const productImage = productCard ? (productCard.tagName === 'IMG' ? productCard : productCard.querySelector('img')) : null;
+        const cartBtn = document.getElementById('view-cart-btn');
+        
+        if (productImage && cartBtn) {
+            animateToCart(productImage, cartBtn);
+        }
+    } catch(e) { console.error("Animation failed", e); }
 
     renderCart()
     updateCartBadge()
