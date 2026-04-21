@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.13.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.21.01"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -342,6 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetchProducts();
     setupShippingListeners();
     setupPaymentListeners();
+    handleInitialHash(); // Handle deep linking from URL
 
     // Close cart when clicking outside on mobile
     document.addEventListener('click', function (event) {
@@ -469,6 +470,7 @@ async function fetchProducts(options = {}) {
         document.getElementById('view-cart-btn').style.display = 'flex';
         // ADD THIS LINE:
         fetchAnnouncements();  // Load announcements
+        generateDynamicSchema(groupedProducts); // NEW: Tell Google about these dynamic categories
 
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -2332,6 +2334,98 @@ style.textContent = `
     }
 `
 
+/**
+ * Generates dynamic Structured Data for Google.
+ * This tells Google about all categories loaded from the Sheet, even if they aren't in the static sitemap.
+ */
+function generateDynamicSchema(groups) {
+    const categories = Object.keys(groups);
+    if (categories.length === 0) return;
+
+    // Create ItemList for categories
+    const schema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Hayyat Paper Categories",
+        "itemListElement": categories.map((cat, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "url": `https://www.hayyatstore.com/#cat_${safeKey(cat)}`,
+            "name": cat
+        }))
+    };
+
+    // Remove old dynamic schema if it exists
+    const oldSchema = document.getElementById('dynamic-category-schema');
+    if (oldSchema) oldSchema.remove();
+
+    // Inject into head
+    const script = document.createElement('script');
+    script.id = 'dynamic-category-schema';
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    console.log("SEO: Dynamic Category Schema Injected for", categories.length, "categories.");
+}
+
+// --- SEO & DEEP LINKING CONFIG ---
+const ORIGINAL_TITLE = document.title;
+const ORIGINAL_DESCRIPTION = document.querySelector('meta[name="description"]')?.content || "";
+
+/**
+ * Updates the page title and meta description based on the active category.
+ * Target pattern: [Category Name] Wholesale Rates in Pakistan | Hayyat Paper Store
+ */
+function updateSEO(categoryName) {
+    if (categoryName) {
+        const dynamicTitle = `${categoryName} Wholesale Rates in Pakistan | Hayyat Paper Store`;
+        const dynamicDesc = `Get competitive wholesale prices for ${categoryName} at Hayyat Paper Store. Nationwide delivery across Pakistan, including Karachi, Lahore, Islamabad, Faisalabad, and more. Trusted paper solutions since 1990.`;
+        
+        document.title = dynamicTitle;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute("content", dynamicDesc);
+    } else {
+        document.title = ORIGINAL_TITLE;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute("content", ORIGINAL_DESCRIPTION);
+    }
+}
+
+/**
+ * Checks the URL hash on page load and expands the corresponding category.
+ */
+function handleInitialHash() {
+    const hash = window.location.hash.substring(1); // Remove #
+    if (hash && hash.startsWith('cat_')) {
+        const catKey = hash.replace('cat_', '');
+        // Small delay to ensure products are rendered
+        setTimeout(() => {
+            const section = document.getElementById(`section-${catKey}`);
+            if (section) {
+                toggleCategory(catKey);
+            }
+        }, 500);
+    }
+}
+
+// Listen for back/forward navigation
+window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.substring(1);
+    const focused = document.querySelector('.category-section.focused');
+    
+    if (!hash && focused) {
+        // If we went back to home, close focus mode
+        const catKey = focused.id.replace('section-', '');
+        toggleCategory(catKey);
+    } else if (hash && hash.startsWith('cat_')) {
+        const catKey = hash.replace('cat_', '');
+        if (!focused || focused.id !== `section-${catKey}`) {
+            toggleCategory(catKey);
+        }
+    }
+});
+
 // Helper to manage clicks on category sections
 function handleSectionClick(event, categoryKey) {
     const section = document.getElementById(`section-${categoryKey}`);
@@ -2362,6 +2456,12 @@ function toggleCategory(categoryKey) {
 
         productsDiv.style.maxHeight = "0";
 
+        // SEO and URL Update
+        updateSEO(null);
+        if (window.location.hash) {
+            history.pushState(null, null, ' '); // Remove hash without jump
+        }
+
         // Scroll back to where the section was
         window.scrollTo({ top: section.offsetTop - 100, behavior: 'smooth' });
     } else {
@@ -2377,6 +2477,11 @@ function toggleCategory(categoryKey) {
 
         section.classList.add("focused");
         productsDiv.style.maxHeight = "10000px";
+
+        // SEO and URL Update
+        const categoryName = section.querySelector('.category-header')?.textContent || "";
+        updateSEO(categoryName);
+        window.location.hash = `cat_${categoryKey}`;
 
         // Smooth scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
