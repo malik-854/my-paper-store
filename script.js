@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.21.01"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.21.02"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -2385,10 +2385,28 @@ function updateSEO(categoryName) {
         document.title = dynamicTitle;
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) metaDesc.setAttribute("content", dynamicDesc);
+
+        // --- GOOGLE ANALYTICS TRACKING ---
+        if (typeof gtag === 'function') {
+            gtag('event', 'page_view', {
+                page_title: dynamicTitle,
+                page_location: window.location.href,
+                page_path: window.location.pathname + window.location.hash
+            });
+        }
     } else {
         document.title = ORIGINAL_TITLE;
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) metaDesc.setAttribute("content", ORIGINAL_DESCRIPTION);
+
+        // Track return to home
+        if (typeof gtag === 'function') {
+            gtag('event', 'page_view', {
+                page_title: ORIGINAL_TITLE,
+                page_location: window.location.href,
+                page_path: window.location.pathname
+            });
+        }
     }
 }
 
