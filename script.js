@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.21.02"; // Match Google Sheet X2 to stop reload loop
+const APP_VERSION = "2026.04.21.03"; // Match Google Sheet X2 to stop reload loop
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fetchProducts();
     setupShippingListeners();
     setupPaymentListeners();
-    handleInitialHash(); // Handle deep linking from URL
+    // handleInitialHash moved to fetchProducts to ensure data is ready
 
     // Close cart when clicking outside on mobile
     document.addEventListener('click', function (event) {
@@ -471,6 +471,7 @@ async function fetchProducts(options = {}) {
         // ADD THIS LINE:
         fetchAnnouncements();  // Load announcements
         generateDynamicSchema(groupedProducts); // NEW: Tell Google about these dynamic categories
+        handleInitialHash(); // NEW: Now open the category if the link has a #hash
 
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -2411,19 +2412,21 @@ function updateSEO(categoryName) {
 }
 
 /**
- * Checks the URL hash on page load and expands the corresponding category.
+ * Checks the URL hash and expands the corresponding category.
+ * Now wait for a split second to ensure CSS/Rendering is complete.
  */
 function handleInitialHash() {
     const hash = window.location.hash.substring(1); // Remove #
     if (hash && hash.startsWith('cat_')) {
         const catKey = hash.replace('cat_', '');
-        // Small delay to ensure products are rendered
-        setTimeout(() => {
+        // Give the browser a moment to finish layout
+        requestAnimationFrame(() => {
             const section = document.getElementById(`section-${catKey}`);
-            if (section) {
+            if (section && !section.classList.contains('focused')) {
+                console.log("SEO: Deep link detected, opening category:", catKey);
                 toggleCategory(catKey);
             }
-        }, 500);
+        });
     }
 }
 
