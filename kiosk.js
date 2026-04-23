@@ -32,12 +32,26 @@ window.openCheckout = async function () {
 };
 
 window.placeOrder = async function () {
+    const nameInput = document.getElementById("cust-name");
+    const phoneInput = document.getElementById("cust-phone");
+
+    if (!nameInput.value.trim()) {
+        alert("Please enter your full name.");
+        nameInput.focus();
+        return;
+    }
+    if (!phoneInput.value.trim()) {
+        alert("Please enter your phone number.");
+        phoneInput.focus();
+        return;
+    }
+
     const btn = document.querySelector('.whatsapp-btn');
     if (btn) { btn.innerHTML = '⏳ Saving...', btn.disabled = true; }
 
     const orderId = `HAYYAT-KIOSK-${Date.now()}`;
-    const name = document.getElementById("cust-name").value || "Kiosk Guest";
-    const phone = document.getElementById("cust-phone").value || "";
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
     const address = document.getElementById("delivery-address").value;
     const shipping = document.querySelector('input[name="shipping"]:checked').value;
     const payment = document.querySelector('input[name="payment"]:checked').value;
