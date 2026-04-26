@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hayyat Copy Paper Specialist</title>
+    <link rel="stylesheet" href="a4-kiosk.css">
+    <!-- Google Fonts for a premium feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Auth Guard Overlay (Hidden by Default) -->
+    <div id="kiosk-auth-overlay"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
+        <h1 style="color:#111827;">Kiosk Not Authorized</h1>
+        <p>This page is intended for in-store use only.</p>
+        <button onclick="window.location.href='index.html'"
+            style="margin-top:20px; padding:15px 30px; background:#004c99; color:white; border:none; border-radius:8px; font-size:1.2rem;">Return
+            to Webstore</button>
+    </div>
+
+
+    <header class="kiosk-header">
+        <div class="header-left">
+            <button id="view-cart-btn" class="header-btn" onclick="toggleCart()">
+                <span class="icon">🛒</span>
+                <span id="cart-count-badge" class="badge">0</span>
+            </button>
+        </div>
+        <div class="header-center">
+            <div class="logo">Hayyat <span>Copy Paper</span></div>
+        </div>
+        <div class="header-right">
+            <div id="current-time" class="kiosk-time">00:00</div>
+        </div>
+    </header>
+
+    <main id="app-container">
+
+        <!-- Loading State -->
+        <div id="loading-indicator" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading the best paper for you...</p>
+        </div>
+
+        <!-- Copy Paper Product Container -->
+        <div id="product-list" class="copy-paper-container" style="display: none;">
+            <!-- A4 and F4 Cards will be injected here -->
+        </div>
+    </main>
+
+    <!-- FULL-SCREEN KIOSK CART OVERLAY -->
+    <div id="cart-container" class="kiosk-cart-overlay">
+        <div class="kiosk-cart-header">
+            <h3>Your Kiosk Order</h3>
+            <button class="kiosk-cart-close" onclick="toggleCart()">✕</button>
+        </div>
+        
+        <div id="cart-items" class="kiosk-cart-content">
+            <!-- Items injected by JS -->
+        </div>
+
+        <div class="kiosk-cart-footer">
+            <div class="kiosk-total-centered">
+                Total: <span id="cart-total">Rs 0 (0 KG)</span>
+            </div>
+            <button class="kiosk-proceed-btn" onclick="openCheckout()">Proceed to Order</button>
+        </div>
+    </div>
+
+    <!-- CHECKOUT MODAL -->
+    <div id="checkout-modal" class="kiosk-modal">
+        <div class="kiosk-modal-content">
+            <div class="checkout-header">
+                <h3>Checkout Details</h3>
+                <button class="checkout-close-btn" onclick="closeCheckout()">✕</button>
+            </div>
+
+            <div class="checkout-two-column kiosk-checkout-grid">
+
+                <!-- LEFT COLUMN: Customer Inputs -->
+                <div class="checkout-left">
+                    <div class="input-group">
+                        <label for="cust-name">Full Name *</label>
+                        <input id="cust-name" class="kiosk-input" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cust-phone">Phone Number *</label>
+                        <input type="tel" inputmode="numeric" pattern="[0-9]*" id="cust-phone" class="kiosk-input"
+                            placeholder="Enter your phone number" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="cust-email">Email Address (Optional)</label>
+                        <input id="cust-email" class="kiosk-input" placeholder="Enter your email" type="email">
+                    </div>
+
+                    <h3 style="margin-bottom:15px; margin-top:20px;">Shipping Method</h3>
+                    <div class="shipping-options kiosk-options">
+                        <label id="label-shipping-self" class="shipping-option-btn active" onclick="updateShipping('self')">
+                            <input type="radio" id="shipping-self" name="shipping" value="self" checked>
+                            <div>Self Pickup</div>
+                            <span>FREE</span>
+                        </label>
+                        <label id="label-shipping-open" class="shipping-option-btn" onclick="updateShipping('open')">
+                            <input type="radio" name="shipping" value="open">
+                            <div>Delivery - Open</div>
+                            <span>Min Rs 350</span>
+                        </label>
+                        <label id="label-shipping-bundle" class="shipping-option-btn" onclick="updateShipping('bundle')">
+                            <input type="radio" name="shipping" value="bundle">
+                            <div>Delivery - Bundle</div>
+                            <span>Only for Adda</span>
+                        </label>
+                    </div>
+
+                    <h3 style="margin-bottom:15px; margin-top:25px;">Payment Method</h3>
+                    <div class="payment-options kiosk-options">
+                        <label id="label-shop" class="payment-option-btn active" onclick="selectPaymentMethod('shop')">
+                            <input type="radio" id="pay-shop" name="payment" value="shop" checked>
+                            <div>Pay at Shop</div>
+                            <span>Pay when collecting</span>
+                        </label>
+                        <label id="label-bank" class="payment-option-btn" onclick="selectPaymentMethod('bank')">
+                            <input type="radio" id="pay-bank" name="payment" value="bank">
+                            <div>Bank Transfer</div>
+                            <span>Details via WhatsApp</span>
+                        </label>
+                    </div>
+
+                    <div id="delivery-address-container" style="display:none; margin-top:20px;">
+                        <div class="input-group">
+                            <label for="delivery-address">Delivery Address *</label>
+                            <textarea id="delivery-address" class="kiosk-input"
+                                style="height:auto !important; padding:15px !important;"
+                                placeholder="Enter full delivery address" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div> <!-- END LEFT COLUMN -->
+
+                <!-- RIGHT COLUMN: Order Summary & Buttons -->
+                <div class="checkout-right">
+                    <div class="kiosk-summary-box">
+                        <h3>Order Summary</h3>
+                        <div class="summary-line"><span id="check-subtotal-label">Subtotal (0 items)</span><span id="check-subtotal">Rs 0</span></div>
+                        <div class="summary-line"><span>Shipping</span><span id="check-shipping">FREE</span></div>
+                        <div class="summary-line"><span>Total Weight</span><span id="check-weight">0 KG</span></div>
+                        <div class="summary-line total"><span>Total</span><span id="check-total">Rs 0</span></div>
+
+                        <div class="checkout-items-list">
+                            <h4>Items in Cart:</h4>
+                            <div id="check-items-list"></div>
+                        </div>
+                    </div>
+
+                    <button onclick="placeOrder()" class="kiosk-place-order-btn">
+                        🖨️ Finish & Print Receipt
+                    </button>
+
+                    <button onclick="closeCheckout()" class="kiosk-cancel-btn"
+                        style="width:100%; margin-top:15px;">
+                        Cancel
+                    </button>
+                </div> <!-- END RIGHT COLUMN -->
+
+            </div> <!-- END checkout-two-column -->
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div id="success-modal" class="kiosk-modal" style="display:none;">
+        <div class="kiosk-modal-content" style="text-align:center; padding:50px;">
+            <div style="font-size: 80px; color: #2ecc71; margin-bottom: 20px;">✅</div>
+            <h2 style="font-size: 2.5rem; color: #2c3e50; margin-bottom: 15px;">Order Successful!</h2>
+            <p style="font-size: 1.2rem; color: #6b7280; margin-bottom: 30px;">
+                Your Order ID is: <strong id="success-order-id" style="color: #ff8400;">HAYYAT-A4-...</strong>
+            </p>
+            <p style="margin-bottom: 40px; color: #34495e;">Please take your printed receipt and show it at the counter for payment.</p>
+            <button onclick="location.reload()" style="width:100%; height:70px; background:#2ecc71; color:white; border:none; border-radius:12px; font-size:1.5rem; font-weight:700; cursor:pointer;">
+                Finish &amp; Clear Screen
+            </button>
+        </div>
+    </div>
+
+    <!-- PRINT SECTION (Matches kiosk.html design) -->
+    <div id="print-section" class="print-only">
+        <div class="invoice-box">
+            <div class="header"
+                style="text-align: center; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 2px solid #2c3e50;">
+                <h1 style="color: #2c3e50; font-size: 16px; margin-bottom: 2px; letter-spacing: 2px; font-weight: 800;">
+                    ESTIMATE ONLY</h1>
+                <div class="order-id" id="print-order-id"
+                    style="background: #ff8400; color: white; padding: 2px 10px; border-radius: 50px; display: inline-block; font-weight: bold; font-size: 12px; margin-top: 2px; letter-spacing: 0.5px;">
+                    HAYYAT-LOADING...
+                </div>
+            </div>
+
+            <div class="customer-section"
+                style="background: #f8f9fa; padding: 5px 10px; border-radius: 8px; margin-bottom: 5px; border-left: 4px solid #2c3e50;">
+                <h3 style="color: #2c3e50; margin-bottom: 2px; font-size: 0.85rem;">CUSTOMER INFORMATION</h3>
+                <div class="info-grid"
+                    style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 10px; margin-top: 5px;">
+                    <div class="info-item">
+                        <div class="info-label" style="font-weight: 600; color: #2c3e50; font-size: 11px;">NAME</div>
+                        <div class="info-value" id="print-name"
+                            style="color: #34495e; font-weight: 700; font-size: 13px; padding: 0;">N/A</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label" style="font-weight: 600; color: #2c3e50; font-size: 11px;">PHONE</div>
+                        <div class="info-value" id="print-phone"
+                            style="color: #34495e; font-weight: 700; font-size: 13px; padding: 0;">N/A</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label" style="font-weight: 600; color: #2c3e50; font-size: 11px;">PAYMENT</div>
+                        <div class="info-value" id="print-payment"
+                            style="color: #34495e; font-weight: 700; font-size: 13px; padding: 0;">N/A</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label" style="font-weight: 600; color: #2c3e50; font-size: 11px;">SHIPPING</div>
+                        <div class="info-value" id="print-shipping"
+                            style="color: #34495e; font-weight: 700; font-size: 13px; padding: 0;">N/A</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label" style="font-weight: 600; color: #2c3e50; font-size: 11px;">DATE</div>
+                        <div class="info-value" id="print-date"
+                            style="color: #34495e; font-weight: 700; font-size: 13px; padding: 0;">N/A</div>
+                    </div>
+                    <div class="info-item" id="print-address-row" style="grid-column: 1 / -1; display: none;">
+                        <div class="info-label" style="font-weight: 600; color: #2c3e50; font-size: 11px;">DELIVERY ADDRESS</div>
+                        <div class="info-value" id="print-address"
+                            style="color: #34495e; font-weight: 700; font-size: 11px; padding: 0; line-height: 1.2;">N/A</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="color: #2c3e50; margin-top: 10px; margin-bottom: 5px; font-size: 0.9rem;">ORDER ITEMS</h3>
+            <table class="items-table" style="width: 100%; border-collapse: collapse; margin: 5px 0; font-size: 12px;">
+                <thead>
+                    <tr style="background: #2c3e50; color: white;">
+                        <th style="padding: 6px 8px; text-align: left;">PRODUCT</th>
+                        <th style="padding: 6px 8px; text-align: left;">QTY</th>
+                        <th style="padding: 6px 8px; text-align: left;">PRICE</th>
+                        <th style="padding: 6px 8px; text-align: left;">RATE/KG</th>
+                        <th style="padding: 6px 8px; text-align: left;">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="print-items-body">
+                    <!-- Items will be injected here -->
+                </tbody>
+            </table>
+
+            <div class="price-summary"
+                style="background: #2c3e50; color: white; padding: 10px 15px; border-radius: 12px; margin-top: 15px;">
+                <div class="summary-row"
+                    style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div class="summary-label" style="font-size: 14px; opacity: 0.9;">Items Total</div>
+                    <div class="summary-value" id="print-subtotal" style="font-size: 14px; font-weight: 700;">Rs 0</div>
+                </div>
+                <div class="summary-row" id="print-delivery-row"
+                    style="display: none; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div class="summary-label" style="font-size: 14px; opacity: 0.9;">Delivery Charges</div>
+                    <div class="summary-value" id="print-delivery-charges" style="font-size: 14px; font-weight: 700;">Rs 0</div>
+                </div>
+                <div class="summary-row"
+                    style="display: flex; justify-content: space-between; padding: 5px 0; margin-top: 5px;">
+                    <div class="summary-label" style="font-size: 18px; font-weight: 900; color: #f1c40f;">GRAND TOTAL</div>
+                    <div class="summary-value" id="print-total-amount"
+                        style="font-size: 18px; font-weight: 900; color: #f1c40f;">Rs 0</div>
+                </div>
+            </div>
+
+            <!-- Urdu Policy Note -->
+            <div style="margin-top: 12px; padding: 10px 12px; border: 2px solid #c0392b; border-radius: 8px; text-align: right; direction: rtl;">
+                <p style="margin: 0; font-size: 16px; font-weight: 900; color: #c0392b; font-family: 'Noto Nastaliq Urdu', serif; line-height: 1.8;"><strong>نوٹ: کٹا ہوا یا چھپا ہوا مال واپس یا تبدیل نہی ہوگا</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="a4-kiosk.js"></script>
+</body>
+</html>
