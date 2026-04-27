@@ -314,6 +314,28 @@ function renderCopyPaper(groups) {
     `;
     layoutWrapper.appendChild(imageBox);
 
+    // Build mini wholesale reminder box
+    let miniWholesaleHtml = '';
+    if (WHOLESALE_TIERS.length > 0) {
+        const ascendingTiers = [...WHOLESALE_TIERS].sort((a, b) => a.minQty - b.minQty);
+        let tiersRows = ascendingTiers.map(tier => {
+            const pct = (tier.discount * 100).toFixed(2).replace(/\.?0+$/, '');
+            return `<div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; padding: 3px 5px; border-bottom: 1px dashed rgba(211, 47, 47, 0.2);">
+                <span style="color:#d32f2f; font-weight: bold; font-family: sans-serif;">${pct}% DISCOUNT</span>
+                <span dir="rtl" style="font-family: 'Noto Nastaliq Urdu', serif; color: #856404;">${tier.minQty}&nbsp;&nbsp; پیکٹ یا زیادہ</span>
+            </div>`;
+        }).join('');
+
+        miniWholesaleHtml = `
+            <div id="mini-promo_${pId}" class="mini-promo-box" style="background: linear-gradient(135deg, #fff3cd 0%, #ffdf7e 100%); border: 1px solid #ffeeba; border-radius: 8px; padding: 10px; margin: 15px 0 5px 0; box-shadow: 0 4px 8px rgba(255, 193, 7, 0.1); display: none;">
+                <div style="font-family: 'Noto Nastaliq Urdu', serif; font-size: 1.1rem; color: #d32f2f; font-weight: bold; text-align: center; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <span>🎁</span> ہول سیل آفر
+                </div>
+                ${tiersRows}
+            </div>
+        `;
+    }
+
     // 2. The Main Content Card
     const card = document.createElement('div');
     card.className = 'copy-paper-card content-only-card';
@@ -342,7 +364,9 @@ function renderCopyPaper(groups) {
                     <!-- Brands injected here -->
                 </div>
 
-                <div class="price-section">
+                ${miniWholesaleHtml}
+
+                <div class="price-section" style="margin-top: 15px;">
                     <div id="price_${pId}" class="main-price">Rs 0</div>
                     <div id="rate_${pId}" class="rate-per-kg">Rs 0 / KG</div>
                 </div>
@@ -448,6 +472,12 @@ function updateCardUI(pId) {
         if (qty > max) {
             qtyInput.value = max;
             alert(`Maximum allowed quantity for ${currentVar.brand} is ${max}`);
+        }
+
+        // Toggle Mini Promo Box
+        const miniPromo = document.getElementById(`mini-promo_${pId}`);
+        if (miniPromo) {
+            miniPromo.style.display = currentVar.wholesaleEligible ? 'block' : 'none';
         }
 
         // --- WHOLESALE DISCOUNT: Calculate based on current item input + cart qty for this item ---
