@@ -66,20 +66,27 @@ body.kiosk-mode {
 
 /* --- GIANT TOUCH BUTTONS --- */
 .kiosk-mode .variation-btn {
-    min-height: var(--kiosk-btn-height);
-    padding: 15px 25px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    margin: 4px;
-    flex: 1 1 40%;
-    /* Make buttons fill more space */
+    min-height: 40px;
+    padding: 5px 2px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    margin: 3px;
+    flex: 0 0 30.5% !important; /* Rigidly force 3 per row */
+    max-width: 31% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
 }
 
 .kiosk-mode .variation-grid {
-    gap: 10px;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
 }
 
 /* --- TOUCH-READY QUANTITY SELECTOR --- */
