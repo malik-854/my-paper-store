@@ -14,12 +14,29 @@ const COL = {
     RATE: 10, WEIGHT: 11, PRICE: 12, MAX: 13, IMAGE: 14,
     HAS_COLORS: 15, COLOR_OPTIONS: 16,
     DISPLAY_SIZE: 17, DISCOUNT_TAG: 18, NEW_TAG: 19,
-    STOCK: 5, MIN_STOCK: 24, ERP_CODE: 27, ERP_DESC: 28, PACKING_TYPE: 29
+    STOCK: 5, MIN_STOCK: 24, ERP_CODE: 27, ERP_DESC: 28, PACKING_TYPE: 29,
+    WHOLESALE_ELIGIBLE: 30
 };
 
 let globalProducts = {};
 let cart = {};
 let lunrIndex = null;
+
+// =============================================================
+// WHOLESALE DISCOUNT TIERS
+// Rules are now fetched dynamically from the Google Sheet
+// =============================================================
+let WHOLESALE_TIERS = [];
+
+/**
+ * Returns the discount rate (0 to 1) that applies for a given per-item quantity.
+ */
+function getWholesaleDiscount(itemQty) {
+    for (const tier of WHOLESALE_TIERS) {
+        if (itemQty >= tier.minQty) return tier.discount;
+    }
+    return 0; // No discount below min tier
+}
 
 // Initialization
 // Initialization with Auth Guard
@@ -63,7 +80,24 @@ function startTimeUpdate() {
 // 1. Specialized Fetch (Copy Paper Only)
 async function fetchProducts() {
     try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:AD?key=${API_KEY}`;
+        // Fetch Discount Rules from 'Discount' tab
+        try {
+            const discUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Discount!A2:B?key=${API_KEY}`;
+            const discResponse = await fetch(discUrl);
+            if (discResponse.ok) {
+                const discData = await discResponse.json();
+                if (discData.values) {
+                    WHOLESALE_TIERS = discData.values.map(row => ({
+                        minQty: parseInt(row[0]) || 0,
+                        discount: parseFloat(row[1] ? String(row[1]).replace('%', '') : 0) / 100
+                    })).sort((a, b) => b.minQty - a.minQty); // Sort descending (highest qty first)
+                }
+            }
+        } catch (e) {
+            console.warn("Could not load discount rules", e);
+        }
+
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:AE?key=${API_KEY}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to fetch data');
 
@@ -123,6 +157,7 @@ function groupProducts(rows) {
             erpCode: r[COL.ERP_CODE],
             erpDesc: r[COL.ERP_DESC],
             packingType: r[COL.PACKING_TYPE],
+            wholesaleEligible: (r[COL.WHOLESALE_ELIGIBLE] || '').trim().toUpperCase() === 'YES',
             stock: parseInt(r[COL.STOCK] || 0),
             minStock: parseInt(r[COL.MIN_STOCK] || 0)
         });
@@ -165,6 +200,73 @@ function renderCopyPaper(groups) {
                 wrap.appendChild(tile);
             }
         });
+
+        // --- DYNAMIC URDU PROMOTION CARD ---
+        let hasWholesaleEligible = false;
+        Object.values(groups).forEach(g => {
+            if (g.variations.some(v => v.wholesaleEligible)) hasWholesaleEligible = true;
+        });
+
+        if (hasWholesaleEligible && WHOLESALE_TIERS.length > 0) {
+            const promoTile = document.createElement('div');
+            // Reusing .selection-tile for consistent size, but overriding styles for promo look
+            promoTile.className = 'selection-tile promo-tile';
+            promoTile.style.background = 'linear-gradient(135deg, #fff3cd 0%, #ffdf7e 100%)';
+            promoTile.style.border = '2px solid #ffeeba';
+            promoTile.style.boxShadow = '0 10px 20px rgba(255, 193, 7, 0.2)';
+            promoTile.style.color = '#856404';
+            promoTile.style.cursor = 'default';
+            promoTile.style.display = 'flex';
+            promoTile.style.flexDirection = 'column';
+            promoTile.style.justifyContent = 'center';
+            promoTile.style.alignItems = 'center';
+            promoTile.style.textAlign = 'center';
+            promoTile.style.padding = '30px 20px';
+            promoTile.style.transform = 'none'; // Disables the hover pop-up effect of selection tiles if needed, but keeping it makes it interactive
+
+            // Sort tiers ascending (lowest qty first) for the UI
+            const ascendingTiers = [...WHOLESALE_TIERS].sort((a, b) => a.minQty - b.minQty);
+            let tiersHtml = '';
+
+            ascendingTiers.forEach(tier => {
+                const pct = (tier.discount * 100).toFixed(2).replace(/\.?0+$/, '');
+                tiersHtml += `<div style="margin: 8px 0; font-weight: bold; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
+                    <span style="color:#d32f2f; font-size: 1.1rem; font-family: sans-serif;">${pct}% DISCOUNT</span>
+                    <span dir="rtl" style="font-family: 'Noto Nastaliq Urdu', serif; font-size: 1.0rem;">${tier.minQty}&nbsp;&nbsp;&nbsp; پیکٹ یا زیادہ</span>
+                </div>`;
+            });
+
+            promoTile.innerHTML = `
+                <style>
+                    @keyframes borderPulse {
+                        0% { border-color: #ffeeba; box-shadow: 0 0 10px rgba(255, 193, 7, 0.3); }
+                        50% { border-color: #d32f2f; box-shadow: 0 0 25px rgba(211, 47, 47, 0.6); }
+                        100% { border-color: #ffeeba; box-shadow: 0 0 10px rgba(255, 193, 7, 0.3); }
+                    }
+                    @keyframes shimmerBg {
+                        0% { background-position: -200% 0; }
+                        100% { background-position: 200% 0; }
+                    }
+                    .promo-tile {
+                        animation: borderPulse 2s infinite ease-in-out, shimmerBg 4s infinite linear !important;
+                        background: linear-gradient(110deg, #fff3cd 30%, #fff 50%, #fff3cd 70%) !important;
+                        background-size: 200% 100% !important;
+                        border-width: 3px !important;
+                    }
+                    .promo-tile::after { content: none !important; display: none !important; }
+                    .promo-tile:hover { transform: scale(1.02) !important; transition: transform 0.3s ease; }
+                </style>
+                <div style="font-size: 3rem; margin-bottom: 5px;">🎁</div>
+                <h2 style="font-family: 'Noto Nastaliq Urdu', serif; font-size: 1.8rem; color: #d32f2f; margin-bottom: 10px; font-weight: bold;">ہول سیل آفر</h2>
+                <div style="width: 100%; border-top: 1px dashed #d32f2f; margin-bottom: 15px; opacity: 0.3;"></div>
+                ${tiersHtml}
+                <div style="width: 100%; border-top: 1px dashed #d32f2f; margin-top: 15px; margin-bottom: 15px; opacity: 0.3;"></div>
+                <p style="font-family: 'Noto Nastaliq Urdu', serif; font-size: 0.85rem; color: #856404; margin: 0; line-height: 1.4; font-weight: bold;" dir="rtl">یہ آفر صرف منتخب برانڈز پر لاگو ہے۔ ڈسکاؤنٹ خودکار طور پر لاگو ہوگا۔</p>
+            `;
+
+            wrap.appendChild(promoTile);
+        }
+
         return;
     }
 
@@ -294,6 +396,9 @@ function selectVariation(pId, type, value, btn) {
     grid.querySelectorAll('.var-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
+    // Reset quantity to 1 when switching variations
+    document.getElementById(`qty_${pId}`).value = 1;
+
     updateCardUI(pId);
 }
 
@@ -345,8 +450,35 @@ function updateCardUI(pId) {
             alert(`Maximum allowed quantity for ${currentVar.brand} is ${max}`);
         }
 
-        document.getElementById(`price_${pId}`).innerText = `Rs ${currentVar.price}`;
-        document.getElementById(`rate_${pId}`).innerText = `Rate: Rs ${currentVar.rate} / KG`;
+        // --- WHOLESALE DISCOUNT: Calculate based on current item input + cart qty for this item ---
+        const cartKey = `${currentVar.id}_${currentVar.brand}`;
+        const currentCartQty = cart[cartKey] ? cart[cartKey].qty : 0;
+        const combinedQty = currentCartQty + (parseInt(qtyInput.value) || 1);
+        const discountRate = currentVar.wholesaleEligible ? getWholesaleDiscount(combinedQty) : 0;
+        const originalPrice = currentVar.price;
+        const discountedPrice = Math.round(originalPrice * (1 - discountRate));
+
+        const priceEl = document.getElementById(`price_${pId}`);
+        if (discountRate > 0) {
+            const discountPct = (discountRate * 100).toFixed(2).replace(/\.?0+$/, '');
+            priceEl.innerHTML = `
+                <span style="text-decoration: line-through; color: #999; font-size: 1.1rem; font-weight: 400;">Rs ${originalPrice}</span>
+                <span style="display:block; color: #1a7a3c; font-size: 2rem; font-weight: 800; line-height:1;">Rs ${discountedPrice}</span>
+                <span style="display:inline-block; background:#1a7a3c; color:white; font-size:0.75rem; font-weight:700; padding:2px 10px; border-radius:20px; margin-top:4px;">${discountPct}% Wholesale Discount Applied</span>
+            `;
+        } else {
+            priceEl.innerText = `Rs ${originalPrice}`;
+        }
+
+        const rateEl = document.getElementById(`rate_${pId}`);
+        if (discountRate > 0) {
+            const originalRate = currentVar.rate;
+            const discountedRate = Math.round(originalRate * (1 - discountRate));
+            rateEl.innerHTML = `Rate: <span style="text-decoration: line-through; color: #999; margin-right: 5px;">Rs ${originalRate}</span><span style="color: #1a7a3c; font-weight: bold;">Rs ${discountedRate} / KG</span>`;
+        } else {
+            rateEl.innerText = `Rate: Rs ${currentVar.rate} / KG`;
+        }
+
         document.getElementById(`img_${pId}`).src = currentVar.image;
         document.getElementById(`brand_display_${pId}`).innerText = currentVar.brand;
 
@@ -376,8 +508,21 @@ function updateCardUI(pId) {
             `;
 
             cheaperBrands.forEach(alt => {
-                const savingsPerUnit = currentVar.price - alt.price;
+                const altOriginalPrice = alt.price;
+                const altCartKey = `${alt.id}_${alt.brand}`;
+                const altCartQty = cart[altCartKey] ? cart[altCartKey].qty : 0;
+                const altCombinedQty = altCartQty + currentQty;
+                const altDiscountRate = alt.wholesaleEligible ? getWholesaleDiscount(altCombinedQty) : 0;
+                const altDiscountedPrice = Math.round(altOriginalPrice * (1 - altDiscountRate));
+
+                const savingsPerUnit = discountedPrice - altDiscountedPrice;
                 const totalSavings = savingsPerUnit * currentQty;
+
+                let altPriceHtml = `Rs ${altOriginalPrice}`;
+                if (discountRate > 0) {
+                    altPriceHtml = `<span style="text-decoration: line-through; color: #999; font-size: 0.85rem; margin-right: 5px;">Rs ${altOriginalPrice}</span><strong style="color: #1a7a3c;">Rs ${altDiscountedPrice}</strong>`;
+                }
+
                 html += `
                     <div class="comp-item glowing-border-item clickable-suggestion" 
                          onclick="switchToBrand('${pId}', '${alt.brand}')">
@@ -386,6 +531,7 @@ function updateCardUI(pId) {
                             <strong style="font-size:1.2rem; color:var(--primary);">${alt.brand}</strong>
                         </div>
                         <div style="text-align:left;">
+                            <div style="margin-bottom: 5px; font-size: 1.1rem;">${altPriceHtml}</div>
                             <span class="comp-savings" style="background:var(--secondary); color:white; padding:6px 15px; border-radius:20px; font-size:1rem; font-weight:800; display: block; font-family: 'Outfit', sans-serif;">Rs ${totalSavings} بچت</span>
                             <div style="font-size:0.75rem; color:#666; margin-top:4px; font-family: 'Noto Nastaliq Urdu', serif;">فی پیکٹ Rs ${savingsPerUnit} بچت</div>
                         </div>
@@ -455,6 +601,10 @@ function addToCart(pId) {
     const cartKey = `${currentVar.id}_${currentVar.brand}`;
 
     if (cart[cartKey]) {
+        if (cart[cartKey].qty + qty > currentVar.maxLimit) {
+            alert(`Maximum allowed quantity for ${currentVar.brand} is ${currentVar.maxLimit}`);
+            return;
+        }
         cart[cartKey].qty += qty;
     } else {
         cart[cartKey] = {
@@ -466,6 +616,10 @@ function addToCart(pId) {
     updateCartBadge();
     showFeedback(pId);
     renderCart();
+
+    // Reset quantity to 1 after adding to cart
+    document.getElementById(`qty_${pId}`).value = 1;
+    updateCardUI(pId); // Refresh UI to remove discount display if any
 }
 
 function showFeedback(pId) {
@@ -505,13 +659,33 @@ function renderCart() {
     }
 
     let grandTotal = 0;
+    let originalGrandTotal = 0;
     let totalWeight = 0;
+
     cartKeys.forEach(k => {
         const item = cart[k];
-        const itemTotal = item.price * item.qty;
+        const discountRate = item.wholesaleEligible ? getWholesaleDiscount(item.qty) : 0;
+        const originalPrice = item.price;
+        const discountedPrice = Math.round(originalPrice * (1 - discountRate));
+        const itemTotal = discountedPrice * item.qty;
+
+        const originalRate = item.rate;
+        const discountedRate = Math.round(originalRate * (1 - discountRate));
         const itemWeight = (item.weight || 0) * item.qty;
+
         grandTotal += itemTotal;
+        originalGrandTotal += (originalPrice * item.qty);
         totalWeight += itemWeight;
+
+        let priceCalcHtml = `Rs ${discountedPrice} &times; ${item.qty} = Rs ${itemTotal}`;
+        if (discountRate > 0) {
+            priceCalcHtml = `<span style="text-decoration: line-through; color: #999; font-size: 0.85rem;">Rs ${originalPrice}</span> <strong style="color: #1a7a3c;">Rs ${discountedPrice}</strong> &times; ${item.qty} = Rs ${itemTotal}`;
+        }
+
+        let rateHtml = `${Math.round(itemWeight)} KG @ Rs ${originalRate}/KG`;
+        if (discountRate > 0) {
+            rateHtml = `${Math.round(itemWeight)} KG @ <span style="text-decoration: line-through; color: #999;">Rs ${originalRate}</span> <strong style="color: #1a7a3c;">Rs ${discountedRate}/KG</strong>`;
+        }
 
         container.innerHTML += `
             <div class="cart-item" style="position: relative; padding: 15px 0; min-height: 130px; border-bottom: 1px solid #f0f0f0;">
@@ -519,10 +693,10 @@ function renderCart() {
                     <h4 style="margin: 0 0 5px 0; font-size: 1.2rem;">${item.name}</h4>
                     <div class="specs" style="margin-bottom: 5px; font-size: 0.85rem;">${item.size}, ${item.gsm} GSM, <strong>${item.brand}</strong></div>
                     <div class="price-calc" style="font-size: 1rem; margin-bottom: 2px;">
-                        Rs ${item.price} &times; ${item.qty} = Rs ${itemTotal}
+                        ${priceCalcHtml}
                     </div>
                     <div class="weight-info" style="font-size: 0.85rem; margin-bottom: 10px;">
-                        ${Math.round(itemWeight)} KG @ Rs ${item.rate}/KG
+                        ${rateHtml}
                     </div>
                     <div class="cart-qty-controls" style="margin-top: 5px;">
                         <button class="qty-btn" style="width:35px; height:35px;" onclick="changeCartQty('${k}', -1)">-</button>
@@ -542,7 +716,12 @@ function renderCart() {
         `;
     });
 
-    document.getElementById("cart-total").innerText = `Rs ${grandTotal.toLocaleString()} (${Math.round(totalWeight)} KG)`;
+    const totalEl = document.getElementById("cart-total");
+    if (grandTotal < originalGrandTotal) {
+        totalEl.innerHTML = `Total: <span style="text-decoration: line-through; color: #999; font-weight: 400; margin-right: 8px;">Rs ${originalGrandTotal.toLocaleString()}</span> <span style="color: #1a7a3c; font-weight: 800;">Rs ${grandTotal.toLocaleString()}</span> (${Math.round(totalWeight)} KG)`;
+    } else {
+        totalEl.innerText = `Total: Rs ${grandTotal.toLocaleString()} (${Math.round(totalWeight)} KG)`;
+    }
 }
 
 function changeCartQty(cartKey, delta) {
@@ -566,6 +745,11 @@ function changeCartQty(cartKey, delta) {
     renderCart();
     updateCartBadge();
     saveCart();
+
+    // Refresh main screen to apply/revoke discount instantly based on new total
+    if (currentSelectedProduct) {
+        updateCardUI(currentSelectedProduct.replace(/\s+/g, '_'));
+    }
 }
 
 function removeFromCart(cartKey) {
@@ -573,6 +757,11 @@ function removeFromCart(cartKey) {
     renderCart();
     updateCartBadge();
     saveCart();
+
+    // Refresh main screen to apply/revoke discount instantly based on new total
+    if (currentSelectedProduct) {
+        updateCardUI(currentSelectedProduct.replace(/\s+/g, '_'));
+    }
 }
 
 function saveCart() {
@@ -656,20 +845,32 @@ function calculateDeliveryCharges(method) {
 
 function updateCheckoutTotal(deliveryFee) {
     let itemsTotal = 0;
+    let originalItemsTotal = 0;
     let totalWeight = 0;
     let itemCount = 0;
+    let totalQty = 0;
     let itemsHtml = '';
 
+    // Apply wholesale discount per item
     Object.values(cart).forEach(item => {
-        const itemTotal = item.price * item.qty;
-        itemsTotal += itemTotal;
+        totalQty += item.qty;
         totalWeight += (item.weight * item.qty);
         itemCount++;
+
+        const originalItemTotal = item.price * item.qty;
+        originalItemsTotal += originalItemTotal;
+
+        const discountRate = item.wholesaleEligible ? getWholesaleDiscount(item.qty) : 0;
+        const discountedItemPrice = Math.round(item.price * (1 - discountRate));
+        const discountedItemTotal = discountedItemPrice * item.qty;
+
+        itemsTotal += discountedItemTotal;
 
         itemsHtml += `
             <div class="check-item">
                 <strong>${item.name}</strong> (${item.size} | ${item.gsm} GSM${item.brand ? ` | ${item.brand}` : ''})<br>
-                ${item.qty}x Rs ${item.price} = Rs ${itemTotal}
+                ${item.qty}x Rs ${discountedItemPrice} = Rs ${discountedItemTotal}
+                ${discountRate > 0 ? `<span style="color:#999; font-size:0.8rem;"> (was Rs ${item.price})</span>` : ''}
             </div>
         `;
     });
@@ -681,8 +882,14 @@ function updateCheckoutTotal(deliveryFee) {
     const totalEl = document.getElementById('check-total');
     const itemsListEl = document.getElementById('check-items-list');
 
-    if (subTotalLabelEl) subTotalLabelEl.innerText = `Subtotal (${itemCount} items)`;
-    if (subTotalEl) subTotalEl.innerText = `Rs ${itemsTotal}`;
+    if (subTotalLabelEl) subTotalLabelEl.innerText = `Subtotal (${itemCount} items, ${totalQty} packets)`;
+    if (subTotalEl) {
+        if (itemsTotal < originalItemsTotal) {
+            subTotalEl.innerHTML = `<span style="text-decoration:line-through; color:#999;">Rs ${originalItemsTotal}</span> <span style="color:#1a7a3c; font-weight:800;">Rs ${itemsTotal}</span> <span style="font-size:0.75rem; background:#1a7a3c; color:white; padding:1px 7px; border-radius:10px;">Wholesale Applied</span>`;
+        } else {
+            subTotalEl.innerText = `Rs ${itemsTotal}`;
+        }
+    }
     if (shipTotalEl) shipTotalEl.innerText = deliveryFee === 0 ? 'FREE' : `Rs ${deliveryFee}`;
     if (weightEl) weightEl.innerText = `${Math.round(totalWeight)} KG`;
     if (totalEl) totalEl.innerText = `Rs ${itemsTotal + deliveryFee}`;
@@ -733,11 +940,13 @@ window.placeOrder = async function () {
     const payment = document.querySelector('input[name="payment"]:checked').value;
     const shipping = currentShippingMethod;
 
-    // Calculate final numbers
+    // Calculate final numbers per item
     let subtotal = 0;
     let totalWeight = 0;
     Object.values(cart).forEach(i => {
-        subtotal += (i.price * i.qty);
+        const discountRate = i.wholesaleEligible ? getWholesaleDiscount(i.qty) : 0;
+        const discountedPrice = Math.round(i.price * (1 - discountRate));
+        subtotal += (discountedPrice * i.qty);
         totalWeight += ((i.weight || 0) * i.qty);
     });
 
@@ -753,15 +962,20 @@ window.placeOrder = async function () {
     // 1. Generate Invoice Link
     const invoiceLink = `https://www.hayyatstore.com/order.html?id=${orderId}`;
 
-    const orderItems = Object.values(cart).map(i => ({
-        name: i.name,
-        specs: `${i.size} | ${i.gsm} GSM | ${i.brand}`,
-        qty: i.qty,
-        price: i.price,
-        rate: i.rate,
-        weight: i.weight,
-        total: i.price * i.qty
-    }));
+    const orderItems = Object.values(cart).map(i => {
+        const discountRate = i.wholesaleEligible ? getWholesaleDiscount(i.qty) : 0;
+        const discountedPrice = Math.round(i.price * (1 - discountRate));
+        const discountedRate = Math.round(i.rate * (1 - discountRate));
+        return {
+            name: i.name,
+            specs: `${i.size} | ${i.gsm} GSM | ${i.brand}${discountRate > 0 ? ' (Wholesale)' : ''}`,
+            qty: i.qty,
+            price: discountedPrice,
+            rate: discountedRate,
+            weight: i.weight,
+            total: discountedPrice * i.qty
+        };
+    });
 
     const orderData = {
         orderId,
@@ -815,11 +1029,15 @@ window.placeOrder = async function () {
         orderSummary += "---ORDER_ITEMS---\n";
 
         Object.values(cart).forEach((i, index) => {
-            const itemTotal = i.price * i.qty;
+            const discountRate = i.wholesaleEligible ? getWholesaleDiscount(i.qty) : 0;
+            const discountedPrice = Math.round(i.price * (1 - discountRate));
+            const discountedRate = Math.round(i.rate * (1 - discountRate));
+
+            const itemTotal = discountedPrice * i.qty;
             const itemWeight = (i.weight || 0) * i.qty;
             const stockAfter = (i.stock || 0) - i.qty;
             const packingId = i.packingType || "Weight";
-            const itemRate = (packingId === "Quantity") ? i.price : i.rate;
+            const itemRate = (packingId === "Quantity") ? discountedPrice : discountedRate;
 
             orderSummary += `[ITEM_${index + 1}]\n`;
             orderSummary += `ProductExp: ${i.erpCode || ''}\n`;
@@ -910,6 +1128,10 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtot
     const body = document.getElementById('print-items-body');
     if (body) {
         body.innerHTML = Object.values(cart).map(i => {
+            const discountRate = i.wholesaleEligible ? getWholesaleDiscount(i.qty) : 0;
+            const discountedPrice = Math.round(i.price * (1 - discountRate));
+            const discountedRate = Math.round(i.rate * (1 - discountRate));
+
             const specs = [];
             if (i.size) specs.push(i.size);
             if (i.gsm) specs.push(`${i.gsm} GSM`);
@@ -918,9 +1140,9 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtot
             return `<tr>
                 <td style="padding-top:8px; padding-bottom:8px;"><strong>${i.name}</strong>${specStr}</td>
                 <td style="text-align:center;">${i.qty}</td>
-                <td style="text-align:center;">${i.price}</td>
-                <td style="text-align:center;">${i.rate || '-'}</td>
-                <td style="text-align:right;"><strong>${i.price * i.qty}</strong></td>
+                <td style="text-align:center;">${discountedPrice}</td>
+                <td style="text-align:center;">${discountedRate || '-'}</td>
+                <td style="text-align:right;"><strong>${discountedPrice * i.qty}</strong></td>
             </tr>`;
         }).join('');
     }
