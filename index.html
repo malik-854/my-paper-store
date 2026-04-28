@@ -74,32 +74,6 @@
 
 <body>
 
-    <!-- Add this RIGHT AFTER <body> tag -->
-    <div id="groupBanner" class="group-banner">
-        <div class="group-banner-container">
-            <!-- Logo and Text Container -->
-            <div class="group-banner-info">
-                <!-- YOUR LOGGO HERE -->
-                <img src="https://i.postimg.cc/7LX0nR3S/Hayyat-Luxury-Apartments-Logo.png" alt="Hayyat Group Logo"
-                    class="group-logo">
-
-                <div>
-                    <div class="group-title">A Hayyat Group Company</div>
-                    <div class="group-subtitle">Trusted business solutions since 1990</div>
-                </div>
-            </div>
-
-            <!-- Visit Button -->
-            <a href="https://hayyatgroup.com" target="_blank" class="group-visit-btn">
-                Visit HayyatGroup.com
-            </a>
-        </div>
-
-        <!-- Mobile CSS -->
-
-    </div>
-
-
     <div class="header">
         <div class="header-content">
             <h1 class="highlight-bg">Hayyat Paper Store</h1>
@@ -113,19 +87,20 @@
                 </div>
             </div>
 
-            <!-- SEARCH BAR (MOVED UP) -->
-            <div class="search-container">
-                <input type="text" id="search-input" onkeyup="searchProducts(this.value)"
-                    placeholder="Search by paper name, size, brand or GSM...">
-            </div>
+            <!-- SEARCH & CART ROW -->
+            <div class="search-cart-row">
+                <div class="search-container">
+                    <input type="text" id="search-input" onkeyup="searchProducts(this.value)"
+                        placeholder="Search">
+                </div>
 
-            <!-- CART BAR (MOVED INTO HEADER) -->
-            <div class="cart-bar-container">
-                <button id="view-cart-btn" class="cart-pill" onclick="toggleCart()" style="display: none;">
-                    <span class="cart-icon">🛒</span>
-                    <span class="cart-text">View Shopping Cart</span>
-                    <span id="cart-count-badge" class="cart-count">0</span>
-                </button>
+                <div class="cart-bar-container">
+                    <button id="view-cart-btn" class="cart-pill" onclick="toggleCart()" style="display: none;">
+                        <span class="cart-icon">🛒</span>
+                        <span class="cart-text">CART</span>
+                        <span id="cart-count-badge" class="cart-count">0</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -271,6 +246,8 @@
                 <span class="footer-divider">|</span>
                 <a href="https://maps.app.goo.gl/3wPNZ4f4WLTYZTgU9" class="footer-link" target="_blank">📍 Visit our
                     Physical Store</a>
+                <span class="footer-divider">|</span>
+                <a href="https://hayyatgroup.com" target="_blank" class="footer-link group-visit-btn-footer">Visit HayyatGroup.com</a>
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2026 Hayyat Paper Store</p>
@@ -279,6 +256,5 @@
     </footer>
 
 </body>
-
 
 </html>
