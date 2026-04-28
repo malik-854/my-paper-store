@@ -13,7 +13,7 @@
             --text-light: #f8f8f8;
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --radius: 12px;
-        }
+            }
 
         * {
             box-sizing: border-box;
@@ -54,13 +54,11 @@
         /* Option 3: Background highlight */
         /* Option 3: Background highlight - Separate colors */
         h1.highlight-bg {
-            background-color: #ff4444;
-            /* Red for h1 */
             color: #ffffff;
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            padding: 0;
+            margin: 0;
+            font-size: 1.8rem;
         }
 
         h2.highlight-bg {
@@ -132,7 +130,7 @@
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
         }
 
         h2 {
@@ -148,7 +146,7 @@
         .header {
             background-color: var(--primary);
             color: white;
-            padding: 15px;
+            padding: 8px 15px;
             position: sticky;
             top: 0;
             z-index: 1500;
@@ -157,7 +155,7 @@
         }
 
         .cart-bar-container {
-            margin-top: 15px;
+            margin-top: 0;
             width: 100%;
             max-width: 600px;
             margin-left: auto;
@@ -336,9 +334,9 @@
 
         .header p {
             font-weight: 300;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             opacity: 0.9;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
         }
 
         /* --- LOADING INDICATOR --- */
@@ -370,8 +368,39 @@
         }
 
         /* --- SEARCH --- */
+        
+        .search-cart-row {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto 5px;
+            width: 100%;
+        }
+        .search-cart-row .search-container {
+            flex: 2; /* Search takes more space */
+            padding: 0;
+            margin: 0;
+            max-width: none;
+        }
+        .search-cart-row .cart-bar-container {
+            flex: 1; /* Cart takes less space */
+            margin: 0;
+            padding: 0;
+            max-width: none;
+            display: flex; /* Ensure button inside expands */
+        }
+        .search-cart-row #view-cart-btn.cart-pill {
+            height: 100% !important;
+            min-height: 48px;
+            margin: 0 !important;
+        }
+        .search-cart-row input {
+            height: 100%;
+            min-height: 48px;
+        }
         .search-container {
-            padding: 0 15px 15px;
+            padding: 0 15px 5px;
             max-width: 600px;
             margin: 0 auto;
         }
@@ -393,26 +422,20 @@
 
         /* --- ANNOUNCEMENT BAR --- */
         .announcement-container {
-            background: linear-gradient(90deg,
-                    #ff4500, #ff6b00, #ff8c42, #ff6b00, #ff4500);
-            background-size: 300% 100%;
+            background: linear-gradient(90deg, #ff4500, #ff6b00, #ff4500);
+            background-size: 200% 100%;
             animation: gradient-shift 3s ease infinite;
             color: white;
-            padding: 10px 0;
-            margin: 10px 0;
-            border-radius: 8px;
+            padding: 4px 0;
+            margin: 4px 0;
+            border-radius: 4px;
             overflow: hidden;
             position: relative;
-            box-shadow:
-                0 4px 15px rgba(255, 69, 0, 0.4),
-                0 0 0 2px rgba(255, 255, 255, 0.2),
-                inset 0 0 20px rgba(255, 255, 255, 0.1);
-            min-height: 45px;
-            font-weight: 1500;
+            min-height: 32px;
+            font-weight: 700;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         /* Animated gradient background */
@@ -478,9 +501,7 @@
         }
 
         .announcement-container {
-            animation:
-                gradient-shift 3s ease infinite,
-                subtle-pulse 4s ease-in-out infinite;
+            animation: gradient-shift 3s ease infinite;
         }
 
         .announcement-wrapper {
@@ -503,7 +524,7 @@
             align-items: center;
             padding: 0 50px;
             font-weight: 600;
-            font-size: 1.85rem;
+            font-size: 1rem;
             flex-shrink: 0;
             white-space: nowrap;
         }
@@ -534,17 +555,17 @@
         /* Mobile adjustments */
         @media (max-width: 768px) {
             .announcement-container {
-                margin: 8px 0 15px 0;
-                padding: 10px 0;
-                min-height: 36px;
-                width: calc(100% - 20px);
+                margin: 4px 0 8px 0;
+                padding: 2px 0;
+                min-height: 24px;
+                width: calc(100% - 10px);
                 margin-left: auto;
                 margin-right: auto;
             }
 
             .announcement-item {
                 padding: 0 30px;
-                font-size: 1.85rem;
+                font-size: 1rem;
             }
 
             .announcement-separator {
@@ -623,6 +644,24 @@
 
         .group-visit-btn:hover {
             background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* NEW FOOTER BUTTON STYLE */
+        .group-visit-btn-footer {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem !important;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .group-visit-btn-footer:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--secondary);
+            color: white !important;
             transform: translateY(-1px);
         }
 
@@ -815,7 +854,7 @@
         }
 
         .comparison-box {
-            margin-top: 15px;
+            margin-top: 0;
             padding: 12px;
             background: linear-gradient(135deg, #6366f1, #a855f7);
             border: none;
@@ -1524,7 +1563,7 @@
             /* Quantity & cart */
             .qty-row {
                 gap: var(--gap-sm);
-                margin-top: 8px;
+                margin-top: 0;
             }
 
             .qty-input {
@@ -2196,66 +2235,6 @@
     
 
 
-            @media (max-width: 768px) {
-                #groupBanner>div {
-                    flex-direction: row;
-                    justify-content: space-between;
-                    gap: 10px;
-                    padding: 0 10px;
-                }
-
-                #groupBanner img {
-                    width: 35px !important;
-                    height: 35px !important;
-                }
-
-                #groupBanner>div>div:first-child {
-                    min-width: auto;
-                    flex: 1;
-                    justify-content: flex-start;
-                    text-align: left;
-                    gap: 10px !important;
-                }
-
-                #groupBanner>div>div:first-child>div:last-child div:first-child {
-                    font-size: 0.95em !important;
-                }
-
-                #groupBanner>div>div:first-child>div:last-child div:last-child {
-                    font-size: 0.75em !important;
-                }
-
-                #groupBanner a {
-                    padding: 6px 12px !important;
-                    font-size: 0.85em !important;
-                }
-            }
-
-            @media (max-width: 480px) {
-                #groupBanner>div {
-                    flex-direction: column;
-                    gap: 2px;
-                    /* Even smaller gap */
-                    padding: 1px 0 !important;
-                    /* Add this to slim overall banner */
-                }
-
-                #groupBanner>div>div:first-child {
-                    justify-content: center;
-                    text-align: center;
-                    gap: 4px !important;
-                    /* Even smaller gap */
-                }
-
-                #groupBanner a {
-                    width: 90%;
-                    text-align: center;
-                    padding: 2px 4px !important;
-                    /* Even slimmer button */
-                    font-size: 0.8em !important;
-                    /* Optional: smaller text */
-                }
-            }
 
 /* --- MINIMAL HORIZONTAL FOOTER --- */
 .site-footer {
