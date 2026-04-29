@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.29.01"; // Updated for header restructure and cart animation
+const APP_VERSION = "2026.04.29.02"; // Updated for cheaper options box optimization
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1362,8 +1362,15 @@ function updateUI(key, isUserInteraction = false) {
                         const targetKey = safeKey(alt.name);
                         return `
                             <a href="javascript:void(0)" class="alt-item" onclick="jumpToAlt('${targetKey}', '${selectedSize}', '${selectedGsm}')">
-                                <span>${alt.displaySize || alt.name}</span>
-                                <span class="alt-price">Rs ${alt.price} (${qty > 1 ? `Save Rs ${totalSavings.toFixed(0)} Total` : `Save Rs ${totalSavings.toFixed(0)}`}) →</span>
+                                <span class="alt-name">${alt.displaySize || alt.name}</span>
+                                <div class="alt-info-wrapper">
+                                    <div class="alt-price-stack">
+                                        <span class="alt-packet-price">Rs ${alt.price}</span>
+                                        <span class="alt-kg-rate">${alt.rate}/KG</span>
+                                    </div>
+                                    <span class="alt-savings">Save Rs ${totalSavings.toFixed(0)}</span>
+                                    <span class="alt-arrow">→</span>
+                                </div>
                             </a>
                         `;
                     }).join('');
@@ -1622,7 +1629,7 @@ function animateToCart(sourceImg, targetEl) {
     clone.style.height = sourceRect.height + 'px';
     clone.style.top = sourceRect.top + 'px';
     clone.style.left = sourceRect.left + 'px';
-    
+
     document.body.appendChild(clone);
 
     // Trailing particles logic
@@ -1645,7 +1652,7 @@ function animateToCart(sourceImg, targetEl) {
     setTimeout(() => {
         clearInterval(particleInterval);
         clone.remove();
-        
+
         // Bump animation on cart button
         targetEl.classList.remove('cart-bump');
         void targetEl.offsetWidth; // Trigger reflow
@@ -1660,7 +1667,7 @@ function createParticle(x, y) {
     p.style.top = y + 'px';
     p.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary') || '#28a745';
     document.body.appendChild(p);
-    
+
     setTimeout(() => p.remove(), 600);
 }
 // ===== END CHECKOUT FUNCTIONS =====
@@ -2023,15 +2030,15 @@ async function addToCart(key) {
 
     // ✅ Trending Flying Animation
     try {
-        const productCard = document.querySelector(`.product-card img[src*="${p.image.split('/').pop()}"]`) || 
-                          document.querySelector(`[onclick="addToCart('${key}')"]`).closest('.product-card');
+        const productCard = document.querySelector(`.product-card img[src*="${p.image.split('/').pop()}"]`) ||
+            document.querySelector(`[onclick="addToCart('${key}')"]`).closest('.product-card');
         const productImage = productCard ? (productCard.tagName === 'IMG' ? productCard : productCard.querySelector('img')) : null;
         const cartBtn = document.getElementById('view-cart-btn');
-        
+
         if (productImage && cartBtn) {
             animateToCart(productImage, cartBtn);
         }
-    } catch(e) { console.error("Animation failed", e); }
+    } catch (e) { console.error("Animation failed", e); }
 
     renderCart()
     updateCartBadge()
@@ -2435,7 +2442,7 @@ function generateDynamicSchema(groups) {
     script.type = 'application/ld+json';
     script.text = JSON.stringify(schema);
     document.head.appendChild(script);
-    
+
     console.log("SEO: Dynamic Category Schema Injected for", categories.length, "categories.");
 }
 
@@ -2451,7 +2458,7 @@ function updateSEO(categoryName) {
     if (categoryName) {
         const dynamicTitle = `${categoryName} Wholesale Rates in Pakistan | Hayyat Paper Store`;
         const dynamicDesc = `Get competitive wholesale prices for ${categoryName} at Hayyat Paper Store. Nationwide delivery across Pakistan, including Karachi, Lahore, Islamabad, Faisalabad, and more. Trusted paper solutions since 1990.`;
-        
+
         document.title = dynamicTitle;
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) metaDesc.setAttribute("content", dynamicDesc);
@@ -2503,7 +2510,7 @@ function handleInitialHash() {
 window.addEventListener('hashchange', () => {
     const hash = window.location.hash.substring(1);
     const focused = document.querySelector('.category-section.focused');
-    
+
     if (!hash && focused) {
         // If we went back to home, close focus mode
         const catKey = focused.id.replace('section-', '');
