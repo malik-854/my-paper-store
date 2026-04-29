@@ -149,6 +149,7 @@ function groupProducts(rows) {
             price: Math.round(parseFloat(r[COL.PRICE] || 0)),
             rate: r[COL.RATE],
             weight: parseFloat(r[COL.WEIGHT] || 0),
+            sheets: r[COL.SHEETS] || 'N/A',
             maxLimit: parseInt(r[COL.MAX] || 999), // Pulling from Column N
             image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper",
             brand: r[COL.DISPLAY_SIZE] || 'Standard',
