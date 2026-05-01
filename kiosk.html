@@ -314,6 +314,34 @@
         </div>
     </div>
 
+    <!-- Bottom Sheet for Variations -->
+    <div id="variation-sheet-overlay" onclick="closeVariationSheet()"></div>
+    <div id="variation-sheet">
+        <div class="sheet-header">
+            <h3 id="sheet-title">Select Variations</h3>
+            <button class="sheet-close" onclick="closeVariationSheet()">✕</button>
+        </div>
+        <div class="sheet-body" id="sheet-body">
+            <!-- Variation options will be injected here -->
+        </div>
+        <!-- Cheaper Options Box (Inside Sheet) -->
+        <div id="sheet-comparison-box" class="comparison-box" style="display: none; margin: 0 20px 15px; border-top: 1px solid #eee; padding-top: 15px;">
+            <span class="comparison-title">🔥 کم قیمت والے آپشنز:</span>
+            <div class="alt-list" id="sheet-alt-list"></div>
+        </div>
+        <div class="sheet-footer">
+            <div class="qty-control-sheet">
+                <button class="qty-btn-sheet" onclick="changeSheetQty(-1)">−</button>
+                <input type="number" id="sheet-qty" value="1" min="1" step="1" style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
+                <button class="qty-btn-sheet" onclick="changeSheetQty(1)">+</button>
+            </div>
+            <button id="sheet-add-btn" class="sticky-add-to-cart" onclick="addFromSheetToCart()">
+                <span>Add to Cart</span>
+                <span id="sheet-price">Rs 0</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Script Loads -->
     <script>
         // KIOSK SECURITY: FORCE CLEAR CART ON EVERY LOAD
