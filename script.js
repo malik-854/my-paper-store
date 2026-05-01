@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.04.29.02"; // Updated for cheaper options box optimization
+const APP_VERSION = "2026.05.02.01"; // Mobile UI & Price Stack Optimization
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -625,9 +625,9 @@ function group(rows) {
             erpCode: r[COL.ERP_CODE] || '',             // Column AB
             erpDesc: r[COL.ERP_DESC] || '',             // Column AC
             packingType: r[COL.PACKING_TYPE] || 'Weight', // Column AD
-            halfQty: (r[COL.HALF_QTY] || '').toUpperCase() === 'YES',
-            evenOnly: (r[COL.EVEN_ONLY] || '').toUpperCase() === 'YES',
-            multiple15: (r[COL.MULTIPLE_1_5] || '').toUpperCase() === 'YES',
+            halfQty: (r[COL.HALF_QTY] || '').trim().toUpperCase() === 'YES',
+            evenOnly: (r[COL.EVEN_ONLY] || '').trim().toUpperCase() === 'YES',
+            multiple15: (r[COL.MULTIPLE_1_5] || '').trim().toUpperCase() === 'YES',
             stock: parseInt(r[COL.STOCK] || 0),
             minStock: parseInt(r[COL.MIN_STOCK] || 0)
         });
@@ -775,7 +775,6 @@ function getQuantityStep(product) {
     if (product.halfQty) return '0.5';
     return '1';
 }
-
 function renderProducts(groups, isSearch = false) {
     const wrap = document.getElementById("product-list")
     wrap.innerHTML = ""
@@ -783,7 +782,7 @@ function renderProducts(groups, isSearch = false) {
 
     if (Object.keys(groups).length === 0) {
         wrap.innerHTML = `
-            <div class="no-results">
+            <div class="no-results" style="grid-column: 1/-1;">
                 <h3>${isSearch ? 'No products found' : 'No products available'}</h3>
                 <p>${isSearch ? 'Try different search terms' : 'Please check back later'}</p>
             </div>
@@ -817,241 +816,54 @@ function renderProducts(groups, isSearch = false) {
 
         Object.keys(grouped).forEach(k => {
             const g = grouped[k]
-            const sizes = [...new Set(g.variations.map(v => v.size))]
-
-            // CRITICAL: Determine if this category needs GSM filtering
-            // Photocopy Paper and Stickers should NOT have GSM filtering
-            const shouldFilterGsms = !["Photocopy Paper", "Stickers", "A4 Paper", "White Sticker"].includes(cat)
-
-            // Only create GSM map if needed
-            let sizeToGsmsMap = {}
-            if (shouldFilterGsms) {
-                // Create a map of available GSMs for each size (for categories that need filtering)
-                g.variations.forEach(v => {
-                    if (!sizeToGsmsMap[v.size]) {
-                        sizeToGsmsMap[v.size] = []
-                    }
-                    if (!sizeToGsmsMap[v.size].includes(v.gsm)) {
-                        sizeToGsmsMap[v.size].push(v.gsm)
-                    }
-                })
-
-                // Store this map globally for dynamic updates
-                window[`sizeToGsms_${k}`] = sizeToGsmsMap
-            }
-
-            // Get ALL GSMs for the product (for all categories)
-            const allGsms = [...new Set(g.variations.map(v => v.gsm))]
-
-            // NEW: Get colors if product has colors
-            let colors = []
-            if (g.hasColors && g.colorOptions && g.colorOptions.length > 0) {
-                colors = g.colorOptions
-            } else {
-                // For products without colors, still track available colors from variations
-                const availableColors = [...new Set(g.variations.map(v => v.color || '').filter(c => c))]
-                if (availableColors.length > 0) {
-                    colors = availableColors
-                }
-            }
-
-            // Create variation map
+            
+            // Store data globally for the sheet
+            window[`g_${k}`] = g;
+            
+            // Create variation map (same as before)
             const map = {}
             g.variations.forEach(v => {
-                // ALWAYS create key with brand if brand exists
                 if (v.displaySize) {
-                    // Primary key: size_gsm_brand
                     const brandKey = `${v.size}_${v.gsm}_${v.displaySize}`
                     map[brandKey] = v
-
-                    // Also create fallback key without brand (for backward compatibility)
                     const fallbackKey = `${v.size}_${v.gsm}`
-                    if (!map[fallbackKey]) {
-                        map[fallbackKey] = v
-                    }
+                    if (!map[fallbackKey]) map[fallbackKey] = v
                 } else {
-                    // For products without brand: size_gsm
                     const baseKey = `${v.size}_${v.gsm}`
                     map[baseKey] = v
                 }
-
-                // If product has color, create color-specific keys
                 if (v.color) {
                     if (v.displaySize) {
-                        // size_gsm_brand_color
                         const colorBrandKey = `${v.size}_${v.gsm}_${v.displaySize}_${v.color}`
                         map[colorBrandKey] = v
                     }
-                    // size_gsm_color (fallback)
                     const colorKey = `${v.size}_${v.gsm}_${v.color}`
                     map[colorKey] = v
                 }
             })
+            window[`map_${k}`] = map;
+            window[`category_${k}`] = cat;
 
-            window[`map_${k}`] = map
-            window[`size_${k}`] = sizes[0]
-            window[`gsm_${k}`] = allGsms[0] // Set to first GSM
-            window[`color_${k}`] = colors[0] || '' // Initialize first color
+            // Find min price for "Starting From"
+            const minPrice = Math.min(...g.variations.map(v => parseFloat(v.rate) || 9999));
+            const firstImg = g.variations[0].image;
 
-            // Get first available brand for initial selection
-            const brands = [...new Set(g.variations.map(v => v.displaySize).filter(b => b))]
-            window[`brand_${k}`] = brands[0] || ''
-
-            // Store category info for this product
-            window[`category_${k}`] = cat
-
-            if (cat === "Copy Paper" || cat === "Stickers") {
-                // Get unique sizes for this product group
-                const uniqueSizes = [...new Set(g.variations.map(v => v.size))];
-
-                productHtml = `
-<div class="product-card">
-    <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
+            const productHtml = `
+<div class="product-card compact-card" onclick="openVariationSheet('${k}')" style="cursor: pointer;">
+    <img src="${firstImg}" alt="${g.name}" loading="lazy">
     <div class="product-info">
         <h3>${g.name}</h3>
-        
-        <!-- SIZE SELECTION FOR COPY PAPER -->
-        ${uniqueSizes.length > 1 ? `
-        <div class="variation-grid size-grid">
-            ${uniqueSizes.map((size, i) => {
-                    // Start with NO default selection
-                    if (i === 0) {
-                        window[`size_${k}`] = null;
-                        window[`brand_${k}`] = null;
-                    }
-                    return `<button class="variation-btn" 
-                    onclick="selectVar('${k}','size','${size}',this)">${size}</button>`;
-                }).join("")}
-        </div>
-        ` : ''}
-        
-        <!-- BRAND SELECTION - WILL BE UPDATED DYNAMICALLY -->
-        <div class="variation-grid brand-grid" id="brand-grid-${k}">
-            ${(() => {
-                        // Get brands for the default/first size
-                        const defaultSize = uniqueSizes[0];
-                        const brandsForDefaultSize = [...new Set(g.variations.filter(v => v.size === defaultSize).map(v => v.displaySize).filter(brand => brand))];
-                        window[`brand_${k}`] = null; // Initialize brand to null
-                        return brandsForDefaultSize.map((brand, i) => {
-                            // No default active brand
-                            return `<button class="variation-btn brand-btn" 
-                        onclick="selectVar('${k}','brand','${brand}',this)">
-                        ${brand}
-                        ${g.variations.find(v => v.displaySize === brand && v.discountTag) ?
-                                    `<span class="badge-on-btn badge-discounted">${g.variations.find(v => v.displaySize === brand && v.discountTag).discountTag}</span>` : ''}
-                        ${g.variations.find(v => v.displaySize === brand && v.newTag) ?
-                                    `<span class="badge-on-btn badge-new">${g.variations.find(v => v.displaySize === brand && v.newTag).newTag}</span>` : ''}
-                    </button>`;
-                        }).join("");
-                    })()}
-        </div>
-
-        <!-- GSM SELECTION - WILL BE UPDATED DYNAMICALLY -->
-        ${cat !== "Stickers" ? `
-        <div class="variation-grid gsm-grid" id="gsm-grid-${k}">
-            ${(() => {
-                            // Get GSMs for default size and brand
-                            const defaultSize = uniqueSizes[0];
-                            const defaultBrand = window[`brand_${k}`];
-                            const gsmsForDefault = [...new Set(g.variations.filter(v =>
-                                v.size === defaultSize && v.displaySize === defaultBrand
-                            ).map(v => v.gsm))];
-
-                            return gsmsForDefault.map((gsmVal, i) => {
-                                if (i === 0) window[`gsm_${k}`] = null;
-                                return `<button class="variation-btn" 
-                        onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`;
-                            }).join("");
-                        })()}
-        </div>
-        ` : ''}
-        
-        <p class="details" id="info_${k}"></p>
-        <div class="price" id="price_${k}"></div>
-        <div class="comparison-box" id="comp_box_${k}"><span class="comparison-title">Other Brands (Same Size/GSM):</span><div class="alt-list" id="alt_list_${k}"></div></div>
-    </div>
-
-    <div class="qty-row">
-        <div class="qty-input">
-            <input type="number" 
-                id="qty_${k}" 
-                value="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1')}" 
-                min="${g.variations[0].multiple15 ? '1.5' : (g.variations[0].halfQty ? '0.5' : '1')}" 
-                max="999" 
-                step="${getQuantityStep(g.variations[0])}"
-                oninput="updateUI('${k}', true)">
-        </div>
-        <button class="btn-cart" onclick="addToCart('${k}')">
-            Add to Cart
+        <p class="starting-price">From Rs ${minPrice}/KG</p>
+        <button class="select-btn" onclick="openVariationSheet('${k}')">
+            <span class="desktop-text">Select</span>
+            <span class="mobile-text">Select Size & Weight</span>
         </button>
     </div>
-</div>`
-            } else {
-                // REGULAR PRODUCTS with GSM filtering
-                productHtml = `
-<div class="product-card">
-    ${cat !== "Copy Paper" && cat !== "Stickers" ? `
-        ${g.variations.some(v => v.discountTag) ? `<div class="product-badge badge-discounted">${g.variations.find(v => v.discountTag).discountTag}</div>` : ''}
-        ${g.variations.some(v => v.newTag) ? `<div class="product-badge badge-new">${g.variations.find(v => v.newTag).newTag}</div>` : ''}
-    ` : ''}
-    <img id="img_${k}" src="${g.variations[0].image}" alt="${g.name}">
-    <div class="product-info">
-        <h3>${g.name}</h3>
-        
-        <!-- SIZE SELECTION (for regular products) -->
-        <div class="variation-grid size-grid">
-            ${(() => {
-                        window[`size_${k}`] = null;
-                        return sizes.map((s, i) => `<button class="variation-btn" onclick="selectVar('${k}','size','${s}',this)">${s}</button>`).join("");
-                    })()}
-        </div>
-
-        <!-- DYNAMIC GSM SELECTION - Will be updated when size changes (for regular products) -->
-        <div class="variation-grid gsm-grid" id="gsm-grid-${k}">
-            ${(() => {
-                        window[`gsm_${k}`] = null;
-                        const gsmButtons = shouldFilterGsms ? (sizeToGsmsMap[sizes[0]] || []) : allGsms;
-                        return gsmButtons.map((gsmVal) => `<button class="variation-btn" onclick="selectVar('${k}','gsm','${gsmVal}',this)">${gsmVal}</button>`).join("");
-                    })()}
-        </div>
-
-        <!-- COLOR SELECTOR - ONLY SHOW IF PRODUCT HAS COLORS -->
-        ${colors.length > 0 ? `
-        <div class="variation-grid color-grid" id="color-grid-${k}">
-            ${colors.map((color, i) => {
-                        if (i === 0) window[`color_${k}`] = null;
-                        return `
-            <button class="variation-btn color-btn" 
-                    onclick="selectVar('${k}','color','${color}',this)"
-                    style="${getColorStyle(color)}"
-                    title="${color}">
-                ${color}
-            </button>`;
-                    }).join("")}
-        </div>
-        ` : ''}
-
-        <p class="details" id="info_${k}"></p>
-        <div class="price" id="price_${k}"></div>
-        <div class="comparison-box" id="comp_box_${k}"><span class="comparison-title">Other Brands (Same Size/GSM):</span><div class="alt-list" id="alt_list_${k}"></div></div>
-    </div>
-
-    <div class="qty-row">
-        <div class="qty-input">
-            <input type="number" id="qty_${k}" value="${g.variations[0].evenOnly ? '2' : '1'}" min="${g.variations[0].halfQty ? '0.5' : '1'}" max="999" step="${getQuantityStep(g.variations[0])}" oninput="updateUI('${k}', true)" onclick="this.select()" onfocus="this.select()">
-        </div>
-        <button class="btn-cart" onclick="addToCart('${k}')">
-            Add to Cart
-        </button>
-    </div>
-</div>`
+</div>`;
+            
+            if (categoryContainer) {
+                categoryContainer.innerHTML += productHtml;
             }
-
-            // Add to category container
-            categoryContainer.innerHTML += productHtml
-
-            // Initialize UI with default values
-            updateUI(k)
         })
     })
 }
@@ -1122,8 +934,31 @@ function updateAvailableGsmsForPhotocopy(key, selectedSize) {
             availableBrands.forEach((brand, index) => {
                 const button = document.createElement('button');
                 button.className = `variation-btn brand-btn ${index === 0 ? 'active' : ''}`;
-                button.textContent = brand;
+                button.innerHTML = `<span>${brand}</span>`;
                 button.onclick = function () { selectVar(key, 'brand', brand, this); };
+                
+                // Find if any variation for this brand has tags
+                const brandVars = Object.values(variations).filter(v => v.size === selectedSize && v.displaySize === brand);
+                const discount = brandVars.find(v => v.discountTag)?.discountTag;
+                const newly = brandVars.find(v => v.newTag)?.newTag;
+
+                if (discount) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge-on-btn badge-discounted';
+                    badge.style.right = newly ? '25px' : '-5px'; // Adjust if both present
+                    badge.style.background = 'red';
+                    badge.innerText = discount.substring(0, 4).toUpperCase();
+                    button.appendChild(badge);
+                }
+                if (newly) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge-on-btn badge-new';
+                    badge.style.right = '-5px';
+                    badge.style.background = '#28a745';
+                    badge.innerText = newly.substring(0, 3).toUpperCase();
+                    button.appendChild(badge);
+                }
+
                 brandGrid.appendChild(button);
             });
 
@@ -1163,8 +998,32 @@ function updateGsmsForPhotocopy(key, selectedSize, selectedBrand) {
         availableGsms.forEach((gsm, index) => {
             const button = document.createElement('button');
             button.className = `variation-btn ${index === 0 ? 'active' : ''}`;
-            button.textContent = gsm;
+            button.style.position = 'relative';
+            button.innerHTML = `<span>${gsm}</span>`;
             button.onclick = function () { selectVar(key, 'gsm', gsm, this); };
+
+            // Check for tags
+            const gsmVars = Object.values(variations).filter(v => v.size === selectedSize && v.displaySize === selectedBrand && v.gsm === gsm);
+            const discount = gsmVars.find(v => v.discountTag)?.discountTag;
+            const newly = gsmVars.find(v => v.newTag)?.newTag;
+
+            if (discount) {
+                const badge = document.createElement('span');
+                badge.className = 'badge-on-btn badge-discounted';
+                badge.style.right = newly ? '25px' : '-5px';
+                badge.style.background = 'red';
+                badge.innerText = discount.substring(0, 4).toUpperCase();
+                button.appendChild(badge);
+            }
+            if (newly) {
+                const badge = document.createElement('span');
+                badge.className = 'badge-on-btn badge-new';
+                badge.style.right = '-5px';
+                badge.style.background = '#28a745';
+                badge.innerText = newly.substring(0, 3).toUpperCase();
+                button.appendChild(badge);
+            }
+
             gsmGrid.appendChild(button);
         });
 
@@ -2113,10 +1972,12 @@ function renderCart(keysToHighlight = []) {
                         <button class="cart-qty-btn" onclick="changeCartQty('${k}', -1)" title="Decrease quantity">&#8722;</button>
                         <input class="cart-qty-num-input"
                             type="number"
+                            onfocus="this.select()"
                             value="${item.qty}"
                             min="${itemMin}"
                             max="${item.maxQty}"
                             step="${itemStep}"
+                            oninput="updateCartQty('${k}', this.value)"
                             onchange="updateCartQty('${k}', this.value)"
                             onblur="updateCartQty('${k}', this.value)">
                         <button class="cart-qty-btn" onclick="changeCartQty('${k}', 1)" title="Increase quantity">+</button>
@@ -2784,4 +2645,399 @@ function updateCartQty(cartKey, newQtyRaw) {
             updateCheckoutTotal(0);
         }
     }
+}
+
+/* --- BOTTOM SHEET LOGIC --- */
+let currentSheetKey = null;
+let selectedSheetSize = null;
+let selectedSheetVariant = null;
+
+function openVariationSheet(productKey) {
+    const g = window[`g_${productKey}`];
+    if (!g) return;
+
+    currentSheetKey = productKey;
+    selectedSheetSize = null;
+    selectedSheetVariant = null;
+
+    document.getElementById('sheet-title').innerText = g.name;
+    document.getElementById('sheet-qty').value = g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1');
+    document.getElementById('sheet-qty').step = getQuantityStep(g.variations[0]);
+    
+    renderSheetBody(productKey);
+    updateSheetUI();
+
+    document.getElementById('variation-sheet-overlay').classList.add('active');
+    document.getElementById('variation-sheet').classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVariationSheet() {
+    document.getElementById('variation-sheet-overlay').classList.remove('active');
+    document.getElementById('variation-sheet').classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+function renderSheetBody(productKey) {
+    const g = window[`g_${productKey}`];
+    const body = document.getElementById('sheet-body');
+    const sizes = [...new Set(g.variations.map(v => v.size))];
+
+    let html = `
+        <span class="variation-group-title">SELECT SIZE (INCHES)</span>
+        <div class="chip-grid">
+            ${sizes.map(s => `<div class="chip-btn" onclick="selectSheetSize('${s}')" id="chip-${s}">${s}</div>`).join('')}
+        </div>
+        <div id="weight-selection-area" style="display: none;">
+            <span class="variation-group-title">SELECT WEIGHT (GSM)</span>
+            <div class="weight-list" id="weight-list"></div>
+        </div>
+    `;
+    body.innerHTML = html;
+}
+
+function selectSheetSize(size) {
+    selectedSheetSize = size;
+    selectedSheetVariant = null;
+
+    // Update Chips UI
+    document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
+    const selectedChip = document.getElementById(`chip-${size}`);
+    if (selectedChip) selectedChip.classList.add('active');
+
+    // Show Weight area
+    const weightArea = document.getElementById('weight-selection-area');
+    weightArea.style.display = 'block';
+
+    // Render Weight List
+    const g = window[`g_${currentSheetKey}`];
+    const variations = g.variations.filter(v => v.size === size);
+    
+    const weightList = document.getElementById('weight-list');
+    weightList.innerHTML = variations.map(v => {
+        const lookupKey = v.displaySize ? (v.color ? `${v.size}_${v.gsm}_${v.displaySize}_${v.color}` : `${v.size}_${v.gsm}_${v.displaySize}`) : (v.color ? `${v.size}_${v.gsm}_${v.color}` : `${v.size}_${v.gsm}`);
+        
+        let label = `${v.gsm} GSM`;
+        if (v.displaySize) label = `${v.displaySize} - ${label}`;
+        if (v.color) label += ` (${v.color})`;
+        
+        // Restore color-specific styling
+        const style = v.color ? getColorStyle(v.color) : '';
+        
+        // Add badges if present
+        let badges = '';
+        if (v.discountTag && v.newTag) {
+            badges += `<span class="badge-on-btn badge-discounted" style="right: 25px;">${v.discountTag.substring(0,4)}</span>`;
+            badges += `<span class="badge-on-btn badge-new" style="right: -5px;">${v.newTag.substring(0,3)}</span>`;
+        } else if (v.discountTag) {
+            badges += `<span class="badge-on-btn badge-discounted" style="right: -5px;">${v.discountTag.substring(0,4)}</span>`;
+        } else if (v.newTag) {
+            badges += `<span class="badge-on-btn badge-new" style="right: -5px;">${v.newTag.substring(0,3)}</span>`;
+        }
+
+        return `
+            <div class="weight-item" onclick="selectSheetWeight('${lookupKey}')" id="weight-${lookupKey}" style="${style}">
+                ${badges}
+                <div class="weight-label">
+                    <span>${label}</span>
+                </div>
+                <div class="weight-price">
+                    <span class="rate-label">Rs ${v.rate}/KG</span>
+                    <span class="price-label">Rs ${v.price}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    updateSheetUI();
+    
+    // Auto-scroll to weights
+    weightArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function selectSheetWeight(lookupKey) {
+    selectedSheetVariant = window[`map_${currentSheetKey}`][lookupKey];
+    
+    // Update Weight UI
+    document.querySelectorAll('.weight-item').forEach(item => item.classList.remove('active'));
+    const selectedItem = document.getElementById(`weight-${lookupKey}`);
+    if (selectedItem) selectedItem.classList.add('active');
+
+    // Update Quantity Input Step and Min based on selected variant
+    const qtyInput = document.getElementById('sheet-qty');
+    const step = getQuantityStep(selectedSheetVariant);
+    qtyInput.step = step;
+    qtyInput.min = step;
+    
+    // Adjust current quantity if it doesn't match the new step/min
+    let currentQty = parseFloat(qtyInput.value);
+    const stepNum = parseFloat(step);
+    
+    if (isNaN(currentQty) || currentQty < stepNum) {
+        qtyInput.value = step;
+    } else {
+        // Ensure quantity is a multiple of the step
+        const remainder = currentQty % stepNum;
+        if (remainder > 0.001 && (stepNum - remainder) > 0.001) {
+            // If it doesn't match, round to nearest valid multiple
+            qtyInput.value = Math.max(stepNum, Math.round(currentQty / stepNum) * stepNum);
+        }
+    }
+
+    updateSheetUI();
+}
+
+function updateSheetUI() {
+    const addBtn = document.getElementById('sheet-add-btn');
+    const priceDisplay = document.getElementById('sheet-price');
+    const qtyInput = document.getElementById('sheet-qty');
+    const compBox = document.getElementById('sheet-comparison-box');
+    const altList = document.getElementById('sheet-alt-list');
+    const qty = parseFloat(qtyInput.value) || 1;
+
+    if (selectedSheetVariant) {
+        addBtn.disabled = false;
+        const currentPrice = selectedSheetVariant.price;
+        priceDisplay.innerHTML = `
+            <div class="button-price-stack">
+                <span class="button-rate-label">Rs ${selectedSheetVariant.rate}/KG</span>
+                <span class="button-price-label">Rs ${Math.round(currentPrice * qty)}</span>
+            </div>
+        `;
+        priceDisplay.style.display = 'block';
+
+        // --- CHEAPER OPTIONS LOGIC ---
+        const cat = window[`category_${currentSheetKey}`];
+        const excludedCats = ["Copy Paper", "Stickers", "Carbonless", "Colour Card"];
+        
+        // Check for color variations in the current product group
+        const g = window[`g_${currentSheetKey}`];
+        const hasColors = g.variations.some(v => v.color && v.color.trim() !== "");
+
+        if (!excludedCats.includes(cat) && !hasColors && globalProducts[cat]) {
+            const cheaperAlternatives = globalProducts[cat].items.filter(item =>
+                item.size === selectedSheetSize &&
+                item.gsm === selectedSheetVariant.gsm &&
+                item.name !== g.name &&
+                parseFloat(item.price) < currentPrice
+            );
+
+            if (cheaperAlternatives.length > 0) {
+                compBox.style.display = 'block';
+                altList.innerHTML = cheaperAlternatives.map(alt => {
+                    const savingsPerUnit = currentPrice - parseFloat(alt.price);
+                    const totalSavings = savingsPerUnit * qty;
+                    const targetKey = safeKey(alt.name);
+                    return `
+                        <a href="javascript:void(0)" class="alt-item" onclick="jumpToAltFromSheet('${targetKey}', '${selectedSheetSize}', '${selectedSheetVariant.gsm}')">
+                            <span class="alt-name">${alt.displaySize || alt.name}</span>
+                            <div class="alt-info-wrapper">
+                                <div class="alt-price-stack">
+                                    <span class="alt-packet-price">Rs ${alt.price}</span>
+                                    <span class="alt-kg-rate">${alt.rate}/KG</span>
+                                </div>
+                                <span class="alt-savings">Save Rs ${totalSavings.toFixed(0)}</span>
+                                <span class="alt-arrow">→</span>
+                            </div>
+                        </a>
+                    `;
+                }).join('');
+            } else {
+                compBox.style.display = 'none';
+            }
+        } else {
+            compBox.style.display = 'none';
+        }
+    } else {
+        addBtn.disabled = true;
+        priceDisplay.style.display = 'none';
+        compBox.style.display = 'none';
+    }
+}
+
+function jumpToAltFromSheet(targetKey, size, gsm) {
+    // 1. Close current sheet
+    closeVariationSheet();
+    
+    // 2. Small delay then open new sheet for target brand
+    setTimeout(() => {
+        openVariationSheet(targetKey);
+        
+        // 3. Auto-select size
+        setTimeout(() => {
+            selectSheetSize(size);
+            
+            // 4. Auto-select GSM/Weight
+            setTimeout(() => {
+                const lookupKey = `${size}_${gsm}`;
+                // Try variants with brand if it's Copy Paper etc
+                const g = window[`g_${targetKey}`];
+                let finalKey = lookupKey;
+                const variants = g.variations.filter(v => v.size === size && v.gsm === gsm);
+                if (variants.length > 0) {
+                    const v = variants[0];
+                    finalKey = v.displaySize ? `${v.size}_${v.gsm}_${v.displaySize}` : `${v.size}_${v.gsm}`;
+                }
+                
+                selectSheetWeight(finalKey);
+            }, 300);
+        }, 300);
+    }, 300);
+}
+
+function changeSheetQty(direction) {
+    const qtyInput = document.getElementById('sheet-qty');
+    const step = parseFloat(qtyInput.step) || 1;
+    let val = parseFloat(qtyInput.value) || 1;
+    
+    val = Math.max(step, val + (direction * step));
+    qtyInput.value = val;
+    updateSheetUI();
+}
+
+async function addFromSheetToCart() {
+    if (!selectedSheetVariant) return;
+
+    const qty = parseFloat(document.getElementById('sheet-qty').value);
+    const productKey = currentSheetKey;
+    const p = selectedSheetVariant;
+
+    // Create unique cart key
+    const cartKey = productKey + "_" + p.size + "_" + p.gsm +
+        (p.displaySize ? "_" + p.displaySize : "") +
+        (p.color ? "_" + p.color : "");
+
+    const cartItem = {
+        ...p,
+        qty: qty,
+        selectedColor: p.color || '',
+        selectedBrand: p.displaySize || '',
+        isSuggested: false
+    };
+
+    // Stock check
+    if (qty > p.maxQty) {
+        alert(`Sorry, only ${p.maxQty} units available.`);
+        return;
+    }
+
+    // === LIVE PRICE CHECK (Before adding to cart) ===
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:AD?key=${API_KEY}&_=${Date.now()}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.values) {
+            const productRows = data.values.slice(1);
+            const sizeParts = p.size.split('x');
+            const length = sizeParts[0];
+            const width = sizeParts[1];
+            
+            // Search for the variation in live data
+            const freshProduct = productRows.find(row => {
+                const rowName = (row[COL.NAME] || '').trim().toLowerCase();
+                const targetName = p.name.trim().toLowerCase();
+                const rowBrand = (row[COL.DISPLAY_SIZE] || '').trim().toLowerCase();
+                const targetBrand = (p.displaySize || '').trim().toLowerCase();
+                const rowSizeMatch = row[COL.LENGTH] == length && row[COL.WIDTH] == width;
+                const rowGsmMatch = row[COL.GSM] == p.gsm;
+                
+                return rowName === targetName && rowSizeMatch && rowGsmMatch && rowBrand === targetBrand;
+            });
+
+            if (freshProduct) {
+                const freshPrice = Math.round(parseFloat(freshProduct[COL.PRICE] || 0));
+                const currentPrice = p.price;
+                const freshRate = freshProduct[COL.RATE] || p.rate;
+
+                if (freshPrice > 0 && currentPrice > 0 && freshPrice !== currentPrice) {
+                    const oldRate = parseFloat(p.rate) || 0;
+                    const newRate = parseFloat(freshRate) || 0;
+
+                    // Update global map and current reference
+                    Object.keys(window[`map_${productKey}`] || {}).forEach(mKey => {
+                        const entry = window[`map_${productKey}`][mKey];
+                        if (entry && entry.id === p.id) {
+                            entry.price = freshPrice;
+                            entry.rate = freshRate;
+                        }
+                    });
+                    
+                    p.price = freshPrice;
+                    p.rate = freshRate;
+
+                    // Notify user
+                    showPriceChangeBanner(p.name, currentPrice, freshPrice, oldRate, newRate);
+                    
+                    // Update sheet UI price display
+                    if (document.getElementById('sheet-price')) {
+                        document.getElementById('sheet-price').innerHTML = `
+                            <div class="button-price-stack">
+                                <span class="button-rate-label">Rs ${p.rate}/KG</span>
+                                <span class="button-price-label">Rs ${Math.round(freshPrice * qty)}</span>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.log('Live price check failed:', e);
+    }
+    // === END PRICE CHECK ===
+
+    // --- PACKING RULE VALIDATION ---
+    const allowHalf = p.halfQty === true;
+    const evenOnly = p.evenOnly === true;
+    const multiple15 = p.multiple15 === true;
+
+    if (multiple15) {
+        if (Math.abs((qty / 1.5) - Math.round(qty / 1.5)) > 0.001) {
+            alert("150 SHEETS Packing: Please enter multiples of 1.5 only (1.5, 3, 4.5, etc.).");
+            return;
+        }
+    } else if (evenOnly) {
+        if (qty % 2 !== 0) {
+            alert("200 SHEETS Packing: Please enter even quantities only (2, 4, 6, etc.).");
+            return;
+        }
+    } else if (allowHalf) {
+        if (Math.abs(qty * 2 - Math.round(qty * 2)) > 0.001) {
+            alert("Please enter a quantity in increments of 0.5 (e.g., 0.5, 1.0, 1.5).");
+            return;
+        }
+    } else {
+        if (Math.abs(qty - Math.round(qty)) > 0.001) {
+            alert("Please enter a whole number quantity.");
+            return;
+        }
+    }
+    // --- END VALIDATION ---
+
+    if (cart[cartKey]) {
+        const newQty = cart[cartKey].qty + qty;
+        if (newQty > p.maxQty) {
+            alert(`Max limit reached. Total in cart: ${cart[cartKey].qty}`);
+            return;
+        }
+        cart[cartKey].qty = newQty;
+    } else {
+        cart[cartKey] = cartItem;
+    }
+
+    renderCart();
+    updateCartBadge();
+    saveCart();
+    
+    // Success feedback on button
+    const addBtn = document.getElementById('sheet-add-btn');
+    const originalText = addBtn.innerHTML;
+    addBtn.innerHTML = '<span>Added!</span>';
+    addBtn.style.backgroundColor = '#1f8b3b';
+    
+    setTimeout(() => {
+        addBtn.innerHTML = originalText;
+        addBtn.style.backgroundColor = '';
+        // closeVariationSheet(); 
+    }, 800);
 }
