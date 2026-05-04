@@ -332,11 +332,12 @@
         <div class="sheet-footer">
             <div class="qty-control-sheet">
                 <button class="qty-btn-sheet" onclick="changeSheetQty(-1)">−</button>
-                <input type="number" id="sheet-qty" value="1" min="1" step="1" style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
+                <input type="number" id="sheet-qty" value="1" min="1" step="1" onfocus="this.select()" oninput="updateSheetUI()" style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
                 <button class="qty-btn-sheet" onclick="changeSheetQty(1)">+</button>
             </div>
             <button id="sheet-add-btn" class="sticky-add-to-cart" onclick="addFromSheetToCart()">
                 <span>Add to Cart</span>
+                <span id="sheet-rate"></span>
                 <span id="sheet-price">Rs 0</span>
             </button>
         </div>

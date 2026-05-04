@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.02.01"; // Mobile UI & Price Stack Optimization
+const APP_VERSION = "2026.05.05.01"; // Trail of Light, Checkmark, and Kiosk Qty Fixes
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -816,10 +816,10 @@ function renderProducts(groups, isSearch = false) {
 
         Object.keys(grouped).forEach(k => {
             const g = grouped[k]
-            
+
             // Store data globally for the sheet
             window[`g_${k}`] = g;
-            
+
             // Create variation map (same as before)
             const map = {}
             g.variations.forEach(v => {
@@ -860,7 +860,7 @@ function renderProducts(groups, isSearch = false) {
         </button>
     </div>
 </div>`;
-            
+
             if (categoryContainer) {
                 categoryContainer.innerHTML += productHtml;
             }
@@ -936,7 +936,7 @@ function updateAvailableGsmsForPhotocopy(key, selectedSize) {
                 button.className = `variation-btn brand-btn ${index === 0 ? 'active' : ''}`;
                 button.innerHTML = `<span>${brand}</span>`;
                 button.onclick = function () { selectVar(key, 'brand', brand, this); };
-                
+
                 // Find if any variation for this brand has tags
                 const brandVars = Object.values(variations).filter(v => v.size === selectedSize && v.displaySize === brand);
                 const discount = brandVars.find(v => v.discountTag)?.discountTag;
@@ -1477,46 +1477,64 @@ function removeFromCart(cartKey) {
  * FEATURE: Beautiful Trailing Animation
  * Animates a product image clone from the product card to the cart icon.
  */
-function animateToCart(sourceImg, targetEl) {
-    const clone = sourceImg.cloneNode(true);
-    const sourceRect = sourceImg.getBoundingClientRect();
+/**
+ * FEATURE: Trail of Light Animation
+ * Animates a stream of green particles from the source element to the cart icon.
+ */
+function animateToCart(startEl, targetEl) {
+    const startRect = startEl.getBoundingClientRect();
     const targetRect = targetEl.getBoundingClientRect();
 
-    // Initial state
-    clone.classList.add('flying-product');
-    clone.style.width = sourceRect.width + 'px';
-    clone.style.height = sourceRect.height + 'px';
-    clone.style.top = sourceRect.top + 'px';
-    clone.style.left = sourceRect.left + 'px';
+    const startX = startRect.left + startRect.width / 2;
+    const startY = startRect.top + startRect.height / 2;
+    const endX = targetRect.left + targetRect.width / 2;
+    const endY = targetRect.top + targetRect.height / 2;
 
-    document.body.appendChild(clone);
+    const particleCount = 15;
+    for (let i = 0; i < particleCount; i++) {
+        setTimeout(() => {
+            const p = document.createElement('div');
+            p.className = 'cart-particle-trail';
+            p.style.left = startX + 'px';
+            p.style.top = startY + 'px';
+            document.body.appendChild(p);
 
-    // Trailing particles logic
-    const particleInterval = setInterval(() => {
-        const rect = clone.getBoundingClientRect();
-        createParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    }, 50);
+            // Trigger animation after a tiny delay
+            setTimeout(() => {
+                p.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.3)`;
+                p.style.opacity = '0';
+            }, 10);
 
-    // Animate to target
-    requestAnimationFrame(() => {
-        clone.style.width = '40px';
-        clone.style.height = '40px';
-        clone.style.top = (targetRect.top + targetRect.height / 2 - 20) + 'px';
-        clone.style.left = (targetRect.left + targetRect.width / 2 - 20) + 'px';
-        clone.style.opacity = '0.5';
-        clone.style.transform = 'rotate(360deg)';
-    });
+            setTimeout(() => p.remove(), 1000);
+        }, i * 45); // Faster stream
+    }
 
-    // Cleanup
+    // Intense feedback on cart icon
     setTimeout(() => {
-        clearInterval(particleInterval);
-        clone.remove();
+        // Shake the button
+        targetEl.classList.remove('cart-shake');
+        void targetEl.offsetWidth;
+        targetEl.classList.add('cart-shake');
 
-        // Bump animation on cart button
-        targetEl.classList.remove('cart-bump');
-        void targetEl.offsetWidth; // Trigger reflow
-        targetEl.classList.add('cart-bump');
-    }, 800);
+        // Create the ripple/ping effect
+        const ping = document.createElement('div');
+        ping.className = 'cart-ping-effect';
+        targetEl.appendChild(ping);
+        setTimeout(() => ping.remove(), 700);
+    }, 700);
+}
+
+/**
+ * FEATURE: Center Success Checkmark
+ * Shows a large green checkmark in the center of the screen.
+ */
+function showSuccessCheckmark() {
+    const check = document.createElement('div');
+    check.className = 'success-checkmark-overlay';
+    check.innerHTML = '&#10004;'; // Checkmark symbol
+    document.body.appendChild(check);
+
+    setTimeout(() => check.remove(), 1100);
 }
 
 function createParticle(x, y) {
@@ -1887,15 +1905,13 @@ async function addToCart(key) {
         cart[cartKey] = cartItem
     }
 
-    // ✅ Trending Flying Animation
+    // ✅ Trail of Light Animation
     try {
-        const productCard = document.querySelector(`.product-card img[src*="${p.image.split('/').pop()}"]`) ||
-            document.querySelector(`[onclick="addToCart('${key}')"]`).closest('.product-card');
-        const productImage = productCard ? (productCard.tagName === 'IMG' ? productCard : productCard.querySelector('img')) : null;
+        const addBtn = document.querySelector(`[onclick="addToCart('${key}')"]`);
         const cartBtn = document.getElementById('view-cart-btn');
-
-        if (productImage && cartBtn) {
-            animateToCart(productImage, cartBtn);
+        if (addBtn && cartBtn) {
+            animateToCart(addBtn, cartBtn);
+            showSuccessCheckmark();
         }
     } catch (e) { console.error("Animation failed", e); }
 
@@ -2663,8 +2679,15 @@ function openVariationSheet(productKey) {
     document.getElementById('sheet-title').innerText = g.name;
     document.getElementById('sheet-qty').value = g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1');
     document.getElementById('sheet-qty').step = getQuantityStep(g.variations[0]);
-    
+
     renderSheetBody(productKey);
+
+    // Auto-select first size to show weights immediately
+    const sizes = [...new Set(g.variations.map(v => v.size))];
+    if (sizes.length > 0) {
+        selectSheetSize(sizes[0]);
+    }
+
     updateSheetUI();
 
     document.getElementById('variation-sheet-overlay').classList.add('active');
@@ -2712,27 +2735,27 @@ function selectSheetSize(size) {
     // Render Weight List
     const g = window[`g_${currentSheetKey}`];
     const variations = g.variations.filter(v => v.size === size);
-    
+
     const weightList = document.getElementById('weight-list');
     weightList.innerHTML = variations.map(v => {
         const lookupKey = v.displaySize ? (v.color ? `${v.size}_${v.gsm}_${v.displaySize}_${v.color}` : `${v.size}_${v.gsm}_${v.displaySize}`) : (v.color ? `${v.size}_${v.gsm}_${v.color}` : `${v.size}_${v.gsm}`);
-        
+
         let label = `${v.gsm} GSM`;
         if (v.displaySize) label = `${v.displaySize} - ${label}`;
         if (v.color) label += ` (${v.color})`;
-        
+
         // Restore color-specific styling
         const style = v.color ? getColorStyle(v.color) : '';
-        
+
         // Add badges if present
         let badges = '';
         if (v.discountTag && v.newTag) {
-            badges += `<span class="badge-on-btn badge-discounted" style="right: 25px;">${v.discountTag.substring(0,4)}</span>`;
-            badges += `<span class="badge-on-btn badge-new" style="right: -5px;">${v.newTag.substring(0,3)}</span>`;
+            badges += `<span class="badge-on-btn badge-discounted" style="right: 25px;">${v.discountTag.substring(0, 4)}</span>`;
+            badges += `<span class="badge-on-btn badge-new" style="right: -5px;">${v.newTag.substring(0, 3)}</span>`;
         } else if (v.discountTag) {
-            badges += `<span class="badge-on-btn badge-discounted" style="right: -5px;">${v.discountTag.substring(0,4)}</span>`;
+            badges += `<span class="badge-on-btn badge-discounted" style="right: -5px;">${v.discountTag.substring(0, 4)}</span>`;
         } else if (v.newTag) {
-            badges += `<span class="badge-on-btn badge-new" style="right: -5px;">${v.newTag.substring(0,3)}</span>`;
+            badges += `<span class="badge-on-btn badge-new" style="right: -5px;">${v.newTag.substring(0, 3)}</span>`;
         }
 
         return `
@@ -2741,23 +2764,19 @@ function selectSheetSize(size) {
                 <div class="weight-label">
                     <span>${label}</span>
                 </div>
-                <div class="weight-price">
-                    <span class="rate-label">Rs ${v.rate}/KG</span>
-                    <span class="price-label">Rs ${v.price}</span>
-                </div>
             </div>
         `;
     }).join('');
 
     updateSheetUI();
-    
+
     // Auto-scroll to weights
     weightArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function selectSheetWeight(lookupKey) {
     selectedSheetVariant = window[`map_${currentSheetKey}`][lookupKey];
-    
+
     // Update Weight UI
     document.querySelectorAll('.weight-item').forEach(item => item.classList.remove('active'));
     const selectedItem = document.getElementById(`weight-${lookupKey}`);
@@ -2768,11 +2787,11 @@ function selectSheetWeight(lookupKey) {
     const step = getQuantityStep(selectedSheetVariant);
     qtyInput.step = step;
     qtyInput.min = step;
-    
+
     // Adjust current quantity if it doesn't match the new step/min
     let currentQty = parseFloat(qtyInput.value);
     const stepNum = parseFloat(step);
-    
+
     if (isNaN(currentQty) || currentQty < stepNum) {
         qtyInput.value = step;
     } else {
@@ -2797,19 +2816,21 @@ function updateSheetUI() {
 
     if (selectedSheetVariant) {
         addBtn.disabled = false;
+        const rateDisplay = document.getElementById('sheet-rate');
         const currentPrice = selectedSheetVariant.price;
-        priceDisplay.innerHTML = `
-            <div class="button-price-stack">
-                <span class="button-rate-label">Rs ${selectedSheetVariant.rate}/KG</span>
-                <span class="button-price-label">Rs ${Math.round(currentPrice * qty)}</span>
-            </div>
-        `;
+
+        if (rateDisplay) {
+            rateDisplay.innerText = `Rs ${selectedSheetVariant.rate}/KG`;
+            rateDisplay.style.display = 'block';
+        }
+
+        priceDisplay.innerText = `Rs ${Math.round(currentPrice * qty)}`;
         priceDisplay.style.display = 'block';
 
         // --- CHEAPER OPTIONS LOGIC ---
         const cat = window[`category_${currentSheetKey}`];
         const excludedCats = ["Copy Paper", "Stickers", "Carbonless", "Colour Card"];
-        
+
         // Check for color variations in the current product group
         const g = window[`g_${currentSheetKey}`];
         const hasColors = g.variations.some(v => v.color && v.color.trim() !== "");
@@ -2850,6 +2871,8 @@ function updateSheetUI() {
         }
     } else {
         addBtn.disabled = true;
+        const rateDisplay = document.getElementById('sheet-rate');
+        if (rateDisplay) rateDisplay.style.display = 'none';
         priceDisplay.style.display = 'none';
         compBox.style.display = 'none';
     }
@@ -2858,15 +2881,15 @@ function updateSheetUI() {
 function jumpToAltFromSheet(targetKey, size, gsm) {
     // 1. Close current sheet
     closeVariationSheet();
-    
+
     // 2. Small delay then open new sheet for target brand
     setTimeout(() => {
         openVariationSheet(targetKey);
-        
+
         // 3. Auto-select size
         setTimeout(() => {
             selectSheetSize(size);
-            
+
             // 4. Auto-select GSM/Weight
             setTimeout(() => {
                 const lookupKey = `${size}_${gsm}`;
@@ -2878,7 +2901,7 @@ function jumpToAltFromSheet(targetKey, size, gsm) {
                     const v = variants[0];
                     finalKey = v.displaySize ? `${v.size}_${v.gsm}_${v.displaySize}` : `${v.size}_${v.gsm}`;
                 }
-                
+
                 selectSheetWeight(finalKey);
             }, 300);
         }, 300);
@@ -2889,7 +2912,7 @@ function changeSheetQty(direction) {
     const qtyInput = document.getElementById('sheet-qty');
     const step = parseFloat(qtyInput.step) || 1;
     let val = parseFloat(qtyInput.value) || 1;
-    
+
     val = Math.max(step, val + (direction * step));
     qtyInput.value = val;
     updateSheetUI();
@@ -2917,7 +2940,7 @@ async function addFromSheetToCart() {
 
     // Stock check
     if (qty > p.maxQty) {
-        alert(`Sorry, only ${p.maxQty} units available.`);
+        alert(`Sorry, only ${p.maxQty} packets available.`);
         return;
     }
 
@@ -2932,7 +2955,7 @@ async function addFromSheetToCart() {
             const sizeParts = p.size.split('x');
             const length = sizeParts[0];
             const width = sizeParts[1];
-            
+
             // Search for the variation in live data
             const freshProduct = productRows.find(row => {
                 const rowName = (row[COL.NAME] || '').trim().toLowerCase();
@@ -2941,7 +2964,7 @@ async function addFromSheetToCart() {
                 const targetBrand = (p.displaySize || '').trim().toLowerCase();
                 const rowSizeMatch = row[COL.LENGTH] == length && row[COL.WIDTH] == width;
                 const rowGsmMatch = row[COL.GSM] == p.gsm;
-                
+
                 return rowName === targetName && rowSizeMatch && rowGsmMatch && rowBrand === targetBrand;
             });
 
@@ -2962,13 +2985,13 @@ async function addFromSheetToCart() {
                             entry.rate = freshRate;
                         }
                     });
-                    
+
                     p.price = freshPrice;
                     p.rate = freshRate;
 
                     // Notify user
                     showPriceChangeBanner(p.name, currentPrice, freshPrice, oldRate, newRate);
-                    
+
                     // Update sheet UI price display
                     if (document.getElementById('sheet-price')) {
                         document.getElementById('sheet-price').innerHTML = `
@@ -3028,13 +3051,23 @@ async function addFromSheetToCart() {
     renderCart();
     updateCartBadge();
     saveCart();
-    
+
+    // ✅ Trail of Light Animation (from Sheet)
+    try {
+        const addBtn = document.getElementById('sheet-add-btn');
+        const cartBtn = document.getElementById('view-cart-btn');
+        if (addBtn && cartBtn) {
+            animateToCart(addBtn, cartBtn);
+            showSuccessCheckmark();
+        }
+    } catch (e) { console.error("Animation failed", e); }
+
     // Success feedback on button
     const addBtn = document.getElementById('sheet-add-btn');
     const originalText = addBtn.innerHTML;
     addBtn.innerHTML = '<span>Added!</span>';
     addBtn.style.backgroundColor = '#1f8b3b';
-    
+
     setTimeout(() => {
         addBtn.innerHTML = originalText;
         addBtn.style.backgroundColor = '';
