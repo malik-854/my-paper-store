@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.05.02"; // Clearance Sale Hierarchy, Tile Fixes, and Cart Duplication Fixes
+const APP_VERSION = "2026.05.05.03"; // Clearance Sale Hierarchy, Cart Duplication, and Color Options Fixes
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -836,7 +836,16 @@ function renderProducts(groups, isSearch = false) {
             subItems.forEach(i => {
                 const key = safeKey(cat + "_" + i.name);
                 if (!grouped[key]) grouped[key] = { name: i.name, variations: [], hasColors: i.hasColors, colorOptions: i.colorOptions };
-                grouped[key].variations.push(i);
+
+                // If this product has multiple colors, expand into one variation per color
+                // This ensures v.color is set on each variation so the map can correctly key them
+                if (i.hasColors && i.colorOptions && i.colorOptions.length > 0) {
+                    i.colorOptions.forEach(color => {
+                        grouped[key].variations.push({ ...i, color: color.trim() });
+                    });
+                } else {
+                    grouped[key].variations.push(i);
+                }
             });
 
             Object.keys(grouped).forEach(k => {
