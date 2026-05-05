@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.05.03"; // Clearance Sale Hierarchy, Cart Duplication, and Color Options Fixes
+const APP_VERSION = "2026.05.05.06"; // Clearance fixes, Cart normalization, and Live Price Sync fix
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1258,12 +1258,15 @@ function updateUI(key, isUserInteraction = false) {
             const currentPrice = parseFloat(p.price);
 
             if (globalProducts[cat]) {
-                const cheaperAlternatives = globalProducts[cat].items.filter(item =>
-                    item.size === selectedSize &&
-                    item.gsm === selectedGsm &&
-                    item.name !== p.name &&
-                    parseFloat(item.price) < currentPrice
-                );
+                const cheaperAlternatives = globalProducts[cat].items.filter(item => {
+                    const currentOrigCat = p.originalCategory || p.category;
+                    const itemOrigCat = item.originalCategory || item.category;
+                    return item.size === selectedSize &&
+                        item.gsm === selectedGsm &&
+                        item.name !== p.name &&
+                        parseFloat(item.price) < currentPrice &&
+                        currentOrigCat === itemOrigCat;
+                });
 
                 if (cheaperAlternatives.length > 0) {
                     compBox.querySelector('.comparison-title').innerText = '🔥 کم قیمت والے آپشنز:';
@@ -1931,6 +1934,7 @@ async function addToCart(key) {
         }
         return
     }
+
 
     // Create unique cart key - Category-Independent to prevent duplicates
     // We identify the item solely by its physical properties (Name, Size, GSM, Brand, Color)
@@ -2938,19 +2942,22 @@ function updateSheetUI() {
         const hasColors = g.variations.some(v => v.color && v.color.trim() !== "");
 
         if (!excludedCats.includes(cat) && !hasColors && globalProducts[cat]) {
-            const cheaperAlternatives = globalProducts[cat].items.filter(item =>
-                item.size === selectedSheetSize &&
-                item.gsm === selectedSheetVariant.gsm &&
-                item.name !== g.name &&
-                parseFloat(item.price) < currentPrice
-            );
+            const cheaperAlternatives = globalProducts[cat].items.filter(item => {
+                const currentOrigCat = selectedSheetVariant.originalCategory || selectedSheetVariant.category;
+                const itemOrigCat = item.originalCategory || item.category;
+                return item.size === selectedSheetSize &&
+                    item.gsm === selectedSheetVariant.gsm &&
+                    item.name !== g.name &&
+                    parseFloat(item.price) < currentPrice &&
+                    currentOrigCat === itemOrigCat;
+            });
 
             if (cheaperAlternatives.length > 0) {
                 compBox.style.display = 'block';
                 altList.innerHTML = cheaperAlternatives.map(alt => {
                     const savingsPerUnit = currentPrice - parseFloat(alt.price);
                     const totalSavings = savingsPerUnit * qty;
-                    const targetKey = safeKey(alt.name);
+                    const targetKey = safeKey(cat + "_" + alt.name);
                     return `
                         <a href="javascript:void(0)" class="alt-item" onclick="jumpToAltFromSheet('${targetKey}', '${selectedSheetSize}', '${selectedSheetVariant.gsm}')">
                             <span class="alt-name">${alt.displaySize || alt.name}</span>
@@ -3027,19 +3034,6 @@ async function addFromSheetToCart() {
     const productKey = currentSheetKey;
     const p = selectedSheetVariant;
 
-    // Create unique cart key - Category-Independent to prevent duplicates
-    // We identify the item solely by its physical properties (Name, Size, GSM, Brand, Color)
-    const cartKey = safeKey(p.name.trim() + "_" + p.size + "_" + p.gsm +
-        (p.displaySize ? "_" + p.displaySize : "") +
-        (p.color ? "_" + p.color : ""));
-
-    const cartItem = {
-        ...p,
-        qty: qty,
-        selectedColor: p.color || '',
-        selectedBrand: p.displaySize || '',
-        isSuggested: false
-    };
 
     // Stock check
     if (qty > p.maxQty) {
@@ -3139,6 +3133,20 @@ async function addFromSheetToCart() {
         }
     }
     // --- END VALIDATION ---
+
+    // Create unique cart key - Category-Independent to prevent duplicates
+    // We identify the item solely by its physical properties (Name, Size, GSM, Brand, Color)
+    const cartKey = safeKey(p.name.trim() + "_" + p.size + "_" + p.gsm +
+        (p.displaySize ? "_" + p.displaySize : "") +
+        (p.color ? "_" + p.color : ""));
+
+    const cartItem = {
+        ...p,
+        qty: qty,
+        selectedColor: p.color || '',
+        selectedBrand: p.displaySize || '',
+        isSuggested: false
+    };
 
     if (cart[cartKey]) {
         const newQty = cart[cartKey].qty + qty;
