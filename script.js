@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.05.01"; // Trail of Light, Checkmark, and Kiosk Qty Fixes
+const APP_VERSION = "2026.05.05.02"; // Clearance Sale Hierarchy, Tile Fixes, and Cart Duplication Fixes
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -594,15 +594,13 @@ function group(rows) {
         }
     }
     const g = {}
+    const clearanceItems = []; // Virtual category accumulator
+
     rows.forEach(r => {
         const cat = r[COL.CATEGORY] || 'Uncategorized'
-        if (!g[cat]) g[cat] = { category: cat, items: [] }
-
-        // Get color info
-        const hasColors = (r[COL.HAS_COLORS] || '').toUpperCase() === 'YES'
-        const colorOptions = hasColors ? (r[COL.COLOR_OPTIONS] || '').split(',').map(c => c.trim()) : []
-
-        g[cat].items.push({
+        
+        // Build the base item object
+        const itemObj = {
             id: r[COL.ID] || Math.random().toString(36).substr(2, 9),
             name: r[COL.NAME] || 'Unknown Product',
             size: `${r[COL.LENGTH] || 0}x${r[COL.WIDTH] || 0}`,
@@ -614,32 +612,52 @@ function group(rows) {
             image: r[COL.IMAGE] || "https://via.placeholder.com/300x200?text=Paper+Image",
             maxQty: parseInt(r[COL.MAX] || 9999),
             category: cat,
-            hasColors: hasColors,
-            colorOptions: colorOptions,
-            color: hasColors && colorOptions.length > 0 ? colorOptions[0] : '',
+            hasColors: (r[COL.HAS_COLORS] || '').toUpperCase() === 'YES',
+            colorOptions: (r[COL.HAS_COLORS] || '').toUpperCase() === 'YES' ? (r[COL.COLOR_OPTIONS] || '').split(',').map(c => c.trim()) : [],
             displaySize: r[COL.DISPLAY_SIZE] || '',  // Custom display text from Column R
             showGSM: !["White Sticker", "Stickers"].includes(cat),  // Control GSM display
             isStickerOnly: cat === "Stickers",  // NEW: Flag for stickers category
-            discountTag: r[COL.DISCOUNT_TAG] || '',      // ADD THIS
-            newTag: r[COL.NEW_TAG] || '',               // Existing line
-            erpCode: r[COL.ERP_CODE] || '',             // Column AB
-            erpDesc: r[COL.ERP_DESC] || '',             // Column AC
-            packingType: r[COL.PACKING_TYPE] || 'Weight', // Column AD
+            discountTag: r[COL.DISCOUNT_TAG] || '',      
+            newTag: r[COL.NEW_TAG] || '',               
+            erpCode: r[COL.ERP_CODE] || '',             
+            erpDesc: r[COL.ERP_DESC] || '',             
+            packingType: r[COL.PACKING_TYPE] || 'Weight', 
             halfQty: (r[COL.HALF_QTY] || '').trim().toUpperCase() === 'YES',
             evenOnly: (r[COL.EVEN_ONLY] || '').trim().toUpperCase() === 'YES',
             multiple15: (r[COL.MULTIPLE_1_5] || '').trim().toUpperCase() === 'YES',
             stock: parseInt(r[COL.STOCK] || 0),
             minStock: parseInt(r[COL.MIN_STOCK] || 0)
-        });
+        };
 
         // Calculate dynamic Max Qty based on stock vs reserved limit
-        const lastItem = g[cat].items[g[cat].items.length - 1];
-        const stockLimit = Math.max(0, lastItem.stock - lastItem.minStock);
+        const stockLimit = Math.max(0, itemObj.stock - itemObj.minStock);
         const originalMax = parseInt(r[COL.MAX] || 9999);
-        lastItem.stockLimit = stockLimit;
-        lastItem.originalMax = originalMax;
-        lastItem.maxQty = Math.min(stockLimit, originalMax);
+        itemObj.stockLimit = stockLimit;
+        itemObj.originalMax = originalMax;
+        itemObj.maxQty = Math.min(stockLimit, originalMax);
+
+        // 1. Add to original category
+        if (!g[cat]) g[cat] = { category: cat, items: [] }
+        g[cat].items.push(itemObj);
+
+        // 2. Add to virtual "Clearance Sale" if discount exists
+        if (itemObj.discountTag && itemObj.discountTag.trim() !== "") {
+            clearanceItems.push({ ...itemObj, category: 'Clearance Sale', originalCategory: cat });
+        }
     })
+
+    // If we have clearance items, prepend them to the groups
+    if (clearanceItems.length > 0) {
+        const finalGroups = {
+            "Clearance Sale": { category: "Clearance Sale", items: clearanceItems }
+        };
+        // Add the rest of the categories
+        Object.keys(g).forEach(key => {
+            finalGroups[key] = g[key];
+        });
+        return finalGroups;
+    }
+
     return g
 }
 
@@ -790,65 +808,67 @@ function renderProducts(groups, isSearch = false) {
         return;
     }
 
+    let mainHtml = "";
+
     Object.keys(groups).forEach((cat, index) => {
         const catKey = safeKey(cat);
-        if (cat && cat !== "undefined") {
-            // Create category container/tile
-            wrap.innerHTML += `
-<div class="category-section" id="section-${catKey}" onclick="handleSectionClick(event, '${catKey}')">
-    <h2 class="category-header">${cat}</h2>
-    <div class="category-products" id="cat-${catKey}" style="max-height: 0;">
-        <!-- Products will be added here -->
-    </div>
-</div>`
+        const isClearance = cat === "Clearance Sale";
+        const items = groups[cat].items;
+
+        // Sub-group items if we are in Clearance Sale
+        const subGroups = {};
+        if (isClearance) {
+            items.forEach(i => {
+                const subCat = i.originalCategory || 'General';
+                if (!subGroups[subCat]) subGroups[subCat] = [];
+                subGroups[subCat].push(i);
+            });
+        } else {
+            subGroups['default'] = items;
         }
 
-        const items = groups[cat].items
-        const grouped = {}
-        items.forEach(i => {
-            const key = safeKey(i.name)
-            if (!grouped[key]) grouped[key] = { name: i.name, variations: [], hasColors: i.hasColors, colorOptions: i.colorOptions }
-            grouped[key].variations.push(i)
-        })
+        let catContentHtml = "";
+        Object.keys(subGroups).forEach(subCatName => {
+            let subCatItemsHtml = "";
+            const subItems = subGroups[subCatName];
+            const grouped = {};
+            
+            subItems.forEach(i => {
+                const key = safeKey(cat + "_" + i.name);
+                if (!grouped[key]) grouped[key] = { name: i.name, variations: [], hasColors: i.hasColors, colorOptions: i.colorOptions };
+                grouped[key].variations.push(i);
+            });
 
-        // Get the container for this category
-        const categoryContainer = document.getElementById(`cat-${safeKey(cat)}`)
-
-        Object.keys(grouped).forEach(k => {
-            const g = grouped[k]
-
-            // Store data globally for the sheet
-            window[`g_${k}`] = g;
-
-            // Create variation map (same as before)
-            const map = {}
-            g.variations.forEach(v => {
-                if (v.displaySize) {
-                    const brandKey = `${v.size}_${v.gsm}_${v.displaySize}`
-                    map[brandKey] = v
-                    const fallbackKey = `${v.size}_${v.gsm}`
-                    if (!map[fallbackKey]) map[fallbackKey] = v
-                } else {
-                    const baseKey = `${v.size}_${v.gsm}`
-                    map[baseKey] = v
-                }
-                if (v.color) {
+            Object.keys(grouped).forEach(k => {
+                const g = grouped[k];
+                window[`g_${k}`] = g;
+                const map = {};
+                g.variations.forEach(v => {
                     if (v.displaySize) {
-                        const colorBrandKey = `${v.size}_${v.gsm}_${v.displaySize}_${v.color}`
-                        map[colorBrandKey] = v
+                        const brandKey = `${v.size}_${v.gsm}_${v.displaySize}`;
+                        map[brandKey] = v;
+                        const fallbackKey = `${v.size}_${v.gsm}`;
+                        if (!map[fallbackKey]) map[fallbackKey] = v;
+                    } else {
+                        const baseKey = `${v.size}_${v.gsm}`;
+                        map[baseKey] = v;
                     }
-                    const colorKey = `${v.size}_${v.gsm}_${v.color}`
-                    map[colorKey] = v
-                }
-            })
-            window[`map_${k}`] = map;
-            window[`category_${k}`] = cat;
+                    if (v.color) {
+                        if (v.displaySize) {
+                            const colorBrandKey = `${v.size}_${v.gsm}_${v.displaySize}_${v.color}`;
+                            map[colorBrandKey] = v;
+                        }
+                        const colorKey = `${v.size}_${v.gsm}_${v.color}`;
+                        map[colorKey] = v;
+                    }
+                });
+                window[`map_${k}`] = map;
+                window[`category_${k}`] = cat;
 
-            // Find min price for "Starting From"
-            const minPrice = Math.min(...g.variations.map(v => parseFloat(v.rate) || 9999));
-            const firstImg = g.variations[0].image;
+                const minPrice = Math.min(...g.variations.map(v => parseFloat(v.rate) || 9999));
+                const firstImg = g.variations[0].image;
 
-            const productHtml = `
+                subCatItemsHtml += `
 <div class="product-card compact-card" onclick="openVariationSheet('${k}')" style="cursor: pointer;">
     <img src="${firstImg}" alt="${g.name}" loading="lazy">
     <div class="product-info">
@@ -860,12 +880,37 @@ function renderProducts(groups, isSearch = false) {
         </button>
     </div>
 </div>`;
+            });
 
-            if (categoryContainer) {
-                categoryContainer.innerHTML += productHtml;
+            if (isClearance) {
+                const subCatKey = safeKey("sub_" + subCatName);
+                catContentHtml += `
+                    <div class="category-section clearance-sub-tile" id="sub-section-${subCatKey}" onclick="toggleClearanceSub(event, '${subCatKey}')">
+                        <h2 class="category-header sub-header">${subCatName}</h2>
+                        <div class="category-products sub-content" id="sub-content-${subCatKey}" style="max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out;">
+                            <div class="category-products nested-grid" id="sub-grid-${subCatKey}">
+                                ${subCatItemsHtml}
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                catContentHtml += subCatItemsHtml;
             }
-        })
-    })
+        });
+
+        // Build the main category wrapper
+        if (cat && cat !== "undefined") {
+            mainHtml += `
+<div class="category-section ${isClearance ? 'clearance-sale' : ''}" id="section-${catKey}" onclick="handleSectionClick(event, '${catKey}')">
+    <h2 class="category-header">${isClearance ? '🔥 ' + cat : cat}</h2>
+    <div class="category-products" id="cat-${catKey}" style="max-height: 0;">
+        ${catContentHtml}
+    </div>
+</div>`;
+        }
+    });
+
+    wrap.innerHTML = mainHtml;
 }
 
 function safeKey(t) {
@@ -1218,7 +1263,8 @@ function updateUI(key, isUserInteraction = false) {
                     altList.innerHTML = cheaperAlternatives.map(alt => {
                         const savingsPerUnit = currentPrice - parseFloat(alt.price);
                         const totalSavings = savingsPerUnit * qty;
-                        const targetKey = safeKey(alt.name);
+                        // Use category-aware key for jumping to alternatives
+                        const targetKey = safeKey(cat + "_" + alt.name);
                         return `
                             <a href="javascript:void(0)" class="alt-item" onclick="jumpToAlt('${targetKey}', '${selectedSize}', '${selectedGsm}')">
                                 <span class="alt-name">${alt.displaySize || alt.name}</span>
@@ -1877,10 +1923,11 @@ async function addToCart(key) {
         return
     }
 
-    // Create unique cart key
-    const cartKey = key + "_" + p.size + "_" + p.gsm +
-        (p.displaySize ? "_" + p.displaySize : "") +
-        (p.color ? "_" + p.color : "")
+    // Create unique cart key - Category-Independent to prevent duplicates
+    // We identify the item solely by its physical properties (Name, Size, GSM, Brand, Color)
+    const cartKey = safeKey(p.name.trim() + "_" + p.size + "_" + p.gsm + 
+        (p.displaySize ? "_" + p.displaySize : "") + 
+        (p.color ? "_" + p.color : ""));
 
     const cartItem = {
         ...p,
@@ -2405,9 +2452,55 @@ function handleSectionClick(event, categoryKey) {
     const section = document.getElementById(`section-${categoryKey}`);
     const isFocused = section.classList.contains("focused");
 
+    // If clicking a sub-category header inside Clearance, don't trigger main section toggle
+    if (event.target.closest('.sub-header')) {
+        event.stopPropagation();
+        return;
+    }
+
     // If clicking header OR if not focused yet, toggle it
     if (event.target.closest('.category-header') || !isFocused) {
         toggleCategory(categoryKey);
+    }
+}
+
+/**
+ * Toggles sub-categories inside the Clearance Sale section.
+ * Mimics the main category "Focus Mode" behavior.
+ */
+function toggleClearanceSub(event, subCatKey) {
+    event.stopPropagation();
+    const section = document.getElementById(`sub-section-${subCatKey}`);
+    const content = document.getElementById(`sub-content-${subCatKey}`);
+    const parent = section.parentElement; // The main Clearance products container
+    const isExpanded = section.classList.contains("expanded");
+
+    if (isExpanded) {
+        // CLOSE SUB-TILE
+        section.classList.remove("expanded");
+        content.style.maxHeight = "0px";
+        
+        // Show all other sub-tiles in this section
+        parent.querySelectorAll('.clearance-sub-tile').forEach(t => {
+            t.classList.remove("hidden-sub");
+        });
+    } else {
+        // OPEN SUB-TILE
+        // Hide other sub-tiles
+        parent.querySelectorAll('.clearance-sub-tile').forEach(t => {
+            if (t.id !== `sub-section-${subCatKey}`) {
+                t.classList.add("hidden-sub");
+            }
+        });
+
+        section.classList.add("expanded");
+        content.style.maxHeight = "10000px";
+        
+        // Scroll to the top of the clearance section
+        const mainSection = document.getElementById('section-Clearance_Sale');
+        if (mainSection) {
+            window.scrollTo({ top: mainSection.offsetTop - 20, behavior: 'smooth' });
+        }
     }
 }
 
@@ -2423,8 +2516,8 @@ function toggleCategory(categoryKey) {
         wrap.classList.remove("focus-mode");
         section.classList.remove("focused");
 
-        // Show all other sections
-        document.querySelectorAll('.category-section').forEach(s => {
+        // Show all other top-level sections
+        wrap.querySelectorAll(':scope > .category-section').forEach(s => {
             s.classList.remove("hidden");
         });
 
@@ -2442,8 +2535,8 @@ function toggleCategory(categoryKey) {
         // ENTER FOCUS MODE
         wrap.classList.add("focus-mode");
 
-        // Hide all other sections
-        document.querySelectorAll('.category-section').forEach(s => {
+        // Hide all other top-level sections
+        wrap.querySelectorAll(':scope > .category-section').forEach(s => {
             if (s.id !== `section-${categoryKey}`) {
                 s.classList.add("hidden");
             }
@@ -2925,10 +3018,11 @@ async function addFromSheetToCart() {
     const productKey = currentSheetKey;
     const p = selectedSheetVariant;
 
-    // Create unique cart key
-    const cartKey = productKey + "_" + p.size + "_" + p.gsm +
+    // Create unique cart key - Category-Independent to prevent duplicates
+    // We identify the item solely by its physical properties (Name, Size, GSM, Brand, Color)
+    const cartKey = safeKey(p.name.trim() + "_" + p.size + "_" + p.gsm +
         (p.displaySize ? "_" + p.displaySize : "") +
-        (p.color ? "_" + p.color : "");
+        (p.color ? "_" + p.color : ""));
 
     const cartItem = {
         ...p,

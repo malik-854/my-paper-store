@@ -42,6 +42,50 @@ body.kiosk-mode {
     border-radius: 16px !important;
 }
 
+/* Premium Kiosk Clearance Style */
+.kiosk-mode .category-section.clearance-sale {
+    border: 4px solid #b91d1d !important;
+    background: #fff5f5 !important;
+    box-shadow: 0 10px 30px rgba(185, 29, 29, 0.2) !important;
+}
+
+.kiosk-mode .category-section.clearance-sale .category-header {
+    background: linear-gradient(135deg, #b91d1d 0%, #dc2626 100%) !important;
+    color: white !important;
+    border-radius: 12px !important; /* Slightly smaller than section to show border */
+    margin: 4px;
+    height: 172px !important; /* Adjusted for margin */
+}
+
+.kiosk-mode .category-section.clearance-sale.focused .category-products {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 30px !important;
+}
+
+.kiosk-mode .clearance-sub-tile {
+    height: 120px !important; /* Rectangular for Kiosk */
+    border-radius: 12px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.kiosk-mode .clearance-sub-tile .category-header {
+    font-size: 1.8rem !important;
+    height: 120px !important; /* Match tile height */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+}
+
+.kiosk-mode .clearance-sub-tile.expanded {
+    height: auto !important;
+}
+
+.kiosk-mode .clearance-sub-tile.expanded .category-header {
+    height: 100px !important;
+}
+
 /* Fix product cards inside focus mode */
 .kiosk-mode .category-section.focused .category-products {
     grid-template-columns: repeat(4, 1fr) !important;
