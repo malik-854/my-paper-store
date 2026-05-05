@@ -796,6 +796,125 @@ h3 {
     /* Crisp highlight instead of heavy shadow */
 }
 
+.category-section.clearance-sale {
+    border: 3px solid #b91d1d !important;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%) !important;
+    box-shadow: 0 10px 25px rgba(185, 29, 29, 0.15) !important;
+    overflow: hidden;
+}
+
+.category-section.clearance-sale .category-header {
+    background: linear-gradient(90deg, #b91d1d 0%, #dc2626 100%) !important;
+    color: white !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border-bottom: none !important;
+    letter-spacing: 1px;
+    font-weight: 800;
+}
+
+.category-section.clearance-sale .category-header::after {
+    content: " LIMITED TIME OFFER";
+    font-size: 0.7rem;
+    background: #fef08a;
+    color: #92400e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+    vertical-align: middle;
+    letter-spacing: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* --- PREMIUM CLEARANCE SALE SECTION --- */
+.category-section.clearance-sale {
+    border: 2px solid #b91d1d !important;
+    background: #fff5f5 !important;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.category-section.clearance-sale:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(185, 29, 29, 0.15);
+}
+
+.clearance-sale .category-header {
+    background: linear-gradient(135deg, #b91d1d 0%, #dc2626 100%) !important;
+    color: white !important;
+}
+
+/* Internal Grid for Clearance Sub-Tiles */
+.category-section.clearance-sale.focused > .category-products {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 20px !important;
+    padding: 20px !important;
+    max-height: none !important;
+    opacity: 1 !important;
+}
+
+/* Sub-Tile Styling inside Clearance */
+.clearance-sub-tile {
+    grid-column: auto !important;
+    height: 80px !important; /* Smaller rectangular height */
+    margin: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid #ff000030 !important;
+    overflow: hidden;
+    background: white !important;
+    padding: 0 !important; /* Remove any padding */
+}
+
+.clearance-sub-tile .category-header {
+    font-size: 1.1rem !important;
+    height: 80px !important; /* Match tile height */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    background: linear-gradient(135deg, #b91d1d 0%, #dc2626 100%) !important;
+    color: white !important;
+    border-radius: 8px !important;
+}
+
+/* Force products to stay hidden regardless of parent focus */
+.clearance-sub-tile:not(.expanded) .sub-content {
+    max-height: 0 !important;
+    display: none !important;
+    overflow: hidden !important;
+}
+
+/* When a sub-tile is expanded inside Clearance */
+.clearance-sub-tile.expanded {
+    grid-column: 1 / -1 !important;
+    height: auto !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.clearance-sub-tile.expanded .category-header {
+    height: 60px !important; /* Shrink header when expanded to show products */
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+}
+
+.hidden-sub {
+    display: none !important;
+}
+
+.nested-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 15px !important;
+}
+
+/* Mobile Tweak */
+@media (max-width: 768px) {
+    .kiosk-mode .clearance-sale .category-products,
+    .category-section.clearance-sale.focused .category-products {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
 /* --- IMAGE SECTION --- */
 .product-card img {
     width: 100%;
