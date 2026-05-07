@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.07.01"; // ERP Color Row Matching Fix for Emails
+const APP_VERSION = "2026.05.08.01"; // Added GA4 Ecommerce Event Tracking
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -1321,6 +1321,21 @@ function openCart() {
     const cartEl = document.getElementById("cart-container");
     cartEl.classList.add("active");
     document.body.style.overflow = "hidden";
+
+    // Track GA Event: View Cart
+    if (typeof gtag === 'function') {
+        gtag('event', 'view_cart', {
+            currency: 'PKR',
+            value: Object.values(cart).reduce((sum, i) => sum + (i.price * i.qty), 0),
+            items: Object.values(cart).map(i => ({
+                item_name: i.name,
+                item_id: i.id,
+                price: i.price,
+                quantity: i.qty,
+                item_variant: `${i.size} ${i.gsm}gsm ${i.selectedBrand || ''} ${i.selectedColor || ''}`.trim()
+            }))
+        });
+    }
 }
 
 function closeCart() {
@@ -1387,6 +1402,20 @@ async function openCheckout() {
 
     document.getElementById("checkout-modal").classList.add("active")
     document.body.style.overflow = "hidden"
+
+    // Track GA Event: Begin Checkout
+    if (typeof gtag === 'function') {
+        gtag('event', 'begin_checkout', {
+            currency: 'PKR',
+            value: Object.values(cart).reduce((sum, i) => sum + (i.price * i.qty), 0),
+            items: Object.values(cart).map(i => ({
+                item_name: i.name,
+                item_id: i.id,
+                price: i.price,
+                quantity: i.qty
+            }))
+        });
+    }
 }
 
 function closeCheckout() {
@@ -1979,6 +2008,23 @@ async function addToCart(key) {
     updateCartBadge()
     saveCart() // Persist to local storage
 
+    // Track GA Event: Add to Cart
+    if (typeof gtag === 'function') {
+        gtag('event', 'add_to_cart', {
+            currency: 'PKR',
+            value: p.price * qty,
+            items: [{
+                item_name: p.name,
+                item_id: p.id,
+                price: p.price,
+                quantity: qty,
+                item_brand: selectedBrand,
+                item_variant: `${selectedSize} ${selectedGsm}gsm ${selectedColor}`.trim(),
+                item_category: p.category
+            }]
+        });
+    }
+
     //if (window.innerWidth <= 768) {
     // openCart();
     // }
@@ -2258,6 +2304,22 @@ async function placeOrder() {
             document.querySelector('input[name="payment"]:checked').value === "bank")
             ? "923046470666" : "923036470666";
         const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+
+        // Track GA Event: Purchase (WhatsApp Order)
+        if (typeof gtag === 'function') {
+            gtag('event', 'purchase', {
+                transaction_id: orderId,
+                value: total,
+                currency: 'PKR',
+                shipping: deliveryCharges,
+                items: Object.values(cart).map(i => ({
+                    item_name: i.name,
+                    item_id: i.id,
+                    price: i.price,
+                    quantity: i.qty
+                }))
+            });
+        }
 
         // 2. OPEN WHATSAPP (Desktop: New Tab | Mobile: Switch App)
         window.open(whatsappUrl, '_blank');
@@ -2782,6 +2844,19 @@ function openVariationSheet(productKey) {
     selectedSheetSize = null;
     selectedSheetVariant = null;
 
+    // Track GA Event: View Item (Variation Sheet Opened)
+    if (typeof gtag === 'function') {
+        gtag('event', 'view_item', {
+            currency: 'PKR',
+            value: g.variations[0].price,
+            items: [{
+                item_name: g.name,
+                item_id: g.variations[0].id,
+                item_category: g.variations[0].category
+            }]
+        });
+    }
+
     document.getElementById('sheet-title').innerText = g.name;
     document.getElementById('sheet-qty').value = g.variations[0].multiple15 ? '1.5' : (g.variations[0].evenOnly ? '2' : '1');
     document.getElementById('sheet-qty').step = getQuantityStep(g.variations[0]);
@@ -3167,6 +3242,23 @@ async function addFromSheetToCart() {
     renderCart();
     updateCartBadge();
     saveCart();
+
+    // Track GA Event: Add to Cart (from Sheet)
+    if (typeof gtag === 'function') {
+        gtag('event', 'add_to_cart', {
+            currency: 'PKR',
+            value: p.price * qty,
+            items: [{
+                item_name: p.name,
+                item_id: p.id,
+                price: p.price,
+                quantity: qty,
+                item_brand: p.displaySize || '',
+                item_variant: `${p.size} ${p.gsm}gsm ${p.color || ''}`.trim(),
+                item_category: p.category
+            }]
+        });
+    }
 
     // ✅ Trail of Light Animation (from Sheet)
     try {
