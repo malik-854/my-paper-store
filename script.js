@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.05.06"; // Clearance fixes, Cart normalization, and Live Price Sync fix
+const APP_VERSION = "2026.05.07.01"; // ERP Color Row Matching Fix for Emails
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -179,9 +179,9 @@ function revalidateCart() {
             const fpBrand = (fp.displaySize || '').trim().toLowerCase();
             if (itemBrand && fpBrand && fpBrand !== itemBrand) return false;
 
-            // Color match: only enforce if cart item has a color selected
-            const fpColor = (fp.color || '').trim().toLowerCase();
-            if (itemColor && fpColor && fpColor !== itemColor) return false;
+            // Color match: check if the selected color exists in this row's options
+            const fpColorOptions = (fp.colorOptions || []).map(c => c.trim().toLowerCase());
+            if (itemColor && fpColorOptions.length > 0 && !fpColorOptions.includes(itemColor)) return false;
 
             return true;
         });
@@ -3061,8 +3061,13 @@ async function addFromSheetToCart() {
                 const targetBrand = (p.displaySize || '').trim().toLowerCase();
                 const rowSizeMatch = row[COL.LENGTH] == length && row[COL.WIDTH] == width;
                 const rowGsmMatch = row[COL.GSM] == p.gsm;
+                
+                // NEW: Color match for separate color rows
+                const rowColorString = (row[COL.COLOR_OPTIONS] || '').trim().toLowerCase();
+                const targetColor = (p.color || '').trim().toLowerCase();
+                const colorMatch = !targetColor || rowColorString.split(',').map(c => c.trim()).includes(targetColor);
 
-                return rowName === targetName && rowSizeMatch && rowGsmMatch && rowBrand === targetBrand;
+                return rowName === targetName && rowSizeMatch && rowGsmMatch && rowBrand === targetBrand && colorMatch;
             });
 
             if (freshProduct) {
