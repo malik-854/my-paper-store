@@ -1096,7 +1096,7 @@ window.placeOrder = async function () {
             orderWeight: Math.round(totalWeight)
         };
 
-        await fetch('https://script.google.com/macros/s/AKfycbzqQWaupJvBJiFdbIJfhWaYoJYqqqGdLf4402bBRzyvdKGdM-gD1N3u9gQ7s8bDvSvG/exec', {
+        await fetch('https://script.google.com/macros/s/AKfycbysHbzMzacuCiZp16PJO5Gnx8kN2asM2Te4yDavvSdXRUN2jfUwRvc-LCjRvKPGXbsG/exec', {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify(emailData)
