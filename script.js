@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.08.01"; // Added GA4 Ecommerce Event Tracking
+const APP_VERSION = "2026.05.12.01"; // Added GA4 Ecommerce Event Tracking
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -2340,7 +2340,7 @@ async function placeOrder() {
             orderWeight: Math.round(totalWeight)
         };
 
-        await fetch('https://script.google.com/macros/s/AKfycbzqQWaupJvBJiFdbIJfhWaYoJYqqqGdLf4402bBRzyvdKGdM-gD1N3u9gQ7s8bDvSvG/exec', {
+        await fetch('https://script.google.com/macros/s/AKfycbxR_N_bqa1efcT7gmSF2kprsOIRJoC82oiUk-Wg_i2HYJYvFazaoqLXXZ63ZMI2FCQu3g/exec', {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
