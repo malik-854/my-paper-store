@@ -170,6 +170,9 @@ window.placeOrder = async function () {
         });
 
         // 4. SUCCESS & PRINT
+        document.body.classList.remove('printing-custom');
+        document.body.classList.add('printing-standard');
+
         prepareReceipt(name, phone, orderId, shipping, payment, address, subtotalValue, deliveryCharges);
         document.getElementById('checkout-modal').classList.remove('active');
         const sm = document.getElementById('success-modal');
@@ -190,14 +193,131 @@ window.placeOrder = async function () {
     }
 };
 
+window.submitKioskCustomQuote = async function () {
+    const L = document.getElementById('custom-len').value;
+    const W = document.getElementById('custom-wid').value;
+    const qtyInput = document.getElementById('custom-qty');
+    const name = document.getElementById('custom-name').value;
+    const phone = document.getElementById('custom-phone').value;
+    const total = document.getElementById('quote-total').innerText;
+    const kgRate = document.getElementById('quote-rate').innerText;
+    const pktRate = document.getElementById('quote-packet-rate').innerText;
+    const weight = document.getElementById('quote-weight').innerText;
+    const btn = document.getElementById('custom-submit-btn');
+
+    if (!name || !phone || phone.length < 7) {
+        alert("Please enter your name and phone number.");
+        return;
+    }
+
+    // FINAL VALIDATION
+    const moq = parseInt(qtyInput.placeholder);
+    let qty = parseInt(qtyInput.value) || 0;
+    if (qty < moq) {
+        alert(`Note: The minimum order for this size is ${moq} packets. Updated to minimum.`);
+        qtyInput.value = moq;
+        qty = moq;
+        calculateCustomQuote('qty');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Saving...';
+
+    // 1. FORMAT WHATSAPP MESSAGE
+    const msg = `✅ *NEW CUSTOM QUOTE REQUEST*\n` +
+        `--------------------------\n` +
+        `👤 Name: ${name}\n` +
+        `📞 Phone: ${phone}\n` +
+        `📄 Paper: ${selectedCustomCategory}\n` +
+        `🏷️ Brand: ${selectedCustomBrand}\n` +
+        `⚖️ GSM: ${selectedCustomRoll.gsm}\n` +
+        `📏 Size: ${L} x ${W} inches\n` +
+        `📦 Quantity: ${qty} Packets\n` +
+        `⚖️ Rate: ${kgRate}\n` +
+        `📦 Rate: ${pktRate}\n` +
+        `⚖️ Total Weight: ${weight}\n` +
+        `💰 Est. Total: ${total}\n` +
+        `--------------------------\n` +
+        `_Technical review pending._`;
+
+    // 2. TRIGGER WHATSAPP (Via Shop Phone - MACRODROID)
+    const waUrl = `${macroDroidUrl}?phone=92${phone.startsWith('0') ? phone.substring(1) : phone}&msg=${encodeURIComponent(msg)}`;
+    fetch(waUrl, { mode: 'no-cors' });
+
+    // 3. EMAIL WEBHOOK (using the new webhook)
+    const emailData = {
+        customerName: name + " (CUSTOM QUOTE)",
+        customerPhone: phone,
+        orderSummary: `${selectedCustomCategory} (${selectedCustomBrand}) | ${L}x${W} (Custom) | ${selectedCustomRoll.gsm} GSM | ${qty} Packets`,
+        kgRate: kgRate,
+        pktRate: pktRate,
+        orderTotal: total.replace(/\D/g, ''),
+        orderWeight: weight
+    };
+
+    try {
+        await fetch('https://script.google.com/macros/s/AKfycbw6NJf-nOQgbDRndWWtaFzKPFFR_66MSV-0C0RW4IOvAkKdPPwk2_eXD0EeIUw2sjs/exec', {
+            method: 'POST', mode: 'no-cors', body: JSON.stringify(emailData)
+        });
+
+        // 4. PREPARE CUSTOM PRINT
+        const printBody = document.getElementById('print-custom-body');
+        printBody.innerHTML = `
+            <div style="margin-bottom: 10px;">👤 <strong>Customer:</strong> ${name}</div>
+            <div style="margin-bottom: 10px;">📞 <strong>Phone:</strong> ${phone}</div>
+            <div style="margin-bottom: 15px; border-top: 1px dashed #000; padding-top: 10px;">
+                📄 <strong>Product:</strong> ${selectedCustomCategory} (${selectedCustomBrand})<br>
+                📏 <strong>Dimensions:</strong> ${L} x ${W} inches<br>
+                ⚖️ <strong>Grammage:</strong> ${selectedCustomRoll.gsm} GSM<br>
+                📦 <strong>Quantity:</strong> ${qty} Packets<br>
+                ⚖️ <strong>Total Weight:</strong> ${weight}
+            </div>
+            <div style="margin-bottom: 15px; background: #eee; padding: 10px; text-align: center;">
+                💰 <strong>Rate/KG:</strong> ${kgRate}<br>
+                📦 <strong>Rate/Pkt:</strong> ${pktRate}
+            </div>
+            <div style="font-size: 20px; font-weight: bold; text-align: center; border: 2px solid #000; padding: 10px;">
+                TOTAL: ${total}
+            </div>
+        `;
+
+        // Switch Print Sections
+        document.body.classList.remove('printing-standard');
+        document.body.classList.add('printing-custom');
+
+        // Show Success Modal
+        if (typeof hideCustomView === 'function') hideCustomView();
+        const sm = document.getElementById('success-modal');
+        if (sm) {
+            sm.style.display = 'flex';
+            document.getElementById('success-order-id').innerText = "CUSTOM QUOTE";
+        }
+
+        // 5. PRINT
+        setTimeout(() => {
+            if (typeof fully !== 'undefined') {
+                fully.print();
+            } else {
+                window.print();
+            }
+        }, 1000);
+
+    } catch (e) {
+        console.error('Custom quote error:', e);
+        btn.disabled = false;
+        btn.innerHTML = "Request Quote via WhatsApp";
+    }
+};
+
 function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtotal, deliveryFee) {
     document.getElementById('print-name').innerText = n;
     document.getElementById('print-phone').innerText = p || 'N/A';
     document.getElementById('print-order-id').innerText = id;
 
     const _now = new Date();
-    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const _dateStr = `${String(_now.getDate()).padStart(2,'0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
+    const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const _dateStr = `${String(_now.getDate()).padStart(2, '0')}-${_months[_now.getMonth()]}-${_now.getFullYear()}`;
     const dateEl = document.getElementById('print-date');
     if (dateEl) dateEl.innerText = _dateStr;
 

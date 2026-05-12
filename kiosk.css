@@ -277,31 +277,36 @@ body.kiosk-mode {
         margin: 15mm 10mm;
     }
 
-    /* CLEAN PRINT: Hide everything except the receipt */
-    body > *:not(#print-section) {
+    /* CLEAN PRINT: Hide everything except the active receipt */
+    body > *:not(#print-section):not(#print-section-custom) {
         display: none !important;
     }
 
-    /* Explicitly hide fixed-position elements (bypassed by body rule in all browsers) */
-    #view-cart-btn,
-    .cart-pill,
-    .kiosk-cart-pill,
-    #cart-container {
+    /* Selective Printing based on Body Class */
+    #print-section, #print-section-custom {
+        display: none !important; /* Hide both by default */
+    }
+
+    body.printing-standard #print-section {
+        display: block !important;
+        position: relative !important;
+        width: 100% !important;
+        visibility: visible !important;
+    }
+
+    body.printing-custom #print-section-custom {
+        display: block !important;
+        position: relative !important;
+        width: 100% !important;
+        visibility: visible !important;
+    }
+
+    #view-cart-btn, .cart-pill, .kiosk-cart-pill, #cart-container, #custom-size-view {
         display: none !important;
         visibility: hidden !important;
     }
 
-    #print-section {
-        display: block !important;
-        position: relative !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        visibility: visible !important;
-    }
-
-    html,
-    body {
+    html, body {
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
@@ -310,16 +315,30 @@ body.kiosk-mode {
         background: white !important;
     }
 
-    #print-section {
+    body.printing-standard #print-section {
+        display: block !important;
         position: absolute;
         left: 0;
         top: 0;
         width: 100% !important;
-        display: block !important;
         background: white !important;
         color: black !important;
         font-size: 14px !important;
         padding: 10px !important;
+        visibility: visible !important;
+    }
+
+    body.printing-custom #print-section-custom {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        background: white !important;
+        color: black !important;
+        font-size: 14px !important;
+        padding: 10px !important;
+        visibility: visible !important;
     }
 
     .invoice-box {

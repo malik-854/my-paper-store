@@ -77,7 +77,7 @@
     <div class="header">
         <div class="header-content">
             <h1 class="highlight-bg">Hayyat Paper Store</h1>
-            
+
             <!-- ANNOUNCEMENT BAR (MOVED UP) -->
             <div class="announcement-container">
                 <div class="announcement-wrapper">
@@ -90,8 +90,7 @@
             <!-- SEARCH & CART ROW -->
             <div class="search-cart-row">
                 <div class="search-container">
-                    <input type="text" id="search-input" onkeyup="searchProducts(this.value)"
-                        placeholder="Search">
+                    <input type="text" id="search-input" onkeyup="searchProducts(this.value)" placeholder="Search">
                 </div>
 
                 <div class="cart-bar-container">
@@ -109,6 +108,120 @@
     <div id="loading-indicator" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading products...</p>
+    </div>
+
+    <!-- Custom Size Order View (Hidden by default) -->
+    <div id="custom-size-view" class="custom-view">
+        <div class="custom-view-header">
+            <button class="back-btn" onclick="hideCustomView()">← Back to Store</button>
+            <h2>Custom Size Ordering</h2>
+        </div>
+
+        <div class="custom-view-content">
+            <div class="custom-setup-grid">
+                <!-- STEP 1: Paper Type -->
+                <div class="custom-card">
+                    <label class="custom-label">1. Select Paper Category</label>
+                    <div id="custom-cat-list" class="chip-group">
+                        <!-- Categories will be injected here -->
+                    </div>
+                </div>
+
+                <!-- STEP 2: Select Brand -->
+                <div class="custom-card" id="custom-brand-section" style="display:none;">
+                    <label class="custom-label">2. Select Brand</label>
+                    <div class="chip-group" id="custom-brand-list"></div>
+                </div>
+
+                <!-- STEP 3: Select Grammage (GSM) -->
+                <div class="custom-card" id="custom-gsm-section" style="display:none;">
+                    <label class="custom-label">3. Select Grammage (GSM)</label>
+                    <div class="chip-group" id="custom-gsm-list"></div>
+                </div>
+
+                <!-- STEP 4: Dimensions & Quantity -->
+                <div class="custom-card" id="custom-dim-section" style="display:none;">
+                    <label class="custom-label">4. Dimensions & Quantity</label>
+                    <div class="dim-input-row custom-compact-row">
+                        <div class="input-field narrow-field">
+                            <span>Length</span>
+                            <input type="number" id="custom-len" placeholder="0" oninput="calculateCustomQuote('size')">
+                        </div>
+                        <div class="dim-x">×</div>
+                        <div class="input-field narrow-field">
+                            <span>Width</span>
+                            <input type="number" id="custom-wid" placeholder="0" oninput="calculateCustomQuote('size')">
+                        </div>
+                        <div class="dim-separator"></div>
+                        <div class="input-field narrow-field">
+                            <span>Packets</span>
+                            <input type="number" id="custom-qty" placeholder="Min"
+                                oninput="calculateCustomQuote('qty')">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 5: Customer Info -->
+                <div class="custom-card" id="custom-info-section" style="display:none;">
+                    <label class="custom-label">5. Your Details</label>
+                    <div class="info-input-row">
+                        <div class="input-field">
+                            <span>Full Name</span>
+                            <input type="text" id="custom-name" placeholder="Enter Name"
+                                oninput="calculateCustomQuote('name')">
+                        </div>
+                        <div class="input-field">
+                            <span>Phone Number</span>
+                            <input type="tel" id="custom-phone" placeholder="Enter Phone"
+                                oninput="calculateCustomQuote('phone')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUOTE SUMMARY SIDEBAR -->
+            <div id="custom-quote-card" class="quote-card" style="display:none;">
+                <div class="quote-header">Estimated Quotation</div>
+                <div class="quote-body">
+                    <div class="quote-qty-box">
+                        <div class="quote-line">
+                            <span>Minimum Order</span>
+                            <strong id="quote-moq">--</strong>
+                        </div>
+                    </div>
+                    <div class="quote-line" id="quote-user-qty-row" style="display:none;">
+                        <span>Your Order</span>
+                        <strong id="quote-user-qty" style="color: #28a745;">--</strong>
+                    </div>
+                    <div class="quote-line">
+                        <span>Rate per KG</span>
+                        <strong id="quote-rate">--</strong>
+                    </div>
+                    <div class="quote-line">
+                        <span>Rate per Packet</span>
+                        <strong id="quote-packet-rate">--</strong>
+                    </div>
+                    <div class="quote-line">
+                        <span>Total Weight</span>
+                        <strong id="quote-weight">--</strong>
+                    </div>
+                    <div class="quote-total-box">
+                        <div class="total-label">Total Estimate</div>
+                        <div id="quote-total" class="total-price">Rs 0</div>
+                        <div class="total-sub">Includes cutting & packing</div>
+                    </div>
+
+                    <div class="quote-disclaimer">
+                        ⚠️ Technical review pending. Our team will verify roll widths and contact you to confirm
+                        feasibility.
+                    </div>
+
+                    <button id="custom-submit-btn" class="custom-order-btn" onclick="submitCustomQuote()" disabled>
+                        Request Quote via WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Product Grid -->
@@ -233,6 +346,8 @@
     </div>
 
     <!-- Bottom Sheet for Variations -->
+
+    <!-- Bottom Sheet for Variations -->
     <div id="variation-sheet-overlay" onclick="closeVariationSheet()"></div>
     <div id="variation-sheet">
         <div class="sheet-header">
@@ -243,14 +358,17 @@
             <!-- Variation options will be injected here -->
         </div>
         <!-- Cheaper Options Box (Inside Sheet) -->
-        <div id="sheet-comparison-box" class="comparison-box" style="display: none; margin: 0 20px 15px; border-top: 1px solid #eee; padding-top: 15px;">
+        <div id="sheet-comparison-box" class="comparison-box"
+            style="display: none; margin: 0 20px 15px; border-top: 1px solid #eee; padding-top: 15px;">
             <span class="comparison-title">🔥 کم قیمت والے آپشنز:</span>
             <div class="comparison-cards-container" id="sheet-alt-list"></div>
         </div>
         <div class="sheet-footer">
             <div class="qty-control-sheet">
                 <button class="qty-btn-sheet" onclick="changeSheetQty(-1)">−</button>
-                <input type="number" id="sheet-qty" value="1" min="1" step="1" onfocus="this.select()" oninput="updateSheetUI()" style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
+                <input type="number" id="sheet-qty" value="1" min="1" step="1" onfocus="this.select()"
+                    oninput="updateSheetUI()"
+                    style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
                 <button class="qty-btn-sheet" onclick="changeSheetQty(1)">+</button>
             </div>
             <button id="sheet-add-btn" class="sticky-add-to-cart" onclick="addFromSheetToCart()">
@@ -276,7 +394,8 @@
                 <a href="https://maps.app.goo.gl/3wPNZ4f4WLTYZTgU9" class="footer-link" target="_blank">📍 Visit our
                     Physical Store</a>
                 <span class="footer-divider">|</span>
-                <a href="https://hayyatgroup.com" target="_blank" class="footer-link group-visit-btn-footer">Visit HayyatGroup.com</a>
+                <a href="https://hayyatgroup.com" target="_blank" class="footer-link group-visit-btn-footer">Visit
+                    HayyatGroup.com</a>
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2026 Hayyat Paper Store</p>
