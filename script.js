@@ -16,10 +16,16 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.12.01"; // Added GA4 Ecommerce Event Tracking
+const APP_VERSION = "2026.05.12.02"; // Added GA4 Ecommerce Event Tracking
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
+const CUSTOM_SHEET_NAME = "Custom_Rolls"
+
+let customRollData = {}; // Stores roll info by Category -> Brand -> GSM
+let selectedCustomCategory = null;
+let selectedCustomBrand = null;
+let selectedCustomRoll = null;
 
 const COL = {
     ID: 0, AVAILABILITY: 1, CATEGORY: 2, NAME: 3,
@@ -340,6 +346,7 @@ function setupPaymentListeners() {
 document.addEventListener('DOMContentLoaded', function () {
     loadCart(); // Load persisted cart items
     fetchProducts();
+    fetchCustomRolls(); // Load custom roll options
     setupShippingListeners();
     setupPaymentListeners();
     // handleInitialHash moved to fetchProducts to ensure data is ready
@@ -598,7 +605,7 @@ function group(rows) {
 
     rows.forEach(r => {
         const cat = r[COL.CATEGORY] || 'Uncategorized'
-        
+
         // Build the base item object
         const itemObj = {
             id: r[COL.ID] || Math.random().toString(36).substr(2, 9),
@@ -617,11 +624,11 @@ function group(rows) {
             displaySize: r[COL.DISPLAY_SIZE] || '',  // Custom display text from Column R
             showGSM: !["White Sticker", "Stickers"].includes(cat),  // Control GSM display
             isStickerOnly: cat === "Stickers",  // NEW: Flag for stickers category
-            discountTag: r[COL.DISCOUNT_TAG] || '',      
-            newTag: r[COL.NEW_TAG] || '',               
-            erpCode: r[COL.ERP_CODE] || '',             
-            erpDesc: r[COL.ERP_DESC] || '',             
-            packingType: r[COL.PACKING_TYPE] || 'Weight', 
+            discountTag: r[COL.DISCOUNT_TAG] || '',
+            newTag: r[COL.NEW_TAG] || '',
+            erpCode: r[COL.ERP_CODE] || '',
+            erpDesc: r[COL.ERP_DESC] || '',
+            packingType: r[COL.PACKING_TYPE] || 'Weight',
             halfQty: (r[COL.HALF_QTY] || '').trim().toUpperCase() === 'YES',
             evenOnly: (r[COL.EVEN_ONLY] || '').trim().toUpperCase() === 'YES',
             multiple15: (r[COL.MULTIPLE_1_5] || '').trim().toUpperCase() === 'YES',
@@ -810,6 +817,17 @@ function renderProducts(groups, isSearch = false) {
 
     let mainHtml = "";
 
+    // ADD CUSTOM SIZE TILE (Only on home/main view if rolls data exists)
+    if (!isSearch && Object.keys(customRollData).length > 0) {
+        mainHtml += `
+            <div class="category-section custom-size-tile" onclick="showCustomView()">
+                <div class="category-header">
+                    <span>Custom Size</span>
+                </div>
+            </div>
+        `;
+    }
+
     Object.keys(groups).forEach((cat, index) => {
         const catKey = safeKey(cat);
         const isClearance = cat === "Clearance Sale";
@@ -832,7 +850,7 @@ function renderProducts(groups, isSearch = false) {
             let subCatItemsHtml = "";
             const subItems = subGroups[subCatName];
             const grouped = {};
-            
+
             subItems.forEach(i => {
                 const key = safeKey(cat + "_" + i.name);
                 if (!grouped[key]) grouped[key] = { name: i.name, variations: [], hasColors: i.hasColors, colorOptions: i.colorOptions };
@@ -1967,8 +1985,8 @@ async function addToCart(key) {
 
     // Create unique cart key - Category-Independent to prevent duplicates
     // We identify the item solely by its physical properties (Name, Size, GSM, Brand, Color)
-    const cartKey = safeKey(p.name.trim() + "_" + p.size + "_" + p.gsm + 
-        (p.displaySize ? "_" + p.displaySize : "") + 
+    const cartKey = safeKey(p.name.trim() + "_" + p.size + "_" + p.gsm +
+        (p.displaySize ? "_" + p.displaySize : "") +
         (p.color ? "_" + p.color : ""));
 
     const cartItem = {
@@ -2554,7 +2572,7 @@ function toggleClearanceSub(event, subCatKey) {
         // CLOSE SUB-TILE
         section.classList.remove("expanded");
         content.style.maxHeight = "0px";
-        
+
         // Show all other sub-tiles in this section
         parent.querySelectorAll('.clearance-sub-tile').forEach(t => {
             t.classList.remove("hidden-sub");
@@ -2570,7 +2588,7 @@ function toggleClearanceSub(event, subCatKey) {
 
         section.classList.add("expanded");
         content.style.maxHeight = "10000px";
-        
+
         // Scroll to the top of the clearance section
         const mainSection = document.getElementById('section-Clearance_Sale');
         if (mainSection) {
@@ -3136,7 +3154,7 @@ async function addFromSheetToCart() {
                 const targetBrand = (p.displaySize || '').trim().toLowerCase();
                 const rowSizeMatch = row[COL.LENGTH] == length && row[COL.WIDTH] == width;
                 const rowGsmMatch = row[COL.GSM] == p.gsm;
-                
+
                 // NEW: Color match for separate color rows
                 const rowColorString = (row[COL.COLOR_OPTIONS] || '').trim().toLowerCase();
                 const targetColor = (p.color || '').trim().toLowerCase();
@@ -3281,4 +3299,312 @@ async function addFromSheetToCart() {
         addBtn.style.backgroundColor = '';
         // closeVariationSheet(); 
     }, 800);
+}
+
+// ============================================================
+// CUSTOM SIZE ORDERING LOGIC
+// ============================================================
+
+async function fetchCustomRolls() {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${CUSTOM_SHEET_NAME}!A2:J?key=${API_KEY}`;
+        const response = await fetch(url);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!data.values) return;
+
+        // Group by Category -> Brand -> GSM
+        // Category(0), Brand(1), GSM(2), MOQ_KG(3), Width(4), Rate_KG(5), Sheets_Per_Pkt(6), Availability(8), Erp(9)
+        const grouped = {};
+        data.values.forEach(r => {
+            if (r[8]?.toUpperCase() !== "YES") return;
+            const cat = r[0];
+            const brand = r[1] || "Generic";
+            const gsm = r[2];
+
+            if (!grouped[cat]) grouped[cat] = {};
+            if (!grouped[cat][brand]) grouped[cat][brand] = {};
+            if (!grouped[cat][brand][gsm]) grouped[cat][brand][gsm] = [];
+
+            grouped[cat][brand][gsm].push({
+                category: cat,
+                brand: brand,
+                gsm: gsm,
+                moq_kg: parseFloat(r[3]) || 500,
+                rollWidth: r[4],
+                rate_kg: parseFloat(r[5]) || 0,
+                sheetsPerPkt: parseInt(r[6]) || 500,
+                erp: r[9]
+            });
+        });
+        customRollData = grouped;
+    } catch (e) { console.error("Custom rolls fetch failed", e); }
+}
+
+function showCustomView() {
+    document.getElementById('custom-size-view').classList.add('active');
+    document.body.style.overflow = 'hidden'; // Stop scroll
+    renderCustomCategories();
+}
+
+function hideCustomView() {
+    document.getElementById('custom-size-view').classList.remove('active');
+    document.body.style.overflow = '';
+    resetCustomView(); // Start fresh next time
+}
+
+function resetCustomView() {
+    selectedCustomCategory = null;
+    selectedCustomBrand = null;
+    selectedCustomRoll = null;
+
+    // Clear all inputs and placeholders
+    const inputs = ['custom-len', 'custom-wid', 'custom-qty', 'custom-name', 'custom-phone'];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.value = '';
+            el.placeholder = (id === 'custom-qty') ? 'Min' : '0';
+        }
+    });
+
+    // Remove "active" class from all chips
+    document.querySelectorAll('.custom-view .chip').forEach(chip => {
+        chip.classList.remove('active');
+    });
+
+    // Hide sections
+    document.getElementById('custom-brand-section').style.display = 'none';
+    document.getElementById('custom-gsm-section').style.display = 'none';
+    document.getElementById('custom-dim-section').style.display = 'none';
+    document.getElementById('custom-info-section').style.display = 'none';
+    document.getElementById('custom-quote-card').style.display = 'none';
+
+    // Reset sidebar labels
+    document.getElementById('quote-moq').innerText = '--';
+    document.getElementById('quote-total').innerText = 'Rs 0';
+    if (document.getElementById('quote-rate')) document.getElementById('quote-rate').innerText = '--';
+    if (document.getElementById('quote-packet-rate')) document.getElementById('quote-packet-rate').innerText = '--';
+
+    const userQtyRow = document.getElementById('quote-user-qty-row');
+    if (userQtyRow) userQtyRow.style.display = 'none';
+}
+
+function renderCustomCategories() {
+    const list = document.getElementById('custom-cat-list');
+    list.innerHTML = Object.keys(customRollData).map(cat => `
+        <div class="chip ${selectedCustomCategory === cat ? 'active' : ''}" 
+             onclick="selectCustomCategory('${cat}')">${cat}</div>
+    `).join('');
+}
+
+function selectCustomCategory(cat) {
+    selectedCustomCategory = cat;
+    selectedCustomBrand = null;
+    selectedCustomRoll = null;
+    renderCustomCategories();
+
+    // Reset following steps
+    document.getElementById('custom-brand-section').style.display = 'block';
+    document.getElementById('custom-gsm-section').style.display = 'none';
+    document.getElementById('custom-dim-section').style.display = 'none';
+    document.getElementById('custom-info-section').style.display = 'none';
+    document.getElementById('custom-quote-card').style.display = 'none';
+
+    const brandList = document.getElementById('custom-brand-list');
+    const brands = Object.keys(customRollData[cat]);
+    brandList.innerHTML = brands.map(brand => `
+        <div class="chip" onclick="selectCustomBrand('${brand}')">${brand}</div>
+    `).join('');
+}
+
+function selectCustomBrand(brand) {
+    selectedCustomBrand = brand;
+    selectedCustomRoll = null;
+
+    // Update active states
+    const chips = document.querySelectorAll('#custom-brand-list .chip');
+    chips.forEach(c => c.classList.remove('active'));
+
+    // Logic to find which chip was clicked
+    const clickedChip = Array.from(chips).find(c => c.innerText === brand);
+    if (clickedChip) clickedChip.classList.add('active');
+
+    document.getElementById('custom-gsm-section').style.display = 'block';
+    document.getElementById('custom-dim-section').style.display = 'none';
+    document.getElementById('custom-info-section').style.display = 'none';
+
+    const gsmList = document.getElementById('custom-gsm-list');
+    const gsms = Object.keys(customRollData[selectedCustomCategory][brand]);
+    gsmList.innerHTML = gsms.map(gsm => `
+        <div class="chip" onclick="selectCustomGsm('${gsm}')">${gsm} GSM</div>
+    `).join('');
+}
+
+function selectCustomGsm(gsm) {
+    // Pick the first roll option for this Category -> Brand -> GSM
+    selectedCustomRoll = customRollData[selectedCustomCategory][selectedCustomBrand][gsm][0];
+
+    // Update active states
+    const chips = document.querySelectorAll('#custom-gsm-list .chip');
+    chips.forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+
+    document.getElementById('custom-dim-section').style.display = 'block';
+    document.getElementById('custom-info-section').style.display = 'block';
+    document.getElementById('custom-quote-card').style.display = 'block';
+
+    calculateCustomQuote('size');
+}
+
+function calculateCustomQuote(source) {
+    if (!selectedCustomRoll) return;
+
+    const L = parseFloat(document.getElementById('custom-len').value) || 0;
+    const W = parseFloat(document.getElementById('custom-wid').value) || 0;
+    const name = document.getElementById('custom-name').value.trim();
+    const phone = document.getElementById('custom-phone').value.trim();
+    const gsm = parseFloat(selectedCustomRoll.gsm);
+    const rate = selectedCustomRoll.rate_kg;
+    const sheetsPerPkt = selectedCustomRoll.sheetsPerPkt;
+    const moq_kg = selectedCustomRoll.moq_kg;
+
+    if (L > 0 && W > 0) {
+        // MATH: Weight (KG) = (L * W * GSM) / 1,550,000
+        const sheetWeight = (L * W * gsm) / 1550000;
+        const pktWeight = sheetWeight * sheetsPerPkt;
+
+        // MOQ (Packets) = MOQ_KG / pktWeight
+        const moqPkts = Math.ceil(moq_kg / pktWeight);
+        const pktPrice = Math.round(pktWeight * rate);
+
+        // Manage Quantity Input
+        const qtyInput = document.getElementById('custom-qty');
+        qtyInput.placeholder = moqPkts; // Set greyed out minimum
+
+        let enteredQty = parseInt(qtyInput.value) || 0;
+
+        // Reset if size changed, otherwise let user type freely
+        if (source === 'size') {
+            qtyInput.value = moqPkts;
+            enteredQty = moqPkts;
+        }
+
+        // Calculation uses the HIGHER of (entered quantity) or (MOQ)
+        const finalQtyForMath = Math.max(enteredQty, moqPkts);
+
+        const totalWeight = pktWeight * finalQtyForMath;
+
+        document.getElementById('quote-moq').innerText = `${moqPkts} Packets`;
+
+        // Show "Your Order" row for clarity
+        const userQtyRow = document.getElementById('quote-user-qty-row');
+        const userQtyText = document.getElementById('quote-user-qty');
+        if (userQtyRow) {
+            userQtyRow.style.display = 'flex';
+            if (enteredQty > 0 && enteredQty < moqPkts) {
+                userQtyText.innerHTML = `${enteredQty} <span style="font-size: 0.8rem; color: #e67e22;">(Min ${moqPkts} applied)</span>`;
+            } else {
+                userQtyText.innerText = `${enteredQty || moqPkts} Packets`;
+                userQtyText.style.color = '#28a745';
+            }
+        }
+
+        document.getElementById('quote-rate').innerText = `Rs ${rate}/KG`;
+        document.getElementById('quote-packet-rate').innerText = `Rs ${pktPrice.toLocaleString()}/Pkt`;
+        document.getElementById('quote-weight').innerText = `${totalWeight.toFixed(1)} KG`;
+        document.getElementById('quote-total').innerText = `Rs ${(pktPrice * finalQtyForMath).toLocaleString()}`;
+
+        // Enable submit button if info is provided
+        const btn = document.getElementById('custom-submit-btn');
+        if (name && phone && phone.length > 7) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    } else {
+        document.getElementById('quote-moq').innerText = '--';
+        document.getElementById('quote-total').innerText = 'Rs 0';
+        document.getElementById('custom-submit-btn').disabled = true;
+    }
+}
+
+async function submitCustomQuote() {
+    const L = document.getElementById('custom-len').value;
+    const W = document.getElementById('custom-wid').value;
+    const qtyInput = document.getElementById('custom-qty');
+    const name = document.getElementById('custom-name').value;
+    const phone = document.getElementById('custom-phone').value;
+    const total = document.getElementById('quote-total').innerText;
+    const btn = document.getElementById('custom-submit-btn');
+
+    // FINAL VALIDATION
+    const moq = parseInt(qtyInput.placeholder);
+    let qty = parseInt(qtyInput.value) || 0;
+
+    if (qty < moq) {
+        alert(`Note: The minimum order for this size is ${moq} packets. We have updated your request to the minimum.`);
+        qtyInput.value = moq;
+        qty = moq;
+        calculateCustomQuote('qty');
+        return; // Let user see the update before sending
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = 'Sending...';
+
+    const kgRate = document.getElementById('quote-rate').innerText;
+    const pktRate = document.getElementById('quote-packet-rate').innerText;
+    const weight = document.getElementById('quote-weight').innerText;
+
+    // 1. FORMAT WHATSAPP MESSAGE
+    const msg = `*NEW CUSTOM QUOTE REQUEST*\n` +
+        `--------------------------\n` +
+        `👤 Name: ${name}\n` +
+        `📞 Phone: ${phone}\n` +
+        `📄 Paper: ${selectedCustomCategory}\n` +
+        `🏷️ Brand: ${selectedCustomBrand}\n` +
+        `⚖️ GSM: ${selectedCustomRoll.gsm}\n` +
+        `📏 Size: ${L} x ${W} inches\n` +
+        `📦 Quantity: ${qty} Packets\n` +
+        `⚖️ Rate: ${kgRate}\n` +
+        `📦 Rate: ${pktRate}\n` +
+        `⚖️ Total Weight: ${weight}\n` +
+        `💰 Est. Total: ${total}\n` +
+        `--------------------------\n` +
+        `_Technical review pending._`;
+
+    const whatsappUrl = `https://wa.me/923036470666?text=${encodeURIComponent(msg)}`;
+
+    // 2. SEND EMAIL NOTIFICATION (Using new webhook)
+    const emailData = {
+        customerName: name + " (CUSTOM QUOTE)",
+        customerPhone: phone,
+        orderSummary: `${selectedCustomCategory} (${selectedCustomBrand}) | ${L}x${W} (Custom) | ${selectedCustomRoll.gsm} GSM | ${qty} Packets`,
+        kgRate: kgRate,
+        pktRate: pktRate,
+        orderTotal: total.replace(/\D/g, ''),
+        orderWeight: weight
+    };
+
+    try {
+        await fetch('https://script.google.com/macros/s/AKfycbw6NJf-nOQgbDRndWWtaFzKPFFR_66MSV-0C0RW4IOvAkKdPPwk2_eXD0EeIUw2sjs/exec', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emailData)
+        });
+    } catch (e) { console.error("Email notification failed", e); }
+
+    // 3. OPEN WHATSAPP
+    window.open(whatsappUrl, '_blank');
+
+    // 4. SHOW SUCCESS
+    btn.innerHTML = '✅ Quote Requested!';
+    setTimeout(() => {
+        hideCustomView();
+        btn.innerHTML = 'Request Quote via WhatsApp';
+        resetCustomView(); // Ensure total reset
+    }, 3000);
 }
