@@ -3327,3 +3327,289 @@ body {
         display: none !important;
     }
 }
+
+/* ============================================================
+   CUSTOM SIZE ORDERING STYLES
+   ============================================================ */
+
+.custom-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    z-index: 2000;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.custom-view.active {
+    display: flex;
+    animation: slideInCustom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInCustom {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+.custom-view-header {
+    background: #fff;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.custom-view-header h2 {
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+.back-btn {
+    background: #f1f3f5;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-right: 20px;
+    transition: background 0.2s;
+}
+
+.back-btn:hover { background: #e9ecef; }
+
+.custom-view-content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 30px;
+    width: 100%;
+}
+
+.custom-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    border: 1px solid #eee;
+}
+
+.custom-label {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d3436;
+    margin-bottom: 15px;
+}
+
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chip {
+    padding: 12px 20px;
+    background: #f1f3f5;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.chip:hover { background: #e9ecef; }
+.chip.active {
+    background: #e7f5ff;
+    border-color: #228be6;
+    color: #228be6;
+}
+
+.dim-input-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.input-field {
+    flex: 1;
+}
+
+.input-field span {
+    display: block;
+    font-size: 0.85rem;
+    color: #868e96;
+    margin-bottom: 5px;
+}
+
+.input-field input, .info-input-row input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    transition: border-color 0.2s;
+}
+
+.input-field input:focus, .info-input-row input:focus {
+    border-color: #228be6;
+    outline: none;
+}
+
+.input-field.narrow-field {
+    flex: 0 1 100px;
+}
+
+.input-field.narrow-field input {
+    padding: 12px;
+    text-align: center;
+}
+
+.custom-compact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dim-separator {
+    width: 1px;
+    height: 40px;
+    background: #dee2e6;
+    margin: 20px 15px 0;
+    align-self: center;
+}
+
+.dim-x {
+    font-size: 1.2rem;
+    color: #adb5bd;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+.info-input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* Quote Card */
+.quote-card {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    border: 1px solid #eee;
+}
+
+.quote-header {
+    background: #2d3436;
+    color: #fff;
+    padding: 15px;
+    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.quote-body { padding: 25px; }
+
+.quote-qty-box {
+    background: #f1f3f5;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px dashed #dee2e6;
+}
+
+.quote-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 1.05rem;
+}
+
+.quote-line strong { color: #228be6; }
+
+.quote-total-box {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.total-label { font-size: 0.9rem; color: #868e96; margin-bottom: 5px; }
+.total-price { font-size: 2.2rem; font-weight: 800; color: #FF5C40; }
+.total-sub { font-size: 0.8rem; color: #adb5bd; }
+
+.quote-disclaimer {
+    background: #fff9db;
+    border: 1px solid #fff3bf;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: #856404;
+    margin-bottom: 20px;
+    line-height: 1.4;
+}
+
+.custom-order-btn {
+    width: 100%;
+    padding: 18px;
+    background: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 15px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.custom-order-btn:hover { background: #218838; transform: translateY(-2px); }
+.custom-order-btn:disabled {
+    background: #dee2e6;
+    color: #adb5bd;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Custom Tile on Home (Now standard size) */
+.custom-size-tile {
+    background: white;
+}
+
+.custom-size-tile .category-header {
+    background: linear-gradient(135deg, #4c0099, #330066) !important;
+}
+
+.custom-size-tile .category-header::after {
+    content: "⚡" !important;
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 900px) {
+    .custom-view-content { grid-template-columns: 1fr; }
+    .quote-card { position: static; }
+    .info-input-row { grid-template-columns: 1fr; }
+    .custom-order-tile { padding: 30px; flex-direction: column; text-align: center; }
+    .custom-tile-icon { display: none; }
+}
