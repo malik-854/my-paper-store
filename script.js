@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.05.12.02"; // Added GA4 Ecommerce Event Tracking
+const APP_VERSION = "2026.07.13.01"; // Added promotions banner overlay implementation
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -130,6 +130,7 @@ let globalProducts = {};
 let lunrIndex = null;
 let currentShippingMethod = 'self';
 let usingFallbackData = false;
+let activePromotions = [];
 
 // --- CART PERSISTENCE ---
 function saveCart() {
@@ -477,6 +478,7 @@ async function fetchProducts(options = {}) {
         document.getElementById('view-cart-btn').style.display = 'flex';
         // ADD THIS LINE:
         fetchAnnouncements();  // Load announcements
+        fetchPromotions();     // Load promotions
         generateDynamicSchema(groupedProducts); // NEW: Tell Google about these dynamic categories
         handleInitialHash(); // NEW: Now open the category if the link has a #hash
 
@@ -2645,6 +2647,9 @@ function toggleCategory(categoryKey) {
 
         // Smooth scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Show category promotion if available
+        showPromotionForCategory(categoryName);
     }
 }
 // Expand all categories after products are loaded
@@ -3607,4 +3612,145 @@ async function submitCustomQuote() {
         btn.innerHTML = 'Request Quote via WhatsApp';
         resetCustomView(); // Ensure total reset
     }, 3000);
+}
+
+// ============================================================
+// PROMOTIONS & POSTERS SYSTEM
+// ============================================================
+async function fetchPromotions() {
+    try {
+        const SHEET_NAME = "Promotions";
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:E?key=${API_KEY}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch promotions');
+        }
+
+        const data = await response.json();
+
+        if (!data.values || data.values.length === 0) {
+            console.log('No promotions found');
+            return;
+        }
+
+        activePromotions = [];
+
+        data.values.forEach(row => {
+            if (row.length >= 5) {
+                const imageUrl = row[0] || '';
+                const category = (row[1] || '').trim();
+                const autoClose = parseInt(row[2]) || 0;
+                const linkUrl = row[3] || '';
+                const active = (row[4] || '').toLowerCase().trim();
+
+                if (imageUrl && active === 'yes') {
+                    activePromotions.push({
+                        imageUrl,
+                        category,
+                        autoClose,
+                        linkUrl
+                    });
+                }
+            }
+        });
+
+        console.log('Loaded active promotions:', activePromotions);
+
+        // Only show homepage promotion if visitor didn't deep-link to a specific category
+        if (!window.location.hash || !window.location.hash.startsWith('#cat_')) {
+            showPromotionForCategory('All');
+        }
+
+    } catch (error) {
+        console.error('Error fetching promotions:', error);
+    }
+}
+
+function showPromotionForCategory(category) {
+    // Find promotion matching this category name (case-insensitive)
+    const promo = activePromotions.find(p => p.category.toLowerCase() === category.toLowerCase());
+    if (!promo) return;
+
+    // Check session storage so user only sees it once per browser session
+    const sessionKey = `shown_promo_${category.replace(/\s+/g, '_').toLowerCase()}`;
+    if (sessionStorage.getItem(sessionKey)) {
+        console.log(`Promotion for "${category}" already shown in this session.`);
+        return;
+    }
+
+    // Mark as shown
+    sessionStorage.setItem(sessionKey, 'true');
+
+    // Create or get promotion modal container dynamically
+    let modal = document.getElementById('promo-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'promo-modal';
+        modal.className = 'promo-modal';
+        modal.innerHTML = `
+            <div class="promo-modal-backdrop" onclick="closePromotionModal()"></div>
+            <div class="promo-modal-content">
+                <button class="promo-modal-close" onclick="closePromotionModal()" title="Close">&times;</button>
+                <div class="promo-modal-body">
+                    <a id="promo-modal-link" target="_blank" style="display: block;">
+                        <img id="promo-modal-img" src="" alt="Promotion Banner">
+                    </a>
+                </div>
+                <div id="promo-modal-timer-bar" class="promo-modal-timer-bar"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    const img = document.getElementById('promo-modal-img');
+    const link = document.getElementById('promo-modal-link');
+    const timerBar = document.getElementById('promo-modal-timer-bar');
+
+    img.src = promo.imageUrl;
+
+    if (promo.linkUrl) {
+        link.href = promo.linkUrl;
+        link.style.cursor = 'pointer';
+    } else {
+        link.removeAttribute('href');
+        link.style.cursor = 'default';
+    }
+
+    // Reset styles & timers
+    modal.classList.remove('active');
+    timerBar.style.width = '100%';
+    timerBar.style.transition = 'none';
+
+    // Show modal with animation
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+
+            // Auto close timer
+            if (promo.autoClose > 0) {
+                timerBar.style.display = 'block';
+                setTimeout(() => {
+                    timerBar.style.transition = `width ${promo.autoClose}s linear`;
+                    timerBar.style.width = '0%';
+                }, 50);
+
+                clearTimeout(window._promoTimer);
+                window._promoTimer = setTimeout(() => {
+                    closePromotionModal();
+                }, promo.autoClose * 1000);
+            } else {
+                timerBar.style.display = 'none';
+            }
+        });
+    });
+}
+
+function closePromotionModal() {
+    const modal = document.getElementById('promo-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        clearTimeout(window._promoTimer);
+    }
 }
