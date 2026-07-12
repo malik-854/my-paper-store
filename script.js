@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.07.13.01"; // Added promotions banner overlay implementation
+const APP_VERSION = "2026.07.13.02"; // Added promotions banner overlay implementation
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -2650,6 +2650,7 @@ function toggleCategory(categoryKey) {
 
         // Show category promotion if available
         showPromotionForCategory(categoryName);
+        highlightLandingCard(categoryName);
     }
 }
 // Expand all categories after products are loaded
@@ -3620,7 +3621,7 @@ async function submitCustomQuote() {
 async function fetchPromotions() {
     try {
         const SHEET_NAME = "Promotions";
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:E?key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:F?key=${API_KEY}`;
 
         const response = await fetch(url);
 
@@ -3644,13 +3645,15 @@ async function fetchPromotions() {
                 const autoClose = parseInt(row[2]) || 0;
                 const linkUrl = row[3] || '';
                 const active = (row[4] || '').toLowerCase().trim();
+                const landingCategory = row[5] ? row[5].trim() : '';
 
                 if (imageUrl && active === 'yes') {
                     activePromotions.push({
                         imageUrl,
                         category,
                         autoClose,
-                        linkUrl
+                        linkUrl,
+                        landingCategory
                     });
                 }
             }
@@ -3661,6 +3664,17 @@ async function fetchPromotions() {
         // Only show homepage promotion if visitor didn't deep-link to a specific category
         if (!window.location.hash || !window.location.hash.startsWith('#cat_')) {
             showPromotionForCategory('All');
+        } else {
+            // Trigger highlight if visitor deep-linked (promotions are now loaded)
+            const hash = window.location.hash.substring(1);
+            if (hash.startsWith('cat_')) {
+                const catKey = hash.replace('cat_', '');
+                const section = document.getElementById(`section-${catKey}`);
+                if (section) {
+                    const categoryName = section.querySelector('.category-header')?.textContent || "";
+                    highlightLandingCard(categoryName);
+                }
+            }
         }
 
     } catch (error) {
@@ -3669,18 +3683,26 @@ async function fetchPromotions() {
 }
 
 function showPromotionForCategory(category) {
-    // Find promotion matching this category name (case-insensitive)
-    const promo = activePromotions.find(p => p.category.toLowerCase() === category.toLowerCase());
-    if (!promo) return;
+    // 1. Find all active promotions matching this category name (case-insensitive)
+    const promos = activePromotions.filter(p => p.category.toLowerCase() === category.toLowerCase());
+    if (promos.length === 0) return;
 
-    // Check session storage so user only sees it once per browser session
-    const sessionKey = `shown_promo_${category.replace(/\s+/g, '_').toLowerCase()}`;
-    if (sessionStorage.getItem(sessionKey)) {
-        console.log(`Promotion for "${category}" already shown in this session.`);
+    // 2. Filter out promotions already shown in this browser session (tracked by image URL)
+    const unseenPromos = promos.filter(p => {
+        const sessionKey = `shown_promo_img_${p.imageUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        return !sessionStorage.getItem(sessionKey);
+    });
+
+    if (unseenPromos.length === 0) {
+        console.log(`All promotions for "${category}" already shown in this session.`);
         return;
     }
 
-    // Mark as shown
+    // Take the first unseen promotion
+    const promo = unseenPromos[0];
+
+    // Mark this specific promotion as shown
+    const sessionKey = `shown_promo_img_${promo.imageUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
     sessionStorage.setItem(sessionKey, 'true');
 
     // Create or get promotion modal container dynamically
@@ -3689,20 +3711,22 @@ function showPromotionForCategory(category) {
         modal = document.createElement('div');
         modal.id = 'promo-modal';
         modal.className = 'promo-modal';
-        modal.innerHTML = `
-            <div class="promo-modal-backdrop" onclick="closePromotionModal()"></div>
-            <div class="promo-modal-content">
-                <button class="promo-modal-close" onclick="closePromotionModal()" title="Close">&times;</button>
-                <div class="promo-modal-body">
-                    <a id="promo-modal-link" target="_blank" style="display: block;">
-                        <img id="promo-modal-img" src="" alt="Promotion Banner">
-                    </a>
-                </div>
-                <div id="promo-modal-timer-bar" class="promo-modal-timer-bar"></div>
-            </div>
-        `;
         document.body.appendChild(modal);
     }
+
+    // Update innerHTML with category context for close triggers
+    modal.innerHTML = `
+        <div class="promo-modal-backdrop" onclick="closePromotionModal('${category}')"></div>
+        <div class="promo-modal-content">
+            <button class="promo-modal-close" onclick="closePromotionModal('${category}')" title="Close">&times;</button>
+            <div class="promo-modal-body">
+                <a id="promo-modal-link" target="_blank" style="display: block;">
+                    <img id="promo-modal-img" src="" alt="Promotion Banner">
+                </a>
+            </div>
+            <div id="promo-modal-timer-bar" class="promo-modal-timer-bar"></div>
+        </div>
+    `;
 
     const img = document.getElementById('promo-modal-img');
     const link = document.getElementById('promo-modal-link');
@@ -3711,7 +3735,18 @@ function showPromotionForCategory(category) {
     img.src = promo.imageUrl;
 
     if (promo.linkUrl) {
-        link.href = promo.linkUrl;
+        let targetUrl = promo.linkUrl;
+        const isLocal = window.location.protocol === 'file:' ||
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1';
+
+        if (isLocal && (targetUrl.includes('hayyatstore.com') || targetUrl.includes('www.hayyatstore.com'))) {
+            const hashIndex = targetUrl.indexOf('#');
+            const hash = hashIndex !== -1 ? targetUrl.substring(hashIndex) : '';
+            const localBase = window.location.href.split('#')[0].split('?')[0];
+            targetUrl = localBase + hash;
+        }
+        link.href = targetUrl;
         link.style.cursor = 'pointer';
     } else {
         link.removeAttribute('href');
@@ -3738,7 +3773,7 @@ function showPromotionForCategory(category) {
 
                 clearTimeout(window._promoTimer);
                 window._promoTimer = setTimeout(() => {
-                    closePromotionModal();
+                    closePromotionModal(category);
                 }, promo.autoClose * 1000);
             } else {
                 timerBar.style.display = 'none';
@@ -3747,10 +3782,65 @@ function showPromotionForCategory(category) {
     });
 }
 
-function closePromotionModal() {
+function closePromotionModal(categoryToContinue) {
     const modal = document.getElementById('promo-modal');
     if (modal) {
         modal.classList.remove('active');
         clearTimeout(window._promoTimer);
+
+        if (categoryToContinue) {
+            // Wait for fade-out animation (400ms) before showing the next one
+            setTimeout(() => {
+                showPromotionForCategory(categoryToContinue);
+            }, 400);
+        }
     }
+}
+
+function highlightLandingCard(categoryName) {
+    // Find any active promotion that has a landingCategory defined
+    // and targets either this categoryName or "All"
+    const promo = activePromotions.find(p =>
+        p.landingCategory &&
+        (p.category.toLowerCase().trim() === categoryName.toLowerCase().trim() || p.category.toLowerCase().trim() === 'all')
+    );
+
+    if (!promo || !promo.landingCategory) return;
+
+    const targetBrandName = promo.landingCategory.trim();
+
+    // To avoid annoying animation loop, only animate once per session
+    const sessionKey = `animated_brand_${targetBrandName.replace(/\s+/g, '_').toLowerCase()}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+
+    // Wait for the category section expansion to finish rendering and layout (e.g. 600ms)
+    setTimeout(() => {
+        // Find all product cards in the DOM
+        const cards = document.querySelectorAll('.product-card');
+        let targetCard = null;
+
+        for (const card of cards) {
+            const h3 = card.querySelector('h3');
+            if (h3 && h3.textContent.trim().toLowerCase() === targetBrandName.toLowerCase()) {
+                targetCard = card;
+                break;
+            }
+        }
+
+        if (targetCard) {
+            console.log(`Animating landing card for: ${targetBrandName}`);
+
+            // Mark as animated in session storage
+            sessionStorage.setItem(sessionKey, 'true');
+
+            // Scroll card into view
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Apply flash/bounce animation
+            targetCard.classList.add('blink-highlight');
+            setTimeout(() => {
+                targetCard.classList.remove('blink-highlight');
+            }, 5000); // Highlight for 5 seconds matching blink-orange duration
+        }
+    }, 600);
 }
