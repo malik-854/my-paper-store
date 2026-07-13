@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.07.13.02"; // Added promotions banner overlay implementation
+const APP_VERSION = "2026.07.13.03"; // Added promotions banner overlay implementation
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -3687,23 +3687,26 @@ function showPromotionForCategory(category) {
     const promos = activePromotions.filter(p => p.category.toLowerCase() === category.toLowerCase());
     if (promos.length === 0) return;
 
-    // 2. Filter out promotions already shown in this browser session (tracked by image URL)
+    // 2. Filter out promotions shown in the last 5 minutes (tracked by image URL in localStorage)
     const unseenPromos = promos.filter(p => {
-        const sessionKey = `shown_promo_img_${p.imageUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        return !sessionStorage.getItem(sessionKey);
+        const storageKey = `shown_promo_img_${p.imageUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const lastShown = localStorage.getItem(storageKey);
+        if (!lastShown) return true;
+        const timeDiff = Date.now() - parseInt(lastShown, 10);
+        return timeDiff > 300000; // 5 minutes in milliseconds
     });
 
     if (unseenPromos.length === 0) {
-        console.log(`All promotions for "${category}" already shown in this session.`);
+        console.log(`All promotions for "${category}" already shown in the last 5 minutes.`);
         return;
     }
 
     // Take the first unseen promotion
     const promo = unseenPromos[0];
 
-    // Mark this specific promotion as shown
-    const sessionKey = `shown_promo_img_${promo.imageUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    sessionStorage.setItem(sessionKey, 'true');
+    // Mark this specific promotion as shown with current timestamp
+    const storageKey = `shown_promo_img_${promo.imageUrl.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    localStorage.setItem(storageKey, Date.now().toString());
 
     // Create or get promotion modal container dynamically
     let modal = document.getElementById('promo-modal');
@@ -3809,9 +3812,10 @@ function highlightLandingCard(categoryName) {
 
     const targetBrandName = promo.landingCategory.trim();
 
-    // To avoid annoying animation loop, only animate once per session
-    const sessionKey = `animated_brand_${targetBrandName.replace(/\s+/g, '_').toLowerCase()}`;
-    if (sessionStorage.getItem(sessionKey)) return;
+    // To avoid annoying animation loop, only animate once every 5 minutes
+    const storageKey = `animated_brand_${targetBrandName.replace(/\s+/g, '_').toLowerCase()}`;
+    const lastAnimated = localStorage.getItem(storageKey);
+    if (lastAnimated && (Date.now() - parseInt(lastAnimated, 10) < 300000)) return;
 
     // Wait for the category section expansion to finish rendering and layout (e.g. 600ms)
     setTimeout(() => {
@@ -3830,8 +3834,8 @@ function highlightLandingCard(categoryName) {
         if (targetCard) {
             console.log(`Animating landing card for: ${targetBrandName}`);
 
-            // Mark as animated in session storage
-            sessionStorage.setItem(sessionKey, 'true');
+            // Mark as animated in local storage with current timestamp
+            localStorage.setItem(storageKey, Date.now().toString());
 
             // Scroll card into view
             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
