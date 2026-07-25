@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.07.14.01"; // Urdu translation and centered fallback banner layout
+const APP_VERSION = "2026.07.25.01"; // remove ads banner
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -479,7 +479,6 @@ async function fetchProducts(options = {}) {
         // ADD THIS LINE:
         fetchAnnouncements();  // Load announcements
         fetchPromotions();     // Load promotions
-        fetchAds();            // Load sponsors/ads
         generateDynamicSchema(groupedProducts); // NEW: Tell Google about these dynamic categories
         handleInitialHash(); // NEW: Now open the category if the link has a #hash
 
@@ -942,20 +941,7 @@ function renderProducts(groups, isSearch = false) {
         }
     });
 
-    // Replace the grid sponsor section with the new rectangular ad banner at the bottom of the grid
-    if (!isSearch && !window.location.pathname.includes('kiosk')) {
-        mainHtml += `
-<div class="bottom-ad-banner" id="bottom-ad-banner" style="display: none;">
-    <div class="ad-banner-slide" id="ad-banner-slide"></div>
-    <div class="ad-badge">Ad</div>
-</div>`;
-        // Re-initialize rotation if promotions are already loaded
-        setTimeout(() => {
-            if (typeof initAdBannerRotation === 'function') {
-                initAdBannerRotation();
-            }
-        }, 50);
-    }
+
 
     wrap.innerHTML = mainHtml;
 }
@@ -3867,196 +3853,4 @@ function highlightLandingCard(categoryName) {
     }, 600);
 }
 
-// ============================================================
-// ADS TAB DATA FETCHING & ROTATION SYSTEM
-// ============================================================
-let activeAds = [];
-let currentAdIndex = 0;
-let adRotationInterval = null;
 
-async function fetchAds() {
-    try {
-        const SHEET_NAME = "Ads";
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A2:D?key=${API_KEY}`;
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch ads');
-        }
-
-        const data = await response.json();
-
-        if (!data.values || data.values.length === 0) {
-            console.log('No ads found in Ads tab');
-            return;
-        }
-
-        activeAds = [];
-
-        data.values.forEach(row => {
-            if (row.length >= 4) {
-                const sponsorName = row[0] || '';
-                const imageUrl = row[1] || '';
-                const linkUrl = row[2] || '';
-                const active = (row[3] || '').toLowerCase().trim();
-
-                if (imageUrl && active === 'yes') {
-                    activeAds.push({
-                        sponsorName,
-                        imageUrl,
-                        linkUrl
-                    });
-                }
-            }
-        });
-
-        console.log('Loaded active ads:', activeAds);
-
-        // Initialize bottom ad banner rotation with live ads
-        if (typeof initAdBannerRotation === 'function') {
-            initAdBannerRotation();
-        }
-
-    } catch (error) {
-        console.error('Error fetching ads:', error);
-        // Call rotation even on error to display fallback banner
-        if (typeof initAdBannerRotation === 'function') {
-            initAdBannerRotation();
-        }
-    }
-}
-
-function initAdBannerRotation() {
-    // Clear any existing interval
-    if (adRotationInterval) {
-        clearInterval(adRotationInterval);
-        adRotationInterval = null;
-    }
-
-    const slideContainer = document.getElementById('ad-banner-slide');
-    const bannerContainer = document.getElementById('bottom-ad-banner');
-    if (!slideContainer || !bannerContainer) return;
-
-    // Create the rotation slides list.
-    // Insert the Urdu and English fallback ad banners at the beginning of the queue
-    const slidesQueue = [];
-
-    // 1. Urdu Fallback Banner
-    slidesQueue.push({
-        isFallback: true,
-        isUrdu: true,
-        imageUrl: '',
-        linkUrl: 'https://wa.me/923136470666?text=I%20want%20to%20advertise%20on%20Hayyat%20Store'
-    });
-
-    // 2. English Fallback Banner
-    slidesQueue.push({
-        isFallback: true,
-        isUrdu: false,
-        imageUrl: '',
-        linkUrl: 'https://wa.me/923136470666?text=I%20want%20to%20advertise%20on%20Hayyat%20Store'
-    });
-
-    // Add live ads afterwards
-    slidesQueue.push(...activeAds);
-
-    bannerContainer.style.display = 'block';
-    currentAdIndex = 0;
-
-    function showAd(index) {
-        const ad = slidesQueue[index];
-        slideContainer.classList.remove('active');
-
-        setTimeout(() => {
-            if (ad.isFallback) {
-                if (ad.isUrdu) {
-                    slideContainer.innerHTML = `
-                        <a href="${ad.linkUrl}" target="_blank" class="fallback-ad-banner">
-                            <div class="fallback-ad-content">
-                                <span class="fallback-ad-title-ur">📢 اپنے کاروبار کا اشتہار دیں</span>
-                                <span class="fallback-ad-desc-ur">پورے پاکستان سے وزٹ کرنے والی پیپر مارکیٹس، پرنٹنگ پریسز، پبلشرز اور خریداروں کو ٹارگٹ کریں۔ تفصیلات کے لیے پر کلک کریں</span>
-                            </div>
-                            <div class="fallback-ad-cta-wrapper">
-                                <div class="fallback-ad-cta-container">
-                                    <span class="fallback-ad-side-label left fallback-ad-side-label-ur">5,000+ وزٹرز</span>
-                                    <span class="ad-arrow-anim right-pointing">»</span>
-                                    <span class="fallback-ad-btn">Book Now</span>
-                                    <span class="ad-arrow-anim left-pointing">«</span>
-                                    <span class="fallback-ad-side-label right fallback-ad-side-label-ur">پورے پاکستان سے</span>
-                                </div>
-                                <span class="fallback-ad-price-tag-ur">اشتہار صرف 5,000 روپے سے شروع</span>
-                            </div>
-                        </a>
-                    `;
-                } else {
-                    slideContainer.innerHTML = `
-                        <a href="${ad.linkUrl}" target="_blank" class="fallback-ad-banner">
-                            <div class="fallback-ad-content">
-                                <span class="fallback-ad-title-en">📢 Advertise Your Business Here</span>
-                                <span class="fallback-ad-desc-en">Target paper markets, printing presses, publishers & buyers visiting from all over Pakistan. Click Book Now for details.</span>
-                            </div>
-                            <div class="fallback-ad-cta-wrapper">
-                                <div class="fallback-ad-cta-container">
-                                    <span class="fallback-ad-side-label left">5,000+ Monthly</span>
-                                    <span class="ad-arrow-anim right-pointing">»</span>
-                                    <span class="fallback-ad-btn">Book Now</span>
-                                    <span class="ad-arrow-anim left-pointing">«</span>
-                                    <span class="fallback-ad-side-label right">Visitors</span>
-                                </div>
-                                <span class="fallback-ad-price-tag-en">Advertising starts from only Rs. 5,000!</span>
-                            </div>
-                        </a>
-                    `;
-                }
-            } else {
-                let linkHtml = '';
-                let targetUrl = ad.linkUrl;
-
-                // Adjust local url if in local environment
-                if (targetUrl) {
-                    const isLocal = window.location.protocol === 'file:' ||
-                        window.location.hostname === 'localhost' ||
-                        window.location.hostname === '127.0.0.1';
-
-                    if (isLocal && (targetUrl.includes('hayyatstore.com') || targetUrl.includes('www.hayyatstore.com'))) {
-                        const hashIndex = targetUrl.indexOf('#');
-                        const hash = hashIndex !== -1 ? targetUrl.substring(hashIndex) : '';
-                        const localBase = window.location.href.split('#')[0].split('?')[0];
-                        targetUrl = localBase + hash;
-                    }
-
-                    linkHtml = `<a href="${targetUrl}" target="_blank" onclick="trackAdClick('${ad.imageUrl}', '${targetUrl}')">
-                        <img src="${ad.imageUrl}" alt="Sponsor Banner">
-                    </a>`;
-                } else {
-                    linkHtml = `<img src="${ad.imageUrl}" alt="Sponsor Banner" style="cursor: default;">`;
-                }
-
-                slideContainer.innerHTML = linkHtml;
-            }
-            slideContainer.classList.add('active');
-        }, 500); // Wait for fade out to finish
-    }
-
-    // Show first ad
-    showAd(currentAdIndex);
-
-    // Rotate if slidesQueue has more than 1 item (which it always will since fallback is appended)
-    if (slidesQueue.length > 1) {
-        adRotationInterval = setInterval(() => {
-            currentAdIndex = (currentAdIndex + 1) % slidesQueue.length;
-            showAd(currentAdIndex);
-        }, 10000); // 10 seconds
-    }
-}
-
-function trackAdClick(imageUrl, targetUrl) {
-    if (typeof gtag === 'function') {
-        gtag('event', 'sponsor_click', {
-            'sponsor_image': imageUrl,
-            'target_url': targetUrl,
-            'placement': 'bottom_banner'
-        });
-    }
-}
