@@ -2653,8 +2653,10 @@ function toggleCategory(categoryKey) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
         // Show category promotion if available
-        showPromotionForCategory(categoryName);
-        highlightLandingCard(categoryName);
+        const posterShown = showPromotionForCategory(categoryName);
+        if (!posterShown) {
+            highlightLandingCard(categoryName);
+        }
     }
 }
 // Expand all categories after products are loaded
@@ -3689,7 +3691,7 @@ async function fetchPromotions() {
 function showPromotionForCategory(category) {
     // 1. Find all active promotions matching this category name (case-insensitive)
     const promos = activePromotions.filter(p => p.category.toLowerCase() === category.toLowerCase());
-    if (promos.length === 0) return;
+    if (promos.length === 0) return false;
 
     // 2. Filter out promotions shown in the last 5 minutes (tracked by image URL in localStorage)
     const unseenPromos = promos.filter(p => {
@@ -3702,7 +3704,7 @@ function showPromotionForCategory(category) {
 
     if (unseenPromos.length === 0) {
         console.log(`All promotions for "${category}" already shown in the last 5 minutes.`);
-        return;
+        return false;
     }
 
     // Take the first unseen promotion
@@ -3727,7 +3729,7 @@ function showPromotionForCategory(category) {
         <div class="promo-modal-content">
             <button class="promo-modal-close" onclick="closePromotionModal('${category}')" title="Close">&times;</button>
             <div class="promo-modal-body">
-                <a id="promo-modal-link" target="_blank" style="display: block;">
+                <a id="promo-modal-link" target="_blank" style="display: block;" onclick="closePromotionModal('${category}')">
                     <img id="promo-modal-img" src="" alt="Promotion Banner">
                 </a>
             </div>
@@ -3787,6 +3789,8 @@ function showPromotionForCategory(category) {
             }
         });
     });
+    
+    return true;
 }
 
 function closePromotionModal(categoryToContinue) {
@@ -3798,19 +3802,29 @@ function closePromotionModal(categoryToContinue) {
         if (categoryToContinue) {
             // Wait for fade-out animation (400ms) before showing the next one
             setTimeout(() => {
-                showPromotionForCategory(categoryToContinue);
+                const nextShown = showPromotionForCategory(categoryToContinue);
+                if (!nextShown) {
+                    highlightLandingCard(categoryToContinue);
+                }
             }, 400);
         }
     }
 }
 
 function highlightLandingCard(categoryName) {
-    // Find any active promotion that has a landingCategory defined
-    // and targets either this categoryName or "All"
-    const promo = activePromotions.find(p =>
+    // 1. First try to find a promotion specifically for THIS category
+    let promo = activePromotions.find(p =>
         p.landingCategory &&
-        (p.category.toLowerCase().trim() === categoryName.toLowerCase().trim() || p.category.toLowerCase().trim() === 'all')
+        p.category.toLowerCase().trim() === categoryName.toLowerCase().trim()
     );
+
+    // 2. If no specific promotion exists, fallback to the "All" promotion
+    if (!promo) {
+        promo = activePromotions.find(p =>
+            p.landingCategory &&
+            p.category.toLowerCase().trim() === 'all'
+        );
+    }
 
     if (!promo || !promo.landingCategory) return;
 
