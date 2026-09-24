@@ -3689,6 +3689,8 @@ async function fetchPromotions() {
 }
 
 function showPromotionForCategory(category) {
+    if (window.location.pathname.includes('a4-kiosk') || window.location.href.includes('a4-kiosk')) return false;
+
     // 1. Find all active promotions matching this category name (case-insensitive)
     const promos = activePromotions.filter(p => p.category.toLowerCase() === category.toLowerCase());
     if (promos.length === 0) return false;
@@ -3789,7 +3791,7 @@ function showPromotionForCategory(category) {
             }
         });
     });
-    
+
     return true;
 }
 
