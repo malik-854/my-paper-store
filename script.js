@@ -3689,7 +3689,7 @@ async function fetchPromotions() {
 }
 
 function showPromotionForCategory(category) {
-    if (window.location.pathname.includes('a4-kiosk') || window.location.href.includes('a4-kiosk')) return false;
+    if (window.location.pathname.includes('kiosk') || window.location.href.includes('kiosk')) return false;
 
     // 1. Find all active promotions matching this category name (case-insensitive)
     const promos = activePromotions.filter(p => p.category.toLowerCase() === category.toLowerCase());
