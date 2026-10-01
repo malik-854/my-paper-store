@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.07.25.01"; // remove ads banner
+const APP_VERSION = "2026.10.01.01"; // remove ads banner
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -129,8 +129,56 @@ let cart = {};
 let globalProducts = {};
 let lunrIndex = null;
 let currentShippingMethod = 'self';
+let currentFulfillmentLocation = 'godown';
 let usingFallbackData = false;
 let activePromotions = [];
+
+function getActivePriceAndRate(item) {
+    const baseR = parseFloat(item.baseRate || item.rate) || 0;
+    const baseP = parseFloat(item.basePrice || item.price) || 0;
+    const isShop = (typeof currentFulfillmentLocation !== 'undefined' && currentFulfillmentLocation === 'shop');
+
+    if (!isShop) return { rate: baseR, price: baseP };
+
+    const cat = (item.category || '').toLowerCase();
+
+    let markup = 1; // Default per kg
+    let isSpecial = false;
+
+    if (cat.includes('carbonless')) {
+        markup = 15;
+        isSpecial = true;
+    } else if (cat.includes('sticker')) {
+        markup = 7;
+        isSpecial = true;
+    } else if (cat.includes('copy paper') || cat.includes('photocopy')) {
+        markup = 3;
+        isSpecial = true;
+    }
+
+    const activeRate = baseR + markup;
+    const activePrice = isSpecial ? (baseP + markup) : (baseP + (markup * (item.weight || 1)));
+    return { rate: activeRate, price: activePrice };
+}
+
+function updateFulfillment(method) {
+    currentFulfillmentLocation = method;
+
+    // Visually highlight the selected option
+    document.querySelectorAll('input[name="fulfillment"]').forEach(input => {
+        const btn = input.closest('.shipping-option-btn');
+        if (btn) {
+            btn.classList.remove('active');
+            if (input.value === method) {
+                btn.classList.add('active');
+            }
+        }
+    });
+
+    renderCart();
+    const shippingElement = document.querySelector('input[name="shipping"]:checked');
+    if (shippingElement) updateShipping(shippingElement.value, false);
+}
 
 // --- CART PERSISTENCE ---
 function saveCart() {
@@ -1536,7 +1584,8 @@ function calculateDeliveryCharges(method = 'open') {
 function updateCheckoutTotal(deliveryCharges) {
     let total = 0
     Object.values(cart).forEach(i => {
-        total += i.price * i.qty
+        const activeVals = getActivePriceAndRate(i);
+        total += activeVals.price * i.qty
     })
 
     const subtotal = total
@@ -1566,10 +1615,11 @@ function generateSummaryText(subtotal, total, totalWeight, deliveryCharges) {
     summaryHtml += `<div style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; font-size: 0.85em;">`
     summaryHtml += `<p style="margin: 0 0 8px 0; font-weight: 700;">Items in Cart:</p>`
     Object.values(cart).forEach(i => {
-        const itemTotal = i.price * i.qty
+        const activeVals = getActivePriceAndRate(i);
+        const itemTotal = activeVals.price * i.qty
         summaryHtml += `<div style="margin-bottom: 5px; padding: 5px 0; border-bottom: 1px dashed #f0f0f0;">
                           ${i.name} (${i.size}, ${i.gsm} GSM${i.selectedBrand ? `, ${i.selectedBrand}` : ''}${i.selectedColor ? `, ${i.selectedColor}` : ''})<br>
-                          <small>${i.qty} × Rs. ${fmt(i.price)} = Rs. ${fmt(itemTotal)} (Rs. ${fmt(i.rate)}/KG)</small>
+                          <small>${i.qty} × Rs. ${fmt(activeVals.price)} = Rs. ${fmt(itemTotal)} (Rs. ${fmt(activeVals.rate)}/KG)</small>
                         </div>`
     })
     summaryHtml += `</div>`
@@ -1997,6 +2047,8 @@ async function addToCart(key) {
 
     const cartItem = {
         ...p,
+        basePrice: p.price,
+        baseRate: p.rate,
         qty,
         selectedColor: selectedColor,
         selectedBrand: selectedBrand,
@@ -2084,7 +2136,8 @@ function renderCart(keysToHighlight = []) {
     let totalWeight = 0
     Object.keys(cart).forEach(k => {
         const item = cart[k]
-        const itemTotalPrice = item.price * item.qty
+        const activeVals = getActivePriceAndRate(item);
+        const itemTotalPrice = activeVals.price * item.qty
         const itemTotalWeight = item.weight * item.qty
         total += itemTotalPrice
         totalWeight += itemTotalWeight
@@ -2111,8 +2164,8 @@ function renderCart(keysToHighlight = []) {
                     <strong>${item.name}</strong><br>
                     <small>${specs}</small><br>
                     <div style="margin-top: 5px;">
-                        Rs ${item.price} &times; ${item.qty} = <strong>Rs ${itemTotalPrice}</strong><br>
-                        <small>${Math.round(itemTotalWeight)} KG @ Rs ${item.rate}/KG</small>
+                        Rs ${activeVals.price} &times; ${item.qty} = <strong>Rs ${itemTotalPrice}</strong><br>
+                        <small>${Math.round(itemTotalWeight)} KG @ Rs ${activeVals.rate}/KG</small>
                     </div>
                     <div class="cart-qty-controls">
                         <button class="cart-qty-btn" onclick="changeCartQty('${k}', -1)" title="Decrease quantity">&#8722;</button>
@@ -2198,7 +2251,8 @@ async function placeOrder() {
     const orderItems = [];
 
     Object.values(cart).forEach(i => {
-        const itemTotal = i.price * i.qty;
+        const activeVals = getActivePriceAndRate(i);
+        const itemTotal = activeVals.price * i.qty;
         const itemWeight = i.weight * i.qty;
         total += itemTotal;
         totalWeight += itemWeight;
@@ -2216,9 +2270,9 @@ async function placeOrder() {
             name: i.name,
             specs: specs,
             qty: i.qty,
-            price: i.price,
+            price: activeVals.price,
             weight: i.weight,
-            rate: i.rate,
+            rate: activeVals.rate,
             total: itemTotal,
             weightTotal: itemWeight
         });
@@ -2270,13 +2324,14 @@ async function placeOrder() {
 
     orderSummary += "---ORDER_ITEMS---\n";
     Object.values(cart).forEach((i, index) => {
-        const itemTotal = i.price * i.qty;
+        const activeVals = getActivePriceAndRate(i);
+        const itemTotal = activeVals.price * i.qty;
         const itemWeight = (i.weight || 0) * i.qty;
         const stockAfter = (i.stock || 0) - i.qty;
 
         // Dynamic ERP formatting logic based on packing type
         const packingId = i.packingType || "Weight";
-        const itemRate = (packingId === "Quantity") ? i.price : i.rate;
+        const itemRate = (packingId === "Quantity") ? activeVals.price : activeVals.rate;
 
         orderSummary += `[ITEM_${index + 1}]\n`;
         orderSummary += `ProductExp: ${i.erpCode || ''}\n`;
@@ -2336,12 +2391,15 @@ async function placeOrder() {
                 value: total,
                 currency: 'PKR',
                 shipping: deliveryCharges,
-                items: Object.values(cart).map(i => ({
-                    item_name: i.name,
-                    item_id: i.id,
-                    price: i.price,
-                    quantity: i.qty
-                }))
+                items: Object.values(cart).map(i => {
+                    const activeVals = getActivePriceAndRate(i);
+                    return {
+                        item_name: i.name,
+                        item_id: i.id,
+                        price: activeVals.price,
+                        quantity: i.qty
+                    };
+                })
             });
         }
 
@@ -3689,7 +3747,7 @@ async function fetchPromotions() {
 }
 
 function showPromotionForCategory(category) {
-    if (window.location.pathname.includes('a4-kiosk') || window.location.href.includes('a4-kiosk')) return false;
+    if (window.location.pathname.includes('kiosk') || window.location.href.includes('kiosk')) return false;
 
     // 1. Find all active promotions matching this category name (case-insensitive)
     const promos = activePromotions.filter(p => p.category.toLowerCase() === category.toLowerCase());
