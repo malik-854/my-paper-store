@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.10.01.01"; // shop vs godown pricing
+const APP_VERSION = "2026.10.01.01"; // remove ads banner
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -142,17 +142,17 @@ function getActivePriceAndRate(item) {
 
     const cat = (item.category || '').toLowerCase();
 
-    let markup = 2; // Default per kg
+    let markup = 1; // Default per kg
     let isSpecial = false;
 
     if (cat.includes('carbonless')) {
-        markup = 30;
-        isSpecial = true;
-    } else if (cat.includes('sticker')) {
         markup = 15;
         isSpecial = true;
+    } else if (cat.includes('sticker')) {
+        markup = 7;
+        isSpecial = true;
     } else if (cat.includes('copy paper') || cat.includes('photocopy')) {
-        markup = 5;
+        markup = 3;
         isSpecial = true;
     }
 
