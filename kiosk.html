@@ -106,6 +106,22 @@
                         <input id="cust-email" class="kiosk-input" placeholder="Enter your email" type="email">
                     </div>
 
+                    <h3 style="margin-bottom:15px; margin-top:20px;">Store Selector</h3>
+                    <div class="shipping-options kiosk-options" style="margin-bottom:25px;">
+                        <label class="shipping-option-btn active" for="fulfillment-godown">
+                            <input type="radio" id="fulfillment-godown" name="fulfillment" value="godown"
+                                onchange="updateFulfillment(this.value)" checked>
+                            <div>🏭 Godown/گودام</div>
+                            <span>Standard Rate</span>
+                        </label>
+                        <label class="shipping-option-btn" for="fulfillment-shop">
+                            <input type="radio" id="fulfillment-shop" name="fulfillment" value="shop"
+                                onchange="updateFulfillment(this.value)">
+                            <div>🏪 Shop/ دکان</div>
+                            <span>Instant Pickup (+2 KG/-)</span>
+                        </label>
+                    </div>
+
                     <h3 style="margin-bottom:15px; margin-top:20px;">Shipping Method</h3>
                     <div class="shipping-options kiosk-options">
                         <label class="shipping-option-btn active" for="shipping-self">
@@ -308,8 +324,12 @@
             </div>
 
             <!-- Urdu Policy Note -->
-            <div style="margin-top: 12px; padding: 10px 12px; border: 2px solid #c0392b; border-radius: 8px; text-align: right; direction: rtl;">
-                <p style="margin: 0; font-size: 16px; font-weight: 900; color: #c0392b; font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif; line-height: 1.8;"><strong>نوٹ: کٹا ہوا یا چھپا ہوا مال واپس یا تبدیل نہی ہوگا</strong></p>
+            <div
+                style="margin-top: 12px; padding: 10px 12px; border: 2px solid #c0392b; border-radius: 8px; text-align: right; direction: rtl;">
+                <p
+                    style="margin: 0; font-size: 16px; font-weight: 900; color: #c0392b; font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif; line-height: 1.8;">
+                    <strong>نوٹ: کٹا ہوا یا چھپا ہوا مال واپس یا تبدیل نہی ہوگا</strong>
+                </p>
             </div>
         </div>
     </div>
@@ -325,14 +345,17 @@
             <!-- Variation options will be injected here -->
         </div>
         <!-- Cheaper Options Box (Inside Sheet) -->
-        <div id="sheet-comparison-box" class="comparison-box" style="display: none; margin: 0 20px 15px; border-top: 1px solid #eee; padding-top: 15px;">
+        <div id="sheet-comparison-box" class="comparison-box"
+            style="display: none; margin: 0 20px 15px; border-top: 1px solid #eee; padding-top: 15px;">
             <span class="comparison-title">🔥 کم قیمت والے آپشنز:</span>
             <div class="alt-list" id="sheet-alt-list"></div>
         </div>
         <div class="sheet-footer">
             <div class="qty-control-sheet">
                 <button class="qty-btn-sheet" onclick="changeSheetQty(-1)">−</button>
-                <input type="number" id="sheet-qty" value="1" min="1" step="1" onfocus="this.select()" oninput="updateSheetUI()" style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
+                <input type="number" id="sheet-qty" value="1" min="1" step="1" onfocus="this.select()"
+                    oninput="updateSheetUI()"
+                    style="width: 60px; text-align: center; border: 1px solid #ddd; border-radius: 8px; height: 40px; font-size: 1.1rem; font-weight: bold;">
                 <button class="qty-btn-sheet" onclick="changeSheetQty(1)">+</button>
             </div>
             <button id="sheet-add-btn" class="sticky-add-to-cart" onclick="addFromSheetToCart()">
@@ -349,7 +372,7 @@
             <button class="back-btn" onclick="hideCustomView()">← Back to Store</button>
             <h2>Custom Size Ordering</h2>
         </div>
-        
+
         <div class="custom-view-content">
             <div class="custom-setup-grid">
                 <!-- STEP 1: Paper Type -->
@@ -386,7 +409,8 @@
                         <div class="dim-separator"></div>
                         <div class="input-field narrow-field">
                             <span>Packets</span>
-                            <input type="number" id="custom-qty" placeholder="Min" oninput="calculateCustomQuote('qty')">
+                            <input type="number" id="custom-qty" placeholder="Min"
+                                oninput="calculateCustomQuote('qty')">
                         </div>
                     </div>
                 </div>
@@ -397,11 +421,13 @@
                     <div class="info-input-row">
                         <div class="input-field">
                             <span>Full Name</span>
-                            <input type="text" id="custom-name" placeholder="Enter Name" oninput="calculateCustomQuote('name')">
+                            <input type="text" id="custom-name" placeholder="Enter Name"
+                                oninput="calculateCustomQuote('name')">
                         </div>
                         <div class="input-field">
                             <span>Phone Number</span>
-                            <input type="tel" id="custom-phone" placeholder="Enter Phone" oninput="calculateCustomQuote('phone')">
+                            <input type="tel" id="custom-phone" placeholder="Enter Phone"
+                                oninput="calculateCustomQuote('phone')">
                         </div>
                     </div>
                 </div>
@@ -458,7 +484,8 @@
         <div id="print-custom-body" style="font-size: 14px; line-height: 1.6;">
             <!-- Content will be injected by kiosk.js -->
         </div>
-        <div style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-size: 12px;">
+        <div
+            style="margin-top: 30px; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-size: 12px;">
             <p>Please show this at the counter.</p>
         </div>
     </div>
