@@ -60,15 +60,18 @@ window.placeOrder = async function () {
     let totalWeight = 0;
     Object.values(cart).forEach(item => { totalWeight += (item.weight * item.qty); });
 
-    const orderItems = Object.values(cart).map(i => ({
-        name: i.name,
-        specs: `${i.size} | ${i.gsm} GSM${i.selectedBrand ? ' | ' + i.selectedBrand : ''}${i.selectedColor ? ' | ' + i.selectedColor : ''}`,
-        qty: i.qty,
-        price: i.price,
-        rate: i.rate, // CRITICAL: Fix for N/A in invoice
-        weight: i.weight,
-        total: i.price * i.qty
-    }));
+    const orderItems = Object.values(cart).map(i => {
+        const activeVals = getActivePriceAndRate(i);
+        return {
+            name: i.name,
+            specs: `${i.size} | ${i.gsm} GSM${i.selectedBrand ? ' | ' + i.selectedBrand : ''}${i.selectedColor ? ' | ' + i.selectedColor : ''}`,
+            qty: i.qty,
+            price: activeVals.price,
+            rate: activeVals.rate, // CRITICAL: Fix for N/A in invoice
+            weight: i.weight,
+            total: activeVals.price * i.qty
+        };
+    });
 
     let subtotalValue = orderItems.reduce((sum, i) => sum + i.total, 0);
     let deliveryCharges = 0;
@@ -128,13 +131,14 @@ window.placeOrder = async function () {
         orderSummary += "---ORDER_ITEMS---\n";
 
         Object.values(cart).forEach((i, index) => {
-            const itemTotal = i.price * i.qty;
+            const activeVals = getActivePriceAndRate(i);
+            const itemTotal = activeVals.price * i.qty;
             const itemWeight = (i.weight || 0) * i.qty;
             const stockAfter = (i.stock || 0) - i.qty;
 
             // Dynamic ERP formatting logic based on packing type
             const packingId = i.packingType || "Weight";
-            const itemRate = (packingId === "Quantity") ? i.price : i.rate;
+            const itemRate = (packingId === "Quantity") ? activeVals.price : activeVals.rate;
 
             orderSummary += `[ITEM_${index + 1}]\n`;
             orderSummary += `ProductExp: ${i.erpCode || ''}\n`;
@@ -342,6 +346,7 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtot
     const body = document.getElementById('print-items-body');
     if (body) {
         body.innerHTML = Object.values(cart).map(i => {
+            const activeVals = getActivePriceAndRate(i);
             const specs = [];
             if (i.size) specs.push(i.size);
             if (i.gsm) specs.push(`${i.gsm} GSM`);
@@ -352,9 +357,9 @@ function prepareReceipt(n, p, id, shippingMethod, paymentMethod, address, subtot
             return `<tr>
                 <td style="padding-top:8px; padding-bottom:8px;"><strong>${i.name}</strong>${specStr}</td>
                 <td style="text-align:center;">${i.qty}</td>
-                <td style="text-align:center;">${i.price}</td>
-                <td style="text-align:center;">${i.rate || '-'}</td>
-                <td style="text-align:right;"><strong>${i.price * i.qty}</strong></td>
+                <td style="text-align:center;">${activeVals.price}</td>
+                <td style="text-align:center;">${activeVals.rate || '-'}</td>
+                <td style="text-align:right;"><strong>${activeVals.price * i.qty}</strong></td>
             </tr>`;
         }).join('');
     }
