@@ -279,6 +279,22 @@
                         <input id="cust-email" placeholder="Enter your email" type="email">
                     </div>
 
+                    <h3 style="margin-bottom:15px;">Store Selector</h3>
+                    <div class="shipping-options" style="margin-bottom:25px;">
+                        <label class="shipping-option-btn active" for="fulfillment-godown">
+                            <input type="radio" id="fulfillment-godown" name="fulfillment" value="godown"
+                                onchange="updateFulfillment(this.value)" checked>
+                            <div>🏭 Godown/گودام</div>
+                            <span>Standard Rate</span>
+                        </label>
+                        <label class="shipping-option-btn" for="fulfillment-shop">
+                            <input type="radio" id="fulfillment-shop" name="fulfillment" value="shop"
+                                onchange="updateFulfillment(this.value)">
+                            <div>🏪 Shop/ دکان</div>
+                            <span>Instant Pickup (+1 KG/-)</span>
+                        </label>
+                    </div>
+
                     <h3 style="margin-bottom:15px;">Shipping Method</h3>
                     <div class="shipping-options">
                         <label class="shipping-option-btn active" for="shipping-self">
