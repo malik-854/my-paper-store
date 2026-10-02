@@ -16,7 +16,7 @@ OneSignalDeferred.push(async function (OneSignal) {
 
 
 // Configuration
-const APP_VERSION = "2026.10.01.01"; // remove ads banner
+const APP_VERSION = "2026.10.02.01"; // remove ads banner
 const SPREADSHEET_ID = "1-KuOU3Kj4Yo6afuGN5qENwAlGvGUORQSz8qfcNCqv18"
 const API_KEY = "AIzaSyA05kFZ9ejXco6wpLFfV8WUVaUBbjnhhVI"
 const SHEET_NAME = "Sheet1"
@@ -129,7 +129,8 @@ let cart = {};
 let globalProducts = {};
 let lunrIndex = null;
 let currentShippingMethod = 'self';
-let currentFulfillmentLocation = 'godown';
+let currentFulfillmentLocation = '';
+let manualFulfillmentLocation = '';
 let usingFallbackData = false;
 let activePromotions = [];
 
@@ -163,6 +164,7 @@ function getActivePriceAndRate(item) {
 
 function updateFulfillment(method) {
     currentFulfillmentLocation = method;
+    manualFulfillmentLocation = method;
 
     // Visually highlight the selected option
     document.querySelectorAll('input[name="fulfillment"]').forEach(input => {
@@ -2134,6 +2136,34 @@ function renderCart(keysToHighlight = []) {
 
     let total = 0
     let totalWeight = 0
+
+    // ✅ FEATURE: Hide Fulfillment Option if under 400kg
+    let preCalcWeight = 0;
+    Object.values(cart).forEach(item => {
+        preCalcWeight += item.weight * item.qty;
+    });
+
+    const fulfillmentSections = document.querySelectorAll('#fulfillment-selector-container');
+    fulfillmentSections.forEach(section => {
+        if (preCalcWeight >= 400) {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+            // Force reset to Godown behind scenes securely
+            if (currentFulfillmentLocation !== 'godown') {
+                currentFulfillmentLocation = 'godown';
+                document.querySelectorAll('input[name="fulfillment"]').forEach(input => {
+                    const btn = input.closest('.shipping-option-btn');
+                    if (btn) {
+                        btn.classList.remove('active');
+                        if (input.value === 'godown') btn.classList.add('active');
+                        input.checked = (input.value === 'godown');
+                    }
+                });
+            }
+        }
+    });
+
     Object.keys(cart).forEach(k => {
         const item = cart[k]
         const activeVals = getActivePriceAndRate(item);
@@ -2195,13 +2225,27 @@ let isOrderBeingPlaced = false; // ADD THIS LINE AT TOP
 
 // Updated placeOrder() function with link generation and email copy
 async function placeOrder() {
-    // ⬇️ ADD THESE 2 LINES AT THE START ⬇️
     const btn = document.querySelector('.whatsapp-btn');
-    if (btn.disabled) return; else btn.innerHTML = '<span class="whatsapp-icon">⏳</span> Saving...', btn.disabled = true;
+    if (btn.disabled) return;
+
+    let preCalcWeight = 0;
+    Object.values(cart).forEach(item => { preCalcWeight += item.weight * item.qty; });
+    if (preCalcWeight >= 400 && currentFulfillmentLocation === '') {
+        alert("Please select a Store Selector option (Godown or Shop) before placing your order.");
+        return;
+    }
+
+    btn.innerHTML = '<span class="whatsapp-icon">⏳</span> Saving...';
+    btn.disabled = true;
+
     // Generate unique Order ID
     const timestamp = Date.now();
     const random = Math.random().toString(36).substr(2, 6).toUpperCase();
-    const orderId = `HAYYAT-${timestamp}-${random}`;
+    let orderId = `HAYYAT-${timestamp}-${random}`;
+
+    if (preCalcWeight >= 400 && currentFulfillmentLocation) {
+        orderId += `-${currentFulfillmentLocation.toUpperCase()}`;
+    }
 
     // Generate invoice link
     const invoiceLink = `https://www.hayyatstore.com/order.html?id=${orderId}`;
@@ -3926,5 +3970,3 @@ function highlightLandingCard(categoryName) {
         }
     }, 600);
 }
-
-
