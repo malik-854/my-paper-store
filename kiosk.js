@@ -46,10 +46,21 @@ window.placeOrder = async function () {
         return;
     }
 
+    let preCalcWeight = 0;
+    Object.values(cart).forEach(item => { preCalcWeight += item.weight * item.qty; });
+    if (preCalcWeight >= 400 && currentFulfillmentLocation === '') {
+        alert("Please select a Store Selector option (Godown or Shop) before placing your order.");
+        return;
+    }
+
     const btn = document.querySelector('.whatsapp-btn');
     if (btn) { btn.innerHTML = '⏳ Saving...', btn.disabled = true; }
 
-    const orderId = `HAYYAT-KIOSK-${Date.now()}`;
+    let orderId = `HAYYAT-KIOSK-${Date.now()}`;
+    if (preCalcWeight >= 400 && currentFulfillmentLocation) {
+        orderId += `-${currentFulfillmentLocation.toUpperCase()}`;
+    }
+
     const name = nameInput.value.trim();
     const phone = phoneInput.value.trim();
     const address = document.getElementById("delivery-address").value;
