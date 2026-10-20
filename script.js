@@ -143,7 +143,7 @@ function getActivePriceAndRate(item) {
 
     const cat = (item.category || '').toLowerCase();
 
-    let markup = 1; // Default per kg
+    let markup = 1.5; // Default per kg
     let isSpecial = false;
 
     if (cat.includes('carbonless')) {
@@ -158,7 +158,7 @@ function getActivePriceAndRate(item) {
     }
 
     const activeRate = baseR + markup;
-    const activePrice = isSpecial ? (baseP + markup) : (baseP + (markup * (item.weight || 1)));
+    const activePrice = Math.round(isSpecial ? (baseP + markup) : (baseP + (markup * (item.weight || 1))));
     return { rate: activeRate, price: activePrice };
 }
 
@@ -3970,3 +3970,5 @@ function highlightLandingCard(categoryName) {
         }
     }, 600);
 }
+
+
